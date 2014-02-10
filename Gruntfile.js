@@ -2,7 +2,7 @@ module.exports = function(grunt) {
 
   // Project configuration.
   grunt.initConfig({
-    pkg: grunt.file.readJSON('package.json'),
+    pkg: grunt.file.readJSON('teligent-osdk.json'),
     banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
@@ -40,10 +40,12 @@ module.exports = function(grunt) {
           'libs/jssip/jssip.js',
           'libs/crocodile-msrp/crocodile-msrp.js',
           'libs/jsjac/jsjac.js',
-	  'libs/jso/jso.js',
-          'src/osdk.js'
+          'libs/jso/jso.js',
+          'src/osdk.namespace.js',
+          'src/osdk.utils.js',
+          'src/osdk.jquery.js'
         ],
-        dest: 'build/<%= pkg.name %>.js'
+        dest: 'build/jquery.<%= pkg.name %>.js'
       },
     },
     uglify: {
@@ -52,7 +54,7 @@ module.exports = function(grunt) {
       },
       dist: {
         src: '<%= concat.dist.dest %>',
-        dest: 'build/<%= pkg.name %>.min.js'
+        dest: 'build/jquery.<%= pkg.name %>.min.js'
       },
     }
   });

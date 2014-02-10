@@ -1,43 +1,10 @@
 {
   "name": "opensdp-osdk",
   "title": "Teligent oSDK: JavaScript Library",
-  "description": "Web-based communications built around WebRTC, SIP, MSRP, and XMPP.",
-  "version": "0.1.0",
-  "homepage": "http://osdp.teligent.ru",
-  "author": {
-    "name": "Teligent OOO",
-    "url": "http://www.teligent.ru"
-  },
   "repository": {
     "type": "git",
     "url": "http://git.teligent.ru/cgit/opensdp/osdkjs.git/"
   },
-  "bugs": "http://jira.teligent.ru/browse/OSDKJS#selectedTab=com.atlassian.jira.plugin.system.project%3Aissues-panel",
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://opensource.org/licenses/MIT"
-    }
-  ],
-  "dependencies": {
-    "jssip": "git+ssh://git@github.com:versatica/JsSIP.git#62e832320ce22d8f1a65c159cebee92a66f19588",
-    "crocodile-msrp": "git+ssh://git@github.com:crocodilertc/crocodile-msrp.git#3c75169a7cac8df01632393acb014e8c9d1511e2",
-    "jsjac": "git+ssh://git@github.com:sstrigler/JSJaC.git#bed823976cd49404d1fadb34b195da153f6c86df",
-    "jso": "git+ssh://git@github.com:andreassolberg/jso.git#eaf551572e0c9c4088c67d01a324c89fe9d614d2"
-  },
-  "bundledDependencies": [
-    "jssip",
-    "crocodile-msrp",
-    "jssac",
-    "jso"
-  ],
-  "keywords": [
-    "webrtc",
-    "websocket",
-    "sip",
-    "msrp",
-    "xmpp"
-  ],
   "devDependencies": {
     "grunt": "~0.4.2",
     "grunt-contrib-jshint": "~0.6.3",
