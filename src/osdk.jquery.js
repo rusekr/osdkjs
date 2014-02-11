@@ -1,3 +1,3 @@
-(function (JQuery) {
+(function (oSDK, JQuery) {
   JQuery.oSDK = oSDK;
-})(JQuery);
+})(oSDK, JQuery);

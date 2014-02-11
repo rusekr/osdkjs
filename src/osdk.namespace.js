@@ -1,6 +1,13 @@
-// Defining oSDK namespace
+/*
+ * opensdp.osdk
+ * http://TODO:git
+ *
+ * Copyright (c) 2014 Teligent OOO
+ * Licensed under the TODO license.
+ */
 
-var oSDK = {};
+/** @namespace */
+var oSDK = oSDK || {};
 
 (function (oSDK) {
   
@@ -10,6 +17,10 @@ var oSDK = {};
     return;
   }
 
+  /**
+   * Starting point of sdk {@link oSDK.connect}.
+   * @param {object} config - main configuration of osdk
+   */
   oSDK.connect = function (config) {
     
     // Default configuration

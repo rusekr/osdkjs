@@ -42,8 +42,10 @@ module.exports = function(grunt) {
           'libs/jsjac/jsjac.js',
           'libs/jso/jso.js',
           'src/osdk.namespace.js',
+          'src/osdk.config.js',
           'src/osdk.utils.js',
-          'src/osdk.jquery.js'
+          'src/osdk.auth.js',
+          'src/osdk.jquery-adapter.js'
         ],
         dest: 'build/jquery.<%= pkg.name %>.js'
       },
@@ -56,15 +58,40 @@ module.exports = function(grunt) {
         src: '<%= concat.dist.dest %>',
         dest: 'build/jquery.<%= pkg.name %>.min.js'
       },
+    },
+    jsdoc: {
+      dist: {
+        src: ['src/*.js', 'jsdoc/index.md'],
+        options: {
+          destination: 'build/doc',
+          private: false,
+          template: 'jsdoc/templates/teligent',
+        },
+      },
+    },
+    copy: {
+      main: {
+        files: [
+          {
+            expand: true,
+            cwd: 'jsdoc/static/',
+            src: ['**'], 
+            dest: 'build/doc/'
+          }
+        ],
+      },
     }
   });
 
   // Load the plugin that provides the "uglify" task.
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-jsdoc');
+
 
   // Default task(s).
-  grunt.registerTask('default', ['clean', 'concat', 'uglify']);
+  grunt.registerTask('default', ['clean', 'concat', 'uglify', 'jsdoc', 'copy']);
 
 };
