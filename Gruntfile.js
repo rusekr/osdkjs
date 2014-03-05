@@ -41,11 +41,18 @@ module.exports = function(grunt) {
           'libs/crocodile-msrp/crocodile-msrp.js',
           'libs/jsjac/jsjac.js',
           'libs/jso/jso.js',
+
           'src/osdk.namespace.js',
-          'src/osdk.config.js',
+          'src/osdk.deps.js',
           'src/osdk.utils.js',
+          'src/osdk.errors.js',
           'src/osdk.auth.js',
-          'src/osdk.jquery-adapter.js'
+          'src/osdk.sip.js',
+          'src/osdk.config.js',
+          
+          'src/osdk.jquery-plugin.js',
+          
+          'src/osdk.loaded-signal.js'
         ],
         dest: 'build/jquery.<%= pkg.name %>.js'
       },
