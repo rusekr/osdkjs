@@ -26,6 +26,7 @@ module.exports = function(grunt) {
       '*  Copyright (c) 2012-2013 Crocodile RCS Ltd\n' +
       '*  License: MIT\n' +
       '*/\n',
+
     clean: {
       files: ['build']
     },
@@ -87,10 +88,16 @@ module.exports = function(grunt) {
           }
         ],
       },
+    },
+    jshint: {
+      all: [
+        'src/*.js'
+      ]
     }
   });
 
   // Load the plugin that provides the "uglify" task.
+  grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-copy');
