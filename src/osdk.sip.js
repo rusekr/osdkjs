@@ -46,10 +46,11 @@
     sip.JsSIPUA = new sip.JsSIP.UA(config);
 
     // Attaching external events to registered in oSDK events
+    var attachSipEvent = function (e) {
+      oSDK.trigger(typeof(attachableEvents[e.type])==='string'?attachableEvents[e.type]:e.type, e);
+    };
     for(var i in attachableEvents) {
-      sip.JsSIPUA.on(i, function (e) {
-        oSDK.trigger(typeof(attachableEvents[e.type])==='string'?attachableEvents[e.type]:e.type, e);
-      } );
+      sip.JsSIPUA.on(i, attachSipEvent );
     }
 
     // Attaching internal events to main oSDK events
@@ -91,12 +92,12 @@
   // Starts the sip module (async)
   sip.start = function () {
     return sip.JsSIPUA.start.apply(sip.JsSIPUA, [].slice.call(arguments, 0)); 
-  }
+  };
 
   // Stops the sip module (async)
   sip.stop = function () {
     return sip.JsSIPUA.stop.apply(sip.JsSIPUA, [].slice.call(arguments, 0)); 
-  }
+  };
   
   // Direct bindings to namespace
   //TODO: make this bindings automatic by registering module function

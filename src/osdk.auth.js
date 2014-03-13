@@ -87,12 +87,12 @@
       }
     });
 
-  },
+  };
   // Imperative disconnection from openSDP network
   auth.disconnect = function () {
     //TODO: Upgrade direct use to augmenting handler for disconnect by sip module.
     oSDK.sip.stop();
-  },
+  };
 
   auth.loginCheck = function (agressive) {
     
@@ -115,7 +115,7 @@
       
       if(localStorage.getItem('osdk.connectAfterRedirect')) {
         oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
-        localStorage.removeItem('osdk.connectAfterRedirect')
+        localStorage.removeItem('osdk.connectAfterRedirect');
         auth.connect();
 
       }

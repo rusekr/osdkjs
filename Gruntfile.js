@@ -107,5 +107,7 @@ module.exports = function(grunt) {
 
   // Default task(s).
   grunt.registerTask('default', ['clean', 'concat', 'uglify', 'jsdoc', 'copy']);
+  
+  grunt.registerTask('check', ['jshint']);
 
 };

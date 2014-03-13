@@ -12,23 +12,24 @@
    * Log/warn/err functions
    */
   (function () {
+
+    var lf = function () {
+      if(!utils.debug) {
+        return;
+      }
+
+      console.log('oSDK:', Array.prototype.slice.call(arguments, 0));
+    };
     for(var cli in {'log': !0, 'warn': !0, 'err': !0}) {
   
-      utils[cli] = function () {
-        
-        if(!utils.debug) {
-          return;
-        }
-
-        console.log('oSDK:', Array.prototype.slice.call(arguments, 0));
-      };
+      utils[cli] = lf;
     }
   })();
 
   // UUID generator
   utils.uuid = function () {
 
-    function s4() {
+    var s4 = function () {
       return Math.floor((1 + Math.random()) * 0x10000)
         .toString(16)
         .substring(1);
@@ -128,22 +129,22 @@
   // Returns attached namespaces
   utils.namespaces = function () {
     return namespaces;
-  }
+  };
   
   // Returns attached methods
   utils.methods = function () {
     return methods;
-  }
+  };
   
   // Returns attached events
   utils.events = function () {
     return events;
-  }
+  };
   
   // Returns attached events
   utils.eventListeners = function () {
     return eventListeners;
-  }
+  };
   
   // Needed to register namespace, method or event in oSDK by its module.
   utils.attach = function (moduleName, object) {
