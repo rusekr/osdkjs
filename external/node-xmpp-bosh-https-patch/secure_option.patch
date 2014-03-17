@@ -1,0 +1,401 @@
+From 1ac3ad4f05af71e76e2cf5ea710398c2aa3337fc Mon Sep 17 00:00:00 2001
+From: Sergey Krasnikov <sergey.krasnikov@teligent.ru>
+Date: Mon, 17 Mar 2014 15:02:28 +0400
+Subject: [PATCH] switchable secure mode v1.3.0.1
+
+---
+ .gitignore               |  1 +
+ bosh.conf.example.js     | 16 ++++++++++++++++
+ run-server.js            | 28 +++++++++++++++++++++++-----
+ scripts/generate_cert.sh | 27 +++++++++++++++++++++++++++
+ src/bosh.js              |  2 +-
+ src/http-server.js       | 30 ++++++++++++++++++++++++++----
+ tests/all.sh             | 15 +++++++++++----
+ tests/basic.js           | 13 +++++++++++--
+ tests/send_recv.js       | 13 +++++++++++--
+ tests/stress.js          | 13 +++++++++++--
+ tests/test_GET.sh        | 14 +++++++++++---
+ 11 files changed, 149 insertions(+), 23 deletions(-)
+ create mode 100755 scripts/generate_cert.sh
+
+diff --git a/.gitignore b/.gitignore
+index 156f0f8..6f5e9b7 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,3 +1,4 @@
++.cert/*
+ .projectile
+ node_modules
+ *.log
+diff --git a/bosh.conf.example.js b/bosh.conf.example.js
+index 18bd3c0..fc054a7 100644
+--- a/bosh.conf.example.js
++++ b/bosh.conf.example.js
+@@ -6,6 +6,22 @@ exports.config = {
+ 	path: /^\/http-bind(\/+)?$/, 
+ 	logging: 'INFO', 
+ 	
++	// Https serving option
++	secure: true,
++	
++	// Https server settings
++	secure_parameters: {
++		// Classic cert files structure
++		// key: './cert/server.key',
++		// cert: './cert/server.crt',
++		// Pfx cert container
++		pfx: './cert/server.pfx',
++    ciphers: 'RSA:DH:SSLv2:!MD5:!aNULL'
++    // More security parameters on 
++    // http://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
++    // For `key`, `cert`, `pfx` and `ca` you can use links to files here.
++	},
++	
+ 	// The maximum number of bytes that the BOSH server will 
+ 	// "hold" from the client
+ 	max_data_held: 100000, 
+diff --git a/run-server.js b/run-server.js
+index 5aee0b0..36fbf61 100755
+--- a/run-server.js
++++ b/run-server.js
+@@ -76,6 +76,10 @@ function main() {
+ 			note: "The host on which to the BOSH server should listen for connections (default: 0.0.0.0)", 
+ 			value: -1
+ 		}, 
++		secure: {
++			note: 'Is BOSH service endpoint secured by ssl (https) (default: no)', 
++			value: false
++		},
+ 		version: {
+ 			note: "Display version info and exit", 
+ 			value: false
+@@ -136,6 +140,15 @@ function main() {
+ 		server_options.host = opts.host;
+ 	}
+ 
++	if (opts.secure === false) {
++		if (typeof server_options.secure == 'undefined') {
++			server_options.secure = false;
++		}
++	}
++	else {
++		server_options.secure = opts.secure;
++	}
++
+ 	if (opts.path === -1) {
+ 		if (!server_options.path) {
+ 			server_options.path = '/http-bind/';
+@@ -162,15 +175,20 @@ function main() {
+         dutil.TRIM_DEFAULT_LENGTH = server_options.trim_default_length;
+     }
+ 
+-	print_boxed_message(nxb.dutil.sprintf("Starting BOSH server 'v%s' on 'http://%s:%s%s' at '%s'", 
+-										  get_version(), server_options.host, server_options.port, 
+-										  server_options.path, new Date())
++	print_boxed_message(nxb.dutil.sprintf("Starting BOSH server 'v%s' on '%s://%s:%s%s' at '%s'", 
++										  get_version(),
++										  server_options.secure?'https':'http',
++										  server_options.host, 
++									      server_options.port, 
++										  server_options.path, 
++										  new Date())
+ 					   );
+ 
+ 	var bosh_server = nxb.start_bosh(server_options);
+ 
+-	print_boxed_message(nxb.dutil.sprintf("Starting WEBSOCKET server 'v%s' on ws://%s:%s' at '%s'", 
+-										  get_version(), 
++	print_boxed_message(nxb.dutil.sprintf("Starting WEBSOCKET server 'v%s' on %s://%s:%s' at '%s'", 
++										  get_version(),
++										  server_options.secure?'wss':'ws',
+                                           server_options.host, 
+                                           server_options.port, 
+ 										  new Date())
+diff --git a/scripts/generate_cert.sh b/scripts/generate_cert.sh
+new file mode 100755
+index 0000000..296394c
+--- /dev/null
++++ b/scripts/generate_cert.sh
+@@ -0,0 +1,27 @@
++#!/bin/sh
++printf "Generates sample certificate and puts it in <server>/cert directorry for easier testing."
++printf "Requires openssl."
++printf "Run '<this script> pfx' to generate 'pfx' package certificate."
++scriptPath=${0%/*}
++
++if [ ! -d "$scriptPath/../cert" ]; then mkdir "$scriptPath/../cert"; fi
++
++openssl req \
++-new \
++-x509 \
++-days 731 \
++-sha1 \
++-newkey rsa:2048 \
++-nodes \
++-keyout "$scriptPath/../cert/server.key" \
++-out "$scriptPath/../cert/server.crt" \
++-subj '/O=Snakeoil/OU=Snakeoil/CN=Snakeoil.sl'
++
++if [ x"$1" = x"pfx" ]; then
++	openssl pkcs12 -export -in "$scriptPath/../cert/server.crt" \
++	-inkey "$scriptPath/../cert/server.key" \
++	-out "$scriptPath/../cert/server.pfx" \
++	-password pass:
++	rm "$scriptPath/../cert/server.crt"
++	rm "$scriptPath/../cert/server.key"
++fi
+\ No newline at end of file
+diff --git a/src/bosh.js b/src/bosh.js
+index be3c2c7..6d2a3b9 100644
+--- a/src/bosh.js
++++ b/src/bosh.js
+@@ -290,7 +290,7 @@ exports.createServer = function (options) {
+     bosh_options = new opt.BOSH_Options(options);
+     server = new http.HTTPServer(options.port, options.host, get_statistics,
+                                  get_system_info, bosh_request_handler,
+-                                 http_error_handler, bosh_options);
++                                 http_error_handler, bosh_options, options.secure, options.secure_parameters);
+     // The BOSH event emitter. People outside will subscribe to
+     // events from this guy. We return an instance of BoshEventPipe
+     // to the outside world when anyone calls createServer()
+diff --git a/src/http-server.js b/src/http-server.js
+index b618852..0fbf8b7 100644
+--- a/src/http-server.js
++++ b/src/http-server.js
+@@ -28,10 +28,10 @@
+ var dutil       = require('./dutil.js');
+ var us          = require('underscore');
+ var helper      = require('./helper.js');
+-var http        = require('http');
+ var url         = require('url');
+ var path        = require('path');
+ var EventPipe   = require('eventpipe').EventPipe;
++var fs          = require('fs');
+ 
+ var filename    = path.basename(path.normalize(__filename));
+ var log         = require('./log.js').getLogger(filename);
+@@ -40,7 +40,7 @@ var BoshRequestParser = require('./bosh-request-parser').BoshRequestParser;
+ 
+ function HTTPServer(port, host, stat_func, system_info_func,
+                     bosh_request_handler, http_error_handler,
+-                    bosh_options) {
++                    bosh_options, secureFlag, secureParams) {
+ 
+     var bosh_request_parser = new BoshRequestParser();
+     var req_list1 = [ ], req_list2 = [ ];
+@@ -318,8 +318,30 @@ function HTTPServer(port, host, stat_func, system_info_func,
+         router.emit('request', req, res, u);
+     }
+ 
+-    // Initialize
+-    var server = http.createServer(http_request_handler);
++    var server = null;
++    if (secureFlag) {
++      // Transfer all options from config.
++      var httpsOptions = secureParams;
++      // Checking cert files
++      if (fs.existsSync(secureParams.key)) {
++        httpsOptions['key'] = fs.readFileSync(secureParams.key);
++        httpsOptions['cert'] = fs.readFileSync(secureParams.cert);
++      }
++      if (fs.existsSync(secureParams.pfx)) {
++        httpsOptions['pfx'] = fs.readFileSync(secureParams.pfx);
++      }
++      if (httpsOptions['ca']) {
++          httpsOptions['ca'] = [].concat(httpsOptions['ca']).map(function (ca) {
++              return fs.existsSync(ca)?fs.readFileSync(ca):ca;
++          });
++      }
++
++      // Initialize
++      server = require('https').createServer(httpsOptions, http_request_handler);
++    } else {
++      server = require('http').createServer(http_request_handler);
++    }
++	
+     server.on('error', http_error_handler);
+     server.listen(port, host);
+ 
+diff --git a/tests/all.sh b/tests/all.sh
+index c29926d..889e3ea 100644
+--- a/tests/all.sh
++++ b/tests/all.sh
+@@ -16,7 +16,14 @@ then
+     exit 1
+ fi
+ 
+-node run-server.js &
++SECUREPARAM=''
++if [ "x$1" = "x--secure" ]
++then
++	# curl https request without certificate trust check
++	SECUREPARAM="--secure"
++fi
++
++node run-server.js $SECUREPARAM &
+ 
+ sleep 1
+ WAIT_SEC=3
+@@ -39,7 +46,7 @@ else
+     echo -e "\e[00;32mSUCCESS: tests/test_GET.sh\e[00m" 1>&2
+ fi
+ 
+-node tests/basic.js --username="nonxbtest@jappix.com" --password="nonxbtest" &
++node tests/basic.js --username="nonxbtest@jappix.com" --password="nonxbtest" $SECUREPARAM &
+ wait $!
+ if [ $? -eq 0 ]
+ then
+@@ -49,7 +56,7 @@ else
+     echo -e "\e[00;32mSUCCESS: tests/basic.js\e[00m" 1>&2
+ fi
+ 
+-node tests/basic.js --username="nxbtest@jappix.com" --password="nonxbtest" &
++node tests/basic.js --username="nxbtest@jappix.com" --password="nonxbtest" $SECUREPARAM &
+ wait $!
+ if [ $? -eq 0 ]
+ then
+@@ -59,7 +66,7 @@ else
+     echo -e "\e[00;32mSUCCESS: tests/basic.js\e[00m" 1>&2
+ fi
+ 
+-node tests/basic.js --username="nxbtest@jappix.com" --password="nxbtest" &
++node tests/basic.js --username="nxbtest@jappix.com" --password="nxbtest" $SECUREPARAM &
+ wait $!
+ if [ $? -ne 0 ]
+ then
+diff --git a/tests/basic.js b/tests/basic.js
+index b05f283..cd6ee40 100644
+--- a/tests/basic.js
++++ b/tests/basic.js
+@@ -81,9 +81,13 @@ function main() {
+ 			note: 'The password to use', 
+ 		}, 
+ 		endpoint: {
+-			note: 'The BOSH service endpoint (default: http://localhost:5280/http-bind/)', 
+-			value: 'http://localhost:5280/http-bind/'
++			note: 'The BOSH service endpoint (default: localhost:5280/http-bind/)', 
++			value: 'localhost:5280/http-bind/'
+ 		}, 
++		secure: {
++			note: 'Is BOSH service endpoint secured by ssl (https) (default: no)', 
++			value: false
++		},
+ 		route: {
+ 			note: 'The route attribute to use (default: <empty>)', 
+ 			value: ''
+@@ -91,6 +95,11 @@ function main() {
+ 	});
+ 
+ 	options = opts;
++	if (options.secure) {
++		options.endpoint = 'https://'+options.endpoint;
++	} else {
++		options.endpoint = 'http://'+options.endpoint;
++	}
+ 	connect(options);
+ }
+ 
+diff --git a/tests/send_recv.js b/tests/send_recv.js
+index c97bd72..4b44522 100644
+--- a/tests/send_recv.js
++++ b/tests/send_recv.js
+@@ -152,14 +152,23 @@ function main() {
+ 				'(check the comments in this file for the format of the file to pass here'
+ 		}, 
+ 		endpoint: {
+-			note: 'The BOSH service endpoint (default: http://localhost:5280/http-bind/)', 
+-			value: 'http://localhost:5280/http-bind/'
++			note: 'The BOSH service endpoint (default: localhost:5280/http-bind/)', 
++			value: 'localhost:5280/http-bind/'
++		}, 
++		secure: {
++			note: 'Is BOSH service endpoint secured by ssl (https) (default: no)', 
++			value: false
+ 		}
+ 	});
+ 
+ 	opts.users = require("./" + opts.users).users;
+ 
+ 	options = opts;
++	if (options.secure) {
++		options.endpoint = 'https://'+options.endpoint;
++	} else {
++		options.endpoint = 'http://'+options.endpoint;
++	}
+ 	start_test(options);
+ }
+ 
+diff --git a/tests/stress.js b/tests/stress.js
+index d61e37f..52de874 100644
+--- a/tests/stress.js
++++ b/tests/stress.js
+@@ -172,9 +172,13 @@ function main() {
+ 			note: 'The XMPP server of \'domain\' shall be connected to'
+ 		}, 
+ 		endpoint: {
+-			note: 'The BOSH service endpoint (default: http://localhost:5280/http-bind/)', 
+-			value: 'http://localhost:5280/http-bind/'
++			note: 'The BOSH service endpoint (default: localhost:5280/http-bind/)', 
++			value: 'localhost:5280/http-bind/'
+ 		}, 
++		secure: {
++			note: 'Is BOSH service endpoint secured by ssl (https) (default: no)', 
++			value: false
++		},
+ 		route: {
+ 			note: 'The route attribute to use (default: <empty>)', 
+ 			value: ''
+@@ -195,6 +199,11 @@ function main() {
+     });
+ 
+     options = opts;
++	if (options.secure) {
++		options.endpoint = 'https://'+options.endpoint;
++	} else {
++		options.endpoint = 'http://'+options.endpoint;
++	}
+     start_test(options);
+ }
+ 
+diff --git a/tests/test_GET.sh b/tests/test_GET.sh
+index 07d867a..df5a658 100755
+--- a/tests/test_GET.sh
++++ b/tests/test_GET.sh
+@@ -1,7 +1,15 @@
+ #! /bin/bash
+ 
++PROT="http"
++
++if [ "x$1" = "x--secure" ]
++then
++	# curl https request without certificate trust check
++	PROT="-k https"
++fi
++
+ # XML Request: <body to="jabber.org" hold="1" rid="2241" wait="60" ver="1.6" xmlns:xmpp="urn:xmpp:xbosh" xmpp:version="1.0" />
+-LINE=`curl 'http://localhost:5280/http-bind/?data=%3Cbody%20to%3D%22jabber.org%22%20hold%3D%221%22%20rid%3D%222241%22%20wait%3D%2260%22%20ver%3D%221.6%22%20xmlns%3Axmpp%3D%22urn%3Axmpp%3Axbosh%22%20xmpp%3Aversion%3D%221.0%22%20/%3E'`
++LINE=`curl $PROT'://localhost:5280/http-bind/?data=%3Cbody%20to%3D%22jabber.org%22%20hold%3D%221%22%20rid%3D%222241%22%20wait%3D%2260%22%20ver%3D%221.6%22%20xmlns%3Axmpp%3D%22urn%3Axmpp%3Axbosh%22%20xmpp%3Aversion%3D%221.0%22%20/%3E'`
+ 
+ echo "[1] Got Response: $LINE"
+ 
+@@ -15,7 +23,7 @@ fi
+ 
+ 
+ # XML Request: <body/>
+-LINE=`curl 'http://localhost:5280/http-bind/?data=%3Cbody/%3E'`
++LINE=`curl $PROT'://localhost:5280/http-bind/?data=%3Cbody/%3E'`
+ 
+ echo "[2] Got Response: $LINE"
+ 
+@@ -29,7 +37,7 @@ fi
+ 
+ 
+ # XML Request: <body to="jabber.org" hold="1" rid="2241" wait="60" ver="1.6" xmlns:xmpp="urn:xmpp:xbosh" xmpp:version="1.0" />
+-LINE=`curl 'http://localhost:5280/http-bind/?data=%3Cbody%20to%3D%22jabber.org%22%20hold%3D%221%22%20rid%3D%222241%22%20wait%3D%2260%22%20ver%3D%221.6%22%20xmlns%3Axmpp%3D%22urn%3Axmpp%3Axbosh%22%20xmpp%3Aversion%3D%221.0%22%20/%3E&callback=myCB'`
++LINE=`curl $PROT'://localhost:5280/http-bind/?data=%3Cbody%20to%3D%22jabber.org%22%20hold%3D%221%22%20rid%3D%222241%22%20wait%3D%2260%22%20ver%3D%221.6%22%20xmlns%3Axmpp%3D%22urn%3Axmpp%3Axbosh%22%20xmpp%3Aversion%3D%221.0%22%20/%3E&callback=myCB'`
+ 
+ echo "[3] Got Response: $LINE"
+ 
+-- 
+1.9.0
+
