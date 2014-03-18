@@ -11,7 +11,11 @@
       //debug
     testScope: 'gold wood uranium', // FIXME: may be for us(wso2) its not needed?
 
-    sipServerURL: 'wss://osdp-teligent-test-registrar.teligent.ru:8088/ws', // TODO: move to sip config
+    sipServerURL: 'wss://osdp-teligent-test-registrar.teligent.ru:8088/ws', // TODO: move to sip module config
+ 
+    xmppServerURL: '', //TODO: move to xmpp module config
+ 
+    oauth: 'popup', // oauth login in popup
   };
 
   // Enabling debug

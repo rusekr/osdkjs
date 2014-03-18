@@ -50,9 +50,7 @@ module.exports = function(grunt) {
           'src/osdk.auth.js',
           'src/osdk.sip.js',
           'src/osdk.config.js',
-          
-          'src/osdk.jquery-plugin.js',
-          
+
           'src/osdk.loaded-signal.js'
         ],
         dest: 'build/jquery.<%= pkg.name %>.js'

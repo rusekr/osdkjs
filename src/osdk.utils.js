@@ -38,13 +38,112 @@
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
           s4() + '-' + s4() + s4() + s4();
   };
+  
+  // Each for arrays and objects
+  utils.each = function (obj, fn) {
+    if (obj.length) {
+      for (var i = 0, ol = obj.length, v = obj[0]; i < ol && fn(v, i) !== false; v = obj[++i]);
+    } else {
+      for (var p in obj) {
+        if (fn(obj[p], p) === false) 
+          break;
+      }
+    }
+  };
+  
+  // JQuery simplified equivalent by interface function for only plain merging of objects
+  utils.extend = function () {
+    var args = Array.prototype.slice.call(arguments, 0);
+    var inObj = args.shift();
+    args.forEach(function (obj) {
+      for(var key in obj) {
+        inObj[key] = obj[key];
+      }
+    });
+    return inObj;
+  };
+  
+  // JQuery like simple ajax wrapper
+//   var ajaxData = {
+//     requests: [] //TODO: ajax queueing, ajax mass aborting
+//   };
+  utils.ajax = function (config) {
+
+    var dConfig = {
+      url: '',
+      type: 'GET',
+      data: {},
+      success: function () {},
+      error: function () {},
+      async: true,
+      headers: {},
+      username: null,
+      password: null
+    };
+
+    config = utils.extend({}, dConfig, config); 
+    
+    var r = new XMLHttpRequest();
+    
+    // Headers stuff
+    if(!config.headers['Content-Type']) {
+      r.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+    }
+    for(var h in config.headers) {
+      r.setRequestHeader(h, config.headers[h]);
+    }
+    
+    // encodeURIComponent
+    
+    // Request data forming
+    // String data goes as is.
+    if(typeof(config.data) != 'string') {
+      // Data encoding for requests
+      if(typeof(config.data) != 'object') {
+        var tempData = [];
+        utils.each(config.data, function (d, i) {
+          tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
+        });
+        config.data = tempData.join('&');
+      }
+    }
+    // For 'get' in url, for other - in body
+    if(config.type.toLowerCase() == 'get') {
+      config.url += '?'+config.data;
+      config.data = null;
+    }
+    
+    r.open(config.type, config.url, config.async,config.username, config.password);
+    
+    r.onreadystatechange = function () {
+      if (r.readyState != 4) {
+        return;
+      }
+      if (r.status != 200) {
+        config.error.call(config.error, r);
+        return;
+      }
+      
+      try {
+        r.responseText = JSON.parse(r.responseText);
+      } catch (e) {
+        // Whoops, not a json..
+        oSDK.log(e);
+      }
+      
+      config.success.call(config.success, r.responseText, r);
+    };
+
+    r.send(config.data);
+    return r;
+  };
 
   // Config parser/extender
   utils.mergeConfig = function (config) {
     // TODO: parse config
     
-    // Merge config additions
-    oSDK.config = $.extend(true, {}, oSDK.config, config);
+    // Merge config additions 
+    oSDK.config = oSDK.utils.extend({}, oSDK.config, config); 
   };
 
   // Object for custom callbacks to events

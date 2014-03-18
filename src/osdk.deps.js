@@ -5,8 +5,7 @@
 (function (oSDK, jQuery) {
 
   // jQuery adapters
-  oSDK.jq = jQuery; // For domload events handling
-  oSDK.ajax = jQuery.ajax;
-  oSDK.oajax = jQuery.oajax;
+  
+  oSDK.oajax = jQuery.oajax; //TODO: by replace with eq wo jquery
 
 })(oSDK, jQuery); 

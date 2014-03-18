@@ -159,7 +159,7 @@
     }
   };
 
-  oSDK.jq(function () {
+  document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
     //FIXME: without timeout fires earlier than in-app osdk initializator, for example we can try to find appID in own config now and every 0.5s for 5 attempts then assume we got client config and start autologin
     setTimeout(function () {
@@ -167,7 +167,7 @@
     },1000);
   });
   
-  oSDK.jq(window).on('beforeunload', function (event) {
+  window.onbeforeunload = function (event) {
     oSDK.log('window.onload');
     // TODO: handle gracefully auth redirection page unload.
     // trying to quit gracefully  
@@ -177,7 +177,7 @@
     
 //       instance.stop();
 
-  });
+  };
   
   // Direct bindings to namespace
   //TODO: make this bindings automatic by registering module function
