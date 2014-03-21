@@ -116,7 +116,10 @@
       if(oSDK.config.oauthPopup != 'popup' && oSDK.utils.storage.getItem('osdk.connectAfterRedirect')) {
         oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
         oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
-        auth.connect();
+        // FIXME: instead of settimeout wait for user add event listener on connected (and connfailed) and then connect immediately (on never if no user events).
+        setTimeout(function () {
+          auth.connect();
+        },1000);
       }
 
     } else {
@@ -136,8 +139,7 @@
     }
     return false;
   };
-  
-  
+
   auth.clientInfo = {
     id: function () {
       return clientInfo.id;
@@ -147,16 +149,16 @@
     }
   };
 
+  oSDK.on('oauth.gotTokenFromPopup', function (data) {
+    oSDK.log('Setting up main window with oauth config and connecting', data);
+    oSDK.utils.oauth.configure(data);
+    oSDK.utils.oauth.popup().close();
+    oSDK.connect();
+  });
+  
   document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
-    if(oSDK.config.oauth == 'popup') {
-      auth.tokenCheck(false);
-    } else {
-      //FIXME: without timeout fires earlier than in-app osdk initializator, for example we can try to find appID in own config now and every 0.5s for 5 attempts then assume we got client config and start autologin
-      setTimeout(function () {
-        auth.tokenCheck(false); 
-      },1000);
-    }
+    auth.tokenCheck(false);
   });
   
   window.onbeforeunload = function (event) {

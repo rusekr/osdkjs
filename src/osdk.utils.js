@@ -286,20 +286,13 @@
               expires_start: new Date().getTime()
           });
 
-          //FIXME: ff not closing
+          // We are in popup detection FIXME: ff not closing
           if(window.opener) {
-            window.opener.oSDK.utils.oauth.configure({
+            window.opener.oSDK.trigger('oauth.gotTokenFromPopup', {
               access_token: config.access_token,
               expires_in: config.expires_in,
               expires_start: config.expires_start
             });
-            
-            window.opener.oSDK.auth.connect();
-            
-            document.write('Authorization successful. Closing popup in one second.');
-            setTimeout(function () {
-              window.close(); //TODO: try to close popup from parent window
-            }, 0);
           }
         }
         
@@ -358,7 +351,8 @@
           window.location = authUrl;
         }
         return false;
-      }
+      },
+      popup: function () { return authPopup; }
     };
   })();
 
