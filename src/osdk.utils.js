@@ -62,7 +62,7 @@
     });
     return inObj;
   };
-  
+
   // JQuery like simple ajax wrapper
 //   var ajaxData = {
 //     requests: [] //TODO: ajax queueing, ajax mass aborting
@@ -82,24 +82,14 @@
     };
 
     config = utils.extend({}, dConfig, config); 
-    
-    var r = new XMLHttpRequest();
-    
-    // Headers stuff
-    if(!config.headers['Content-Type']) {
-      r.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
-    }
-    for(var h in config.headers) {
-      r.setRequestHeader(h, config.headers[h]);
-    }
-    
+
     // encodeURIComponent
-    
+
     // Request data forming
     // String data goes as is.
     if(typeof(config.data) != 'string') {
       // Data encoding for requests
-      if(typeof(config.data) != 'object') {
+      if(typeof(config.data) == 'object') {
         var tempData = [];
         utils.each(config.data, function (d, i) {
           tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
@@ -109,12 +99,48 @@
     }
     // For 'get' in url, for other - in body
     if(config.type.toLowerCase() == 'get') {
-      config.url += '?'+config.data;
+      var delim = '?';
+      if(config.url.match(/\?/)) {
+        delim = '&';
+      }
+      config.url += delim+config.data;
       config.data = null;
+    }
+
+    var r = new XMLHttpRequest();
+
+    var headersNotSet = false;
+    var setHeaders = function () {
+      // Headers stuff
+      if(!config.headers['Content-Type']) {
+        r.setRequestHeader("Content-Type","application/json; charset=UTF-8");
+      }
+      if(!config.headers['Accept']) {
+        r.setRequestHeader("Accept","*/*");
+      }
+      for(var h in config.headers) {
+        r.setRequestHeader(h, config.headers[h]);
+      }
+    };
+
+    // For firefox // FIXME: more universal chrome and firefox handlers
+    try {
+      setHeaders();
+    }
+    catch (e) {
+      oSDK.log('Chrome..not setRequestHeader, firefox set');
+      headersNotSet = true;
     }
     
     r.open(config.type, config.url, config.async,config.username, config.password);
+
+    // For chrome // FIXME more universal chrome and firefox handlers
+    if(headersNotSet) {
+      oSDK.log('Chrome..setRequestHeader');
+      setHeaders();
+    }
     
+    // ReadyStateChange handlers
     r.onreadystatechange = function () {
       if (r.readyState != 4) {
         return;
@@ -137,6 +163,204 @@
     r.send(config.data);
     return r;
   };
+  
+  // window.location.hash getting and setting
+  utils.hash = (function () {
+    var hashData = {};
+    
+    var dec = function (str) {
+      return decodeURIComponent(str); // str.replace('&#61;', '=').replace('&#38;', '&');
+    };
+    var enc = function (str) {
+      return encodeURIComponent(str); // str.replace('=', '&#61;').replace('&', '&#38;');
+    };
+    
+    var parseHash = function () {
+      var h = window.location.hash.replace(/^#/, '').split(/&(?!#38;)/); // Not split by &#38;
+      var tmpData = {};
+      h.forEach(function (data) {
+        data = data.split('=');
+        if(data[0] && data[1]) {
+          tmpData[dec(data[0])] = dec(data[1]);
+        }
+      });
+      hashData = tmpData;
+    };
+    var buildHash = function () {
+      var tmpHash = [];
+      for(var id in hashData) {
+        if(hashData[id] !== null) {
+          tmpHash.push(enc(id)+'='+enc(hashData[id]));
+        }
+      }
+      return (tmpHash.length)?'#'+tmpHash.join('&'):'';
+    };
+    
+    return {
+      getItem: function (id) {
+        parseHash();
+        return (typeof hashData[id] != 'undefined')?hashData[id]:null;
+      },
+      setItem: function (id, value) {
+        parseHash();
+        hashData[id] = value;
+        window.location.hash = buildHash();
+      },
+      removeItem: function (id) {
+        parseHash();
+        hashData[id] = null;
+        window.location.hash = buildHash();
+      } 
+    };
+  })();
+  
+  // Get url parameter value from query string
+  utils.getUrlParameter = function (name) {
+    if(window.location.href.match(/(\?|&)error=(.*?)(&|$)/))
+    {
+      return decodeURIComponent(window.location.href.replace(/.*(\?|&)error=(.*?)(&|$).*/, '$2'));
+    }
+    return null;
+  };
+  
+  utils.storage = {
+    getItem: function (name) {
+      return JSON.parse(localStorage.getItem(name));
+    },
+    setItem: function (name, val) {
+      return localStorage.setItem(name, JSON.stringify(val));
+    },
+    removeItem: function (name) {
+      return localStorage.removeItem(name);
+    }
+  };
+  
+  // Oauth handling object
+  utils.oauth = (function () {
+    
+    var config = {
+      popup: true, // When 'false' goes redirect, to string - goes popup options
+      client_id: null,
+      redirect_uri: null,
+      authorization_uri: null,
+      bearer: null,
+      access_token: null,
+      expires_start: null, // Time when got a token
+      expires_in: null // Time To Live for token from server
+    };
+    
+    var authPopup = null;
+    
+    return {
+      // Configure oauth object
+      configure: function (cfgObject) {
+        
+        config.access_token = utils.storage.getItem('osdk.access_token') || null;
+        config.expires_start = utils.storage.getItem('osdk.expires_start') || null;
+        config.expires_in = utils.storage.getItem('osdk.expires_in') || null;
+
+        config = oSDK.utils.extend({}, config, cfgObject);
+        
+        utils.storage.setItem('osdk.access_token', config.access_token);
+        utils.storage.setItem('osdk.expires_start', config.expires_start);
+        utils.storage.setItem('osdk.expires_in', config.expires_in);
+        
+        oSDK.log('oauth config', config);
+      },
+      // Checks hash for token
+      checkUrl: function () {
+        //TODO: test check for server error-strings in not hash but !url! in query parameters.
+        var error = utils.getUrlParameter('error');
+        if(error) {
+          var error_description = utils.getUrlParameter('error_description');
+          console.log(error, error_description);
+          alert(error + ':' + error_description);
+        }
+        
+        var token = utils.hash.getItem('access_token');
+        if(token) {
+          // Configuring us
+          utils.oauth.configure({
+              access_token: token,
+              expires_in: utils.hash.getItem('expires_in')*1000,
+              expires_start: new Date().getTime()
+          });
+
+          //FIXME: ff not closing
+          if(window.opener) {
+            window.opener.oSDK.utils.oauth.configure({
+              access_token: config.access_token,
+              expires_in: config.expires_in,
+              expires_start: config.expires_start
+            });
+            
+            window.opener.oSDK.auth.connect();
+            
+            document.write('Authorization successful. Closing popup in one second.');
+            setTimeout(function () {
+              window.close(); //TODO: try to close popup from parent window
+            }, 0);
+          }
+        }
+        
+        // TODO: No error and no token case?
+      },
+      // Clears url from token stuff
+      clearUrl: function () {
+        utils.hash.removeItem('access_token');
+        utils.hash.removeItem('expires_in');
+      },
+      // Wrapper for ordinary ajax
+      ajax: function (options) {
+        // Bearer to authorization
+        if(config.bearer) {
+          options.headers.Authorization = 'Bearer ' + config.bearer;
+        }
+        // Access token to query string
+        if(utils.oauth.isTokenAlive()) {
+          var delim = '?';
+          if(options.url.match(/\?/)) {
+            delim = '&';
+          }
+          options.url += delim + 'access_token=' + config.access_token;
+        }
+        return utils.ajax.call(this, options);
+      },
+      isTokenAlive: function () {
+        var nowTime = new Date().getTime();
+        if(!config.access_token) {
+          oSDK.log('User token not found');
+          return false;
+        } else if (config.expires_in + config.expires_start <= nowTime) {
+          oSDK.log('User token has expired');
+        }
+        oSDK.log('User token is alive', config);
+        return true;
+          
+      },
+      // Go to auth page if token expired or not exists (or forcibly if force == true)
+      getToken: function (force) {
+        if(!force && utils.oauth.isTokenAlive()) {
+          return true;
+        }
+
+        var authUrl = config.authorization_uri + '?redirect_uri=' + encodeURIComponent(config.redirect_uri) + '&client_id=' + encodeURIComponent(config.client_id) + '&response_type=token';
+        if(config.popup) {
+          // Create popup
+          var params = "menubar=no,location=yes,resizable=yes,scrollbars=yes,status=no,width=800,height=600";
+          authPopup = window.open(authUrl, "oSDP Auth", params);
+          if(authPopup === null) {
+            // TODO: autochange type of request to redirect?
+            alert('Error. Authorization popup blocked by browser.');
+          }
+        } else {
+          // Redirect current page
+          window.location = authUrl;
+        }
+        return false;
+      }
+    };
+  })();
 
   // Config parser/extender
   utils.mergeConfig = function (config) {

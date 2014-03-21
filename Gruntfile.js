@@ -41,7 +41,6 @@ module.exports = function(grunt) {
           'libs/jssip/jssip.js',
           'libs/crocodile-msrp/crocodile-msrp.js',
           'libs/jsjac/jsjac.js',
-          'libs/jso/jso.js',
 
           'src/osdk.namespace.js',
           'src/osdk.deps.js',

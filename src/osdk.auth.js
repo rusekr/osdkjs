@@ -45,21 +45,23 @@
     oSDK.log('Connecting');
     
     // Checking user token
-    auth.loginCheck(true);
+    if(!auth.tokenCheck(true)) {
+      // No token, waiting for second try after auth in popup or redirect
+      return;
+    }
 
     // Perform a ephemerals request
-    oSDK.oajax({
+    // TODO: fix ajax
+    oSDK.utils.oauth.ajax({
       
       url: oSDK.config.apiServerURL+oSDK.config.credsURI,
       type: 'get',
       headers: {'Authorization':'Bearer '+oSDK.config.appToken},
-      jso_provider: "opensdp",
-      jso_allowia: true,
-      jso_scopes: [oSDK.config.testScope],
       data: {
         service: 'sip' // FIXME: needed?
       },
       success: function(data) {
+        data = JSON.parse(data);
         if(data.error) {
           oSDK.err("got error:", data);
           oSDK.trigger('connectionFailed', { 'error': data.error });
@@ -78,12 +80,12 @@
         
         // Force new token autoobtaining if old token returns 401.
         if (jqxhr.status === 401) {
-          auth.loginCheck(true);
+          auth.tokenCheck(true); //TODO: //alert with confirmed redirect?
         }
 
         // If all is ok with token - throw connectionFailed event.
         
-        oSDK.trigger('connectionFailed', { 'error': 'Server error' });
+        oSDK.trigger('connectionFailed', { 'error': 'Server error', 'code': 401 });
       }
     });
 
@@ -94,59 +96,45 @@
     oSDK.sip.stop();
   };
 
-  auth.loginCheck = function (agressive) {
+  auth.tokenCheck = function (agressive) {
     
+    oSDK.utils.oauth.configure({
+      client_id: oSDK.config.appID,
+      redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
+      authorization_uri: oSDK.config.apiServerURL+oSDK.config.authURI,
+      bearer: oSDK.config.appToken,
+      popup: oSDK.config.oauthPopup
+    });
+
     // If we need to connect after redirect (no errors returned from oauth server)
-    if(window.location.hash.match(/access_token/) && !window.location.hash.match(/error/)) {
+    if(window.location.hash.match(/access_token/) && !window.location.href.match(/(&|\?)error=/)) {
+      oSDK.log('Checking for token in hash');
+      
+      oSDK.utils.oauth.checkUrl();
+      oSDK.utils.oauth.clearUrl();
 
-      oSDK.log('jso checking for token in hash');
-      //TODO: make one from two
-      jso_configure({
-        "opensdp": {
-          client_id: oSDK.config.appID,
-          redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
-          authorization: oSDK.config.apiServerURL+oSDK.config.authURI,
-          presenttoken: 'qs', // User token goes to querystring
-          default_lifetime: 3600
-        }
-      });
-      
-      jso_checkfortoken('opensdp');
-      
-      if(localStorage.getItem('osdk.connectAfterRedirect')) {
+      if(oSDK.config.oauthPopup != 'popup' && oSDK.utils.storage.getItem('osdk.connectAfterRedirect')) {
         oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
-        localStorage.removeItem('osdk.connectAfterRedirect');
+        oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
         auth.connect();
-
       }
 
     } else {
       if(agressive) {
+        oSDK.log('Ensuring tokens');
 
-        oSDK.log('Jso ensuring tokens');
-        localStorage.setItem('osdk.connectAfterRedirect', true);
+        if(oSDK.utils.oauth.getToken()) {
+          return true;
+        }
 
-        jso_configure({
-          "opensdp": {
-            client_id: oSDK.config.appID,
-            redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
-            authorization: oSDK.config.apiServerURL+oSDK.config.authURI,
-            presenttoken: 'qs', // User token goes to querystring
-            default_lifetime: 3600
-          }
-        });
-        
-        jso_ensureTokens({
-          "opensdp": [oSDK.config.testScope],
-          // "facebook": ["read_stream"],
-          // "instagram": ["basic", "likes"]
-        });
-      
-        oSDK.log('set localStorage.osdk.connectAfterRedirect', localStorage.getItem('osdk.connectAfterRedirect'));
-    
+        if(oSDK.config.oauth != 'popup') {
+          oSDK.utils.storage.setItem('osdk.connectAfterRedirect', true);
+          oSDK.log('set oSDK.utils.storage.osdk.connectAfterRedirect', oSDK.utils.storage.getItem('osdk.connectAfterRedirect'));
+        }
+
       }
     }
-
+    return false;
   };
   
   
@@ -161,10 +149,14 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
-    //FIXME: without timeout fires earlier than in-app osdk initializator, for example we can try to find appID in own config now and every 0.5s for 5 attempts then assume we got client config and start autologin
-    setTimeout(function () {
-      auth.loginCheck(false); 
-    },1000);
+    if(oSDK.config.oauth == 'popup') {
+      auth.tokenCheck(false);
+    } else {
+      //FIXME: without timeout fires earlier than in-app osdk initializator, for example we can try to find appID in own config now and every 0.5s for 5 attempts then assume we got client config and start autologin
+      setTimeout(function () {
+        auth.tokenCheck(false); 
+      },1000);
+    }
   });
   
   window.onbeforeunload = function (event) {

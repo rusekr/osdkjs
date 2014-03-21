@@ -15,7 +15,7 @@
  
     xmppServerURL: '', //TODO: move to xmpp module config
  
-    oauth: 'popup', // oauth login in popup
+    oauthPopup: false, // oauth login in popup
   };
 
   // Enabling debug
