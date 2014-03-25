@@ -47,7 +47,8 @@ module.exports = function(grunt) {
           'src/osdk.utils.js',
           'src/osdk.errors.js',
           'src/osdk.auth.js',
-          'src/osdk.sip.js',
+          'src/osdk.module.sip.js',
+//           'src/osdk.module.xmpp.js',
           'src/osdk.config.js',
 
           'src/osdk.loaded-signal.js'
@@ -80,7 +81,7 @@ module.exports = function(grunt) {
           {
             expand: true,
             cwd: 'jsdoc/static/',
-            src: ['**'], 
+            src: ['**'],
             dest: 'build/doc/'
           }
         ],
@@ -104,7 +105,7 @@ module.exports = function(grunt) {
 
   // Default task(s).
   grunt.registerTask('default', ['clean', 'concat', 'uglify', 'jsdoc', 'copy']);
-  
+
   grunt.registerTask('check', ['jshint']);
 
 };
