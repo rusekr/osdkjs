@@ -20,9 +20,9 @@
     'initialized': true,
     'loaded': true,
     'gotTempCreds': 'auth.gotTempCreds',
-    'connected': true, 
-    'disconnected': true, 
-    'connectionFailed': true
+    'connected': true,
+    'disconnected': true,
+    'connectionFailed': true,
   };
 
   oSDK.utils.attach(moduleName, {
@@ -43,7 +43,7 @@
   auth.connect = function () {
 
     oSDK.log('Connecting');
-    
+
     // Checking user token
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect
@@ -53,7 +53,7 @@
     // Perform a ephemerals request
     // TODO: fix ajax
     oSDK.utils.oauth.ajax({
-      
+
       url: oSDK.config.apiServerURL+oSDK.config.credsURI,
       type: 'get',
       headers: {'Authorization':'Bearer '+oSDK.config.appToken},
@@ -66,25 +66,25 @@
           oSDK.err("got error:", data);
           oSDK.trigger('connectionFailed', { 'error': data.error });
         } else {
-          
+
           // Filling user client sturcture
           clientInfo.id = data.username.split(':')[1];
           clientInfo.domain = clientInfo.id.split('@')[1];
-          
-          oSDK.trigger('auth.gotTempCreds', { 'data': data });
 
+          oSDK.trigger('auth.gotTempCreds', { 'data': data });
+          oSDK.trigger('connected');
         }
       },
       error: function(jqxhr, status, string) {
         oSDK.log("Got error:", 'Server error.', jqxhr, status, string);
-        
+
         // Force new token autoobtaining if old token returns 401.
         if (jqxhr.status === 401) {
           auth.tokenCheck(true); //TODO: //alert with confirmed redirect?
         }
 
         // If all is ok with token - throw connectionFailed event.
-        
+
         oSDK.trigger('connectionFailed', { 'error': 'Server error', 'code': 401 });
       }
     });
@@ -97,7 +97,7 @@
   };
 
   auth.tokenCheck = function (agressive) {
-    
+
     oSDK.utils.oauth.configure({
       client_id: oSDK.config.appID,
       redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
@@ -109,7 +109,7 @@
     // If we need to connect after redirect (no errors returned from oauth server)
     if(window.location.hash.match(/access_token/) && !window.location.href.match(/(&|\?)error=/)) {
       oSDK.log('Checking for token in hash');
-      
+
       oSDK.utils.oauth.checkUrl();
       oSDK.utils.oauth.clearUrl();
 
@@ -155,24 +155,24 @@
     oSDK.utils.oauth.popup().close();
     oSDK.connect();
   });
-  
+
   document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
     auth.tokenCheck(false);
   });
-  
+
   window.onbeforeunload = function (event) {
     oSDK.log('window.onload');
     // TODO: handle gracefully auth redirection page unload.
-    // trying to quit gracefully  
+    // trying to quit gracefully
 //       if(rtcSession && rtcSession.terminate) {
 //         rtcSession.terminate();
 //       }
-    
+
 //       instance.stop();
 
   };
-  
+
   // Direct bindings to namespace
   //TODO: make this bindings automatic by registering module function
   oSDK.auth = auth;

@@ -95,8 +95,10 @@
 };
 
   // Attaching internal events to internal oSDK events
-  oSDK.on('auth.gotTempCreds:internal', function (e) {
+  oSDK.on('auth.gotTempCreds', function (e) {
     oSDK.log('XMPP got temp creds', arguments);
+
+    oSDK.trigger('connected', [].slice.call(arguments, 0));
 //     sip.init({
 //       'ws_servers': oSDK.config.sipServerURL,
 //           'uri': 'sip:' + e.data.username.split(':')[1],
@@ -124,7 +126,7 @@
 
 
 
-  sip.JSJaC = JSJaC;
+  xmpp.JSJaC = JSJaC;
 
   // Direct bindings to namespace
   //TODO: make this bindings automatic by registering module function

@@ -6,7 +6,7 @@
 
   var utils = {};
 
-  utils.debug = true;
+  utils.debug = true; // DEBUG:
 
   /*
    * Log/warn/err functions
@@ -21,10 +21,18 @@
       console.log('oSDK:', Array.prototype.slice.call(arguments, 0));
     };
     for(var cli in {'log': !0, 'warn': !0, 'err': !0}) {
-  
+
       utils[cli] = lf;
     }
   })();
+
+  // Tells if variable is an object (not array, string or null)
+  utils.isPlainObject = function (variable) {
+    if(typeof variable == 'object' && variable !== null && !(variable instanceof Array)) {
+      return true;
+    }
+    return false;
+  };
 
   // UUID generator
   utils.uuid = function () {
@@ -38,19 +46,19 @@
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
           s4() + '-' + s4() + s4() + s4();
   };
-  
+
   // Each for arrays and objects
   utils.each = function (obj, fn) {
     if (obj.length) {
       for (var i = 0, ol = obj.length, v = obj[0]; i < ol && fn(v, i) !== false; v = obj[++i]);
     } else {
       for (var p in obj) {
-        if (fn(obj[p], p) === false) 
+        if (fn(obj[p], p) === false)
           break;
       }
     }
   };
-  
+
   // JQuery simplified equivalent by interface function for only plain merging of objects
   utils.extend = function () {
     var args = Array.prototype.slice.call(arguments, 0);
@@ -64,9 +72,6 @@
   };
 
   // JQuery like simple ajax wrapper
-//   var ajaxData = {
-//     requests: [] //TODO: ajax queueing, ajax mass aborting
-//   };
   utils.ajax = function (config) {
 
     var dConfig = {
@@ -81,7 +86,7 @@
       password: null
     };
 
-    config = utils.extend({}, dConfig, config); 
+    config = utils.extend({}, dConfig, config);
 
     // encodeURIComponent
 
@@ -115,7 +120,7 @@
       if(!config.headers['Content-Type']) {
         r.setRequestHeader("Content-Type","application/json; charset=UTF-8");
       }
-      if(!config.headers['Accept']) {
+      if(!config.headers.Accept) {
         r.setRequestHeader("Accept","*/*");
       }
       for(var h in config.headers) {
@@ -131,7 +136,7 @@
       oSDK.log('Chrome..not setRequestHeader, firefox set');
       headersNotSet = true;
     }
-    
+
     r.open(config.type, config.url, config.async,config.username, config.password);
 
     // For chrome // FIXME more universal chrome and firefox handlers
@@ -139,7 +144,7 @@
       oSDK.log('Chrome..setRequestHeader');
       setHeaders();
     }
-    
+
     // ReadyStateChange handlers
     r.onreadystatechange = function () {
       if (r.readyState != 4) {
@@ -149,32 +154,32 @@
         config.error.call(config.error, r);
         return;
       }
-      
+
       try {
         r.responseText = JSON.parse(r.responseText);
       } catch (e) {
         // Whoops, not a json..
         oSDK.log(e);
       }
-      
+
       config.success.call(config.success, r.responseText, r);
     };
 
     r.send(config.data);
     return r;
   };
-  
+
   // window.location.hash getting and setting
   utils.hash = (function () {
     var hashData = {};
-    
+
     var dec = function (str) {
       return decodeURIComponent(str); // str.replace('&#61;', '=').replace('&#38;', '&');
     };
     var enc = function (str) {
       return encodeURIComponent(str); // str.replace('=', '&#61;').replace('&', '&#38;');
     };
-    
+
     var parseHash = function () {
       var h = window.location.hash.replace(/^#/, '').split(/&(?!#38;)/); // Not split by &#38;
       var tmpData = {};
@@ -195,7 +200,7 @@
       }
       return (tmpHash.length)?'#'+tmpHash.join('&'):'';
     };
-    
+
     return {
       getItem: function (id) {
         parseHash();
@@ -210,10 +215,10 @@
         parseHash();
         hashData[id] = null;
         window.location.hash = buildHash();
-      } 
+      }
     };
   })();
-  
+
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
     if(window.location.href.match(/(\?|&)error=(.*?)(&|$)/))
@@ -222,7 +227,8 @@
     }
     return null;
   };
-  
+
+  // Working with localStorage
   utils.storage = {
     getItem: function (name) {
       return JSON.parse(localStorage.getItem(name));
@@ -234,10 +240,10 @@
       return localStorage.removeItem(name);
     }
   };
-  
+
   // Oauth handling object
   utils.oauth = (function () {
-    
+
     var config = {
       popup: true, // When 'false' goes redirect, to string - goes popup options
       client_id: null,
@@ -248,23 +254,23 @@
       expires_start: null, // Time when got a token
       expires_in: null // Time To Live for token from server
     };
-    
+
     var authPopup = null;
-    
+
     return {
       // Configure oauth object
       configure: function (cfgObject) {
-        
+
         config.access_token = utils.storage.getItem('osdk.access_token') || null;
         config.expires_start = utils.storage.getItem('osdk.expires_start') || null;
         config.expires_in = utils.storage.getItem('osdk.expires_in') || null;
 
         config = oSDK.utils.extend({}, config, cfgObject);
-        
+
         utils.storage.setItem('osdk.access_token', config.access_token);
         utils.storage.setItem('osdk.expires_start', config.expires_start);
         utils.storage.setItem('osdk.expires_in', config.expires_in);
-        
+
         oSDK.log('oauth config', config);
       },
       // Checks hash for token
@@ -276,7 +282,7 @@
           console.log(error, error_description);
           alert(error + ':' + error_description);
         }
-        
+
         var token = utils.hash.getItem('access_token');
         if(token) {
           // Configuring us
@@ -295,7 +301,7 @@
             });
           }
         }
-        
+
         // TODO: No error and no token case?
       },
       // Clears url from token stuff
@@ -329,7 +335,7 @@
         }
         oSDK.log('User token is alive', config);
         return true;
-          
+
       },
       // Go to auth page if token expired or not exists (or forcibly if force == true)
       getToken: function (force) {
@@ -352,6 +358,7 @@
         }
         return false;
       },
+      // Returns authorization popup object
       popup: function () { return authPopup; }
     };
   })();
@@ -359,19 +366,179 @@
   // Config parser/extender
   utils.mergeConfig = function (config) {
     // TODO: parse config
-    
-    // Merge config additions 
-    oSDK.config = oSDK.utils.extend({}, oSDK.config, config); 
+
+    // Merge config additions
+    oSDK.config = oSDK.utils.extend({}, oSDK.config, config);
   };
 
-  // Object for custom callbacks to events
-  var eventListeners = {};
+
+  // Modules/events registration stuff
+
+  var namespaces = {};
+  var methods = {};
+  var events = {};
+
+  utils.eventSkel = function () {
+    return {
+          emitters: [],
+          listeners: []
+    };
+  };
+
+  // Returns attached namespaces
+  utils.namespaces = function () {
+    return namespaces;
+  };
+
+  // Returns attached methods
+  utils.methods = function () {
+    return methods;
+  };
+
+  // Returns attached event emitters and listeners grouped by event name
+  utils.events = function () {
+    return events;
+  };
+
+  // FOR MODULE. Needed to register namespace, method or event in oSDK by its module.
+  utils.attach = function (moduleName, object) {
+    // TODO: merge similar conditions
+    var i;
+    if (object.namespaces) {
+      for (i in object.namespaces) {
+        if (typeof(object.namespaces[i]) === 'string' && namespaces[object.namespaces[i]] ^ namespaces[i]) {
+          throw new oSDK.error('Registering module: ' + moduleName + '. Namespace "' + i + '" is already taken by module ' + namespaces[i]);
+        }
+        if (typeof(object.namespaces[i]) === 'string') {
+          namespaces[object.namespaces[i]] = moduleName;
+        } else {
+          namespaces[i] = moduleName;
+        }
+      }
+    }
+
+    if (object.methods) {
+      for (i in object.methods) {
+        if (typeof(object.methods[i]) === 'string' && methods[object.methods[i]] ^ methods[i]) {
+          throw new oSDK.error('Registering module: ' + moduleName + '. Method "' + i + '" is already taken by module ' + methods[i]);
+        }
+        if (typeof(object.methods[i]) === 'string') {
+          methods[object.methods[i]] = moduleName;
+        } else {
+          methods[i] = moduleName;
+        }
+      }
+    }
+
+    var registerEvents = function (eventType) {
+      oSDK.log('Registering events for module: ' + moduleName + '.', eventType, events[eventType]);
+
+      if (events[eventType]) {
+        oSDK.log('Registering events for module: ' + moduleName + '. Event "' + eventType + '" is already taken by module(s) ' + events[eventType].toString() + '. Combining.');
+      } else {
+        events[eventType] = utils.eventSkel();
+      }
+
+      events[eventType].emitters.push({ module: moduleName, fired: false /* Or data if fired */ });
+    };
+
+    // NOTICE: Each event may be boolean, string or array of strings. If boolean - event registered in oSDK by it's eventType. If string - by it's alias named in this string. Array of strings works like string but registers event as each alias. If same event registered by several modules - fires only last triggered event with combined by module eventType data.
+    if (object.events) {
+      for (i in object.events) {
+        // Each i must be an array
+        if (typeof(object.events[i]) === 'string') { // Assuming event alias
+          oSDK.log('event is string', i, object.events[i]);
+          i = [object.events[i]];
+        } else if (object.events[i] instanceof Array){ // Assuming array of event aliases
+          oSDK.log('event is array', i, object.events[i]);
+          i = [].concat(object.events[i]);
+        } else {
+          oSDK.log('event is bool', i, object.events[i]);
+          i = [i]; // Assuming boolean
+        }
+        i.map(registerEvents);
+      }
+    }
+        // Attaching external events to registered in oSDK events
+//     var attachEvent = function (e) {
+//       oSDK.trigger(typeof(attachableEvents[e.type])==='string'?attachableEvents[e.type]:e.type, e);
+//     };
+//     for(var i in attachableEvents) {
+//       sip.JsSIPUA.on(i, attachEvent );
+//     }
+//     if(object.eventsInterface) {
+//       for (i in object.eventsInterface) {
+//
+//       }
+//     };
+
+  };
+
+  /*
+   * Adds custom callback for specified event type.
+   * Returns id of added listener for removing through {@link oSDK.utils.removeEventListener}.
+   * @param fireType may be 'last' (default, fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (fires every time emitter emits)
+   */
+  utils.addEventListener = function (eventType, eventHandler, fireType) {
+    oSDK.log('Trying to add event listener for', eventType);
+
+    var fireTypes = {
+      'last': !0,
+      'first': !0,
+      'every': !0
+    };
+
+    if(!events[eventType]) {
+      events[eventType] = utils.eventSkel();
+    }
+    var id  = utils.uuid();
+    fireType = fireTypes[fireType]?fireType:'last';
+    var listener = {
+      id: id,
+      handler: eventHandler,
+      fireType: fireType,
+      fireCounter: 0,
+      fireData: {}
+    };
+    events[eventType].listeners.push(listener);
+    return id;
+  };
+
+  /*
+   * Removes custom callbacks for events by id or by eventType
+   * by event type or id generated through {@link oSDK.utils.addEventListener}
+   *
+   */
+  utils.removeEventListener = function (eventTypeOrID) {
+
+    if(events[eventTypeOrID]) {
+      // Removing all listeners for eventType
+      events[eventTypeOrID].listeners = [];
+      oSDK.log('Removed all listeners for event', eventTypeOrID);
+    } else {
+      // Searching and removing
+      var foundById = false;
+      var removeListener = function (id, i) {
+        if(events[eventType].listeners[i].id == eventTypeOrID) {
+          events[eventType].listeners.splice(i,1);
+          foundById = true;
+          return false;
+        }
+      };
+      for (var eventType in events) {
+        events[eventType].listeners.forEach(removeListener);
+      }
+      if(!foundById) {
+        throw new oSDK.error('Can\'t remove event listener(s) - this event type or ID is not registered.');
+      }
+    }
+  };
 
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
-  utils.fireCallback = function (/*context, eventType, eventData*/) {
-    var listener;
-    
+  utils.fireEvent = function (/*context, eventType, eventData*/) {
+    var event;
+
     if(typeof(arguments[0]) == 'undefined' || typeof(arguments[0]) == 'object' && typeof(arguments[1]) == 'undefined') {
       throw new oSDK.error('oSDK: Insufficient arguments.');
     } else if(typeof(arguments[0]) == 'string') {
@@ -384,127 +551,57 @@
       eventData = arguments[2] || {};
     }
 
-    // Addition of eventType to data
+    oSDK.log('fireEvent plain data is', eventData, 'for event', eventType);
+    // Normalizing eventData to object
+    if(!utils.isPlainObject(eventData)) {
+      eventData = {
+        data: eventData
+      };
+    }
+    // Appending of eventType to data
     eventData.type = eventType;
-    
-    oSDK.log('About to fire event', eventType, 'for available listeners');
-    // FIXME: this does not handle event handler priorities AND does not firing :internal event handlers in prioriy to external
-    for(listener in eventListeners) {
-//      oSDK.log('Searching for', eventType, 'in', listener);
-      if(
-        (
-          listener == eventType ||
-          eventListeners[listener].name.split(':')[0] == eventType
-        ) && typeof eventListeners[listener].handler == 'function'
-      ) {
-//         try {
-          oSDK.log('Firing callback to listener', eventListeners[listener].name, context, eventType, eventData);
-          eventListeners[listener].handler.call(context, eventData);
-//         } catch (e) {
-//           oSDK.log("Can't fire handler for event type", eventListeners[listener], e);
-//         }
-      }
-    }
-  };
 
-  /*
-   * Adds custom callback for specified event type.
-   * Event type can be suffixed e.g. "onNewRTCSession:group1".
-   * Returns id of added listener for removing through {@link oSDK.utils.removeEventListener}
-   */
-  utils.addEventListener = function (eventName, eventHandler) {
-    oSDK.log('Trying to add event listener for', eventName);
-    var id  = utils.uuid();
-    var newEvent = {
-      name: eventName,
-      handler: eventHandler
+    if(!events[eventType]) {
+      throw new oSDK.error('Event', eventType, 'not registered therefore can\'t trigger!');
+    }
+
+    // Regstered emitters may be zero (e.g. in case of oauth popup)
+
+    // Fire every listener for event type
+    var fireToListener = function (listener) {
+      oSDK.log('Checking if can fire', eventType, 'with event data', eventData, listener.fireData, 'for listener', listener);
+      if (listener.fireType === 'last') {
+        // Extending data
+        if(eventData) {
+          listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
+        }
+        oSDK.log('listener.fireData', listener.fireData);
+        // Checking if we can fire
+        if (++listener.fireCounter >= events[eventType].emitters.length) {
+          oSDK.log('Firing', eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+          // Firing with cumulative data
+          listener.handler.call(context, listener.fireData);
+          // Cleaning cumulative data
+          listener.fireCounter = 0;
+          listener.fireData = {};
+        } else {
+          oSDK.log('NOT firing', eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+        }
+      } else if (listener.fireType === 'first') {
+        if (++listener.fireCounter === 1) {
+          // Firing with current data
+          listener.handler.call(context, eventData);
+        }
+        else {
+          listener.fireCounter--; // No to overflow
+        }
+      } else if (listener.fireType === 'every') {
+        // Just firing
+        listener.handler.call(context, eventData);
+      }
     };
-    eventListeners[id] = newEvent;
-    return id;
-  };
-  
-  /*
-   * Removes custom callbacks for events
-   * by event type or id generated through {@link oSDK.utils.addEventListener}
-   * 
-   */
-  utils.removeEventListener = function (eventType) {
-    var listener;
-    for(listener in eventListeners) {
-      if(eventType === listener || eventType === eventListeners[listener].name) {
-        delete eventListeners[listener];
-      }
-    }
-  };
-  
-  // Modules registration stuff
-  
-  var namespaces = {};
-  var methods = {};
-  var events = {};
-  
-  // Returns attached namespaces
-  utils.namespaces = function () {
-    return namespaces;
-  };
-  
-  // Returns attached methods
-  utils.methods = function () {
-    return methods;
-  };
-  
-  // Returns attached events
-  utils.events = function () {
-    return events;
-  };
-  
-  // Returns attached events
-  utils.eventListeners = function () {
-    return eventListeners;
-  };
-  
-  // Needed to register namespace, method or event in oSDK by its module.
-  utils.attach = function (moduleName, object) {
-    // TODO: merge similar conditions 
-    var i;
-    if(object.namespaces) {
-      for (i in object.namespaces) {
-        if(typeof(object.namespaces[i]) === 'string' && namespaces[object.namespaces[i]] ^ namespaces[i]) {
-          throw new oSDK.error('oSDK: Registering module: '+ moduleName +'. Namespace "'+ i +'" is already taken by module '+ namespaces[i]);
-        }
-        if(typeof(object.namespaces[i]) === 'string') {
-          namespaces[object.namespaces[i]] = moduleName;
-        } else {
-          namespaces[i] = moduleName;
-        }
-      }
-    }
+    events[eventType].listeners.forEach(fireToListener);
 
-    if(object.methods) {
-      for (i in object.methods) {
-        if(typeof(object.methods[i]) === 'string' && methods[object.methods[i]] ^ methods[i]) {
-          throw new oSDK.error('oSDK: Registering module: '+ moduleName +'. Method "'+ i +'" is already taken by module '+ methods[i]);
-        }
-        if(typeof(object.methods[i]) === 'string') {
-          methods[object.methods[i]] = moduleName;
-        } else {
-          methods[i] = moduleName;
-        }
-      }
-    }
-
-    if(object.events) {
-      for (i in object.events) {
-        if(typeof(object.events[i]) === 'string' && events[object.events[i]] ^ events[i]) {
-          throw new oSDK.error('oSDK: Registering module: '+ moduleName +'. Event "'+ i +'" is already taken by module '+ events[i]);
-        }
-        if(typeof(object.events[i]) === 'string') {
-          events[object.events[i]] = moduleName;
-        } else {
-          events[i] = moduleName;
-        }
-      }
-    }
   };
 
   oSDK.utils = utils;
@@ -512,9 +609,9 @@
   // Some direct bindings to namespace
   oSDK.on = oSDK.utils.addEventListener;
   oSDK.off = oSDK.utils.removeEventListener;
-  oSDK.trigger = oSDK.utils.fireCallback;
+  oSDK.trigger = oSDK.utils.fireEvent;
   oSDK.log = oSDK.utils.log;
   oSDK.warn = oSDK.utils.warn;
   oSDK.err = oSDK.utils.err;
-  
+
 })(oSDK);

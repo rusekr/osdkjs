@@ -29,16 +29,17 @@
     'newRTCSession': 'newMediaSession'
   };
 
-  var attachableEventsInterface = {
-    generator: 'oSDK.sip.JsSIPUA.on',
-    parameters: ['name', 'handler']
-  };
+  // TODO: not used now
+//   var attachableEventsInterface = {
+//     generator: 'oSDK.sip.JsSIPUA.on',
+//     parameters: ['name', 'handler']
+//   };
 
   oSDK.utils.attach(moduleName, {
     namespaces: attachableNamespaces,
     methods: attachableMethods,
-    events: attachableEvents,
-    eventsInterface: attachableEventsInterface
+    events: attachableEvents
+//    ,eventsInterface: attachableEventsInterface // TODO:
   });
 
   sip.JsSIP = JsSIP;
@@ -79,7 +80,7 @@
           'uri': 'sip:' + e.data.username.split(':')[1],
           'password': e.data.password,
           'stun_servers': [],
-          'registrar_server': 'sip:'+oSDK.config.sipServerURL.replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
+          'registrar_server': 'sip:'+oSDK.config.sip.serverURL.replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
           'trace_sip': true,
           'register': true,
           'authorization_user': e.data.username.split(':')[1],

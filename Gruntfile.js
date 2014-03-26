@@ -48,7 +48,7 @@ module.exports = function(grunt) {
           'src/osdk.errors.js',
           'src/osdk.auth.js',
           'src/osdk.module.sip.js',
-//           'src/osdk.module.xmpp.js',
+          'src/osdk.module.xmpp.js',
           'src/osdk.config.js',
 
           'src/osdk.loaded-signal.js'
