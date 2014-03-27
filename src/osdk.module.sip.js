@@ -21,11 +21,11 @@
   };
 
   var attachableEvents = {
-    'connected': ['sip.connected', 'connected'],
-    'disconnected': ['sip.disconnected', 'disconnected'],
+    'connected': 'sip.connected',
+    'disconnected': 'sip.disconnected',
     'registered': 'sip.registered',
     'unregistered': 'sip.unregistered',
-    'registrationFailed': ['sip.registrationFailed', 'connectionFailed'],
+    'registrationFailed': 'sip.registrationFailed',
     'newRTCSession': 'newMediaSession'
   };
 

@@ -6,8 +6,52 @@
 
   var utils = {};
 
-  utils.debug = true; // DEBUG:
-
+  utils.debug = true;
+  
+  /**
+   * Test var types
+   * @isNumber
+   * @isArray
+   * @isObject
+   * @isBoolean
+   * @isString
+   * @isNull
+   * @isEmpty
+   */
+  utils.isNumber = function(value) {
+    return (!isNaN(parseFloat(value)) && isFinite(value));
+  };    
+  utils.isArray = function(value) {
+    function fnIsNull(value) {
+      return ((value === undefined) || (value === null));
+    }
+    return (!fnIsNull(value) && (Object.prototype.toString.call(value) === '[object Array]'));
+  };    
+  utils.isObject = function(value) {
+    function fnIsNull(value) {
+      return ((value === undefined) || (value === null));
+    }
+    function fnIsEmpty(value) {
+      return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
+    }
+    return (!fnIsEmpty(value) && (typeof value == 'object'));
+  };    
+  utils.isBoolean = function(value) {
+    return (typeof value == 'boolean');
+  };
+  utils.isString = function(value) {
+    return (typeof value == 'string');
+  };    
+  utils.isNull = function(value) {
+    return ((value === undefined) || (value === null));
+  };    
+  utils.isEmpty = function(value) {
+    function fnIsNull(value) {
+      return ((value === undefined) || (value === null));
+    }
+    return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
+  };
+  
   /*
    * Log/warn/err functions
    */
@@ -25,14 +69,6 @@
       utils[cli] = lf;
     }
   })();
-
-  // Tells if variable is an object (not array, string or null)
-  utils.isPlainObject = function (variable) {
-    if(typeof variable == 'object' && variable !== null && !(variable instanceof Array)) {
-      return true;
-    }
-    return false;
-  };
 
   // UUID generator
   utils.uuid = function () {
@@ -553,7 +589,7 @@
 
     oSDK.log('fireEvent plain data is', eventData, 'for event', eventType);
     // Normalizing eventData to object
-    if(!utils.isPlainObject(eventData)) {
+    if(!utils.isObject(eventData)) {
       eventData = {
         data: eventData
       };
@@ -613,5 +649,4 @@
   oSDK.log = oSDK.utils.log;
   oSDK.warn = oSDK.utils.warn;
   oSDK.err = oSDK.utils.err;
-
 })(oSDK);

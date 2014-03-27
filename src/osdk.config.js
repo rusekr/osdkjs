@@ -10,14 +10,21 @@
     authURI: '/authorize/',
       //debug
     testScope: 'gold wood uranium', // FIXME: may be for us(wso2) its not needed?
-
     sip: {
-      serverURL: 'wss://osdp-teligent-test-registrar.teligent.ru:8088/ws', // TODO: move to sip module config
+      // TODO: move to sip module config
+      serverURL: 'wss://osdp-teligent-test-registrar.teligent.ru:8088/ws'
     },
     xmpp: {
-      serverURL: 'wss://osdp-teligent-test-registrar.teligent.ru:5280/http-bind/', //TODO: move to xmpp module config
+      // TODO: move to xmpp module config
+      debug: 2,
+      timer: 500,
+      server: {
+        protocol: 'https',
+        domain: 'osdp-teligent-test-xmpp.teligent.ru',
+        port: 5280,
+        utl: 'http-bind'
+      }
     },
-
     oauthPopup: false, // oauth login in popup
   };
 
