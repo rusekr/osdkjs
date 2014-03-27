@@ -23,7 +23,7 @@
   var attachableEvents = {
     'connected': 'sip.connected',
     'disconnected': 'sip.disconnected',
-    'registered': 'sip.registered',
+    'registered': ['sip.registered', 'connected'],
     'unregistered': 'sip.unregistered',
     'registrationFailed': 'sip.registrationFailed',
     'newRTCSession': 'newMediaSession'

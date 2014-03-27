@@ -30,7 +30,7 @@
   };
   
   var attachableEvents = {
-    'onConnect': 'xmpp.events.connect',
+    'onConnect': ['xmpp.events.connect', 'connected'],
     'onDisconnect': 'xmpp.events.disconnect',
     'onResume': 'xmpp.events.resume',
     'onStatusChanged': 'xmpp.events.statusChanged',

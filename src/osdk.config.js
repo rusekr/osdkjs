@@ -16,7 +16,7 @@
     },
     xmpp: {
       // TODO: move to xmpp module config
-      debug: 3,
+      debug: 2,
       timer: 500,
       resource: 'oClient',
       server: {
