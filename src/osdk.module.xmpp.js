@@ -120,6 +120,13 @@
     events: attachableEvents
   });
   
+  /**
+   * Get HttpBase from config to XMPP connection:
+   * @protocol {String}
+   * @domain {String}
+   * @port {String}
+   * @url {String}
+   */
   function getHttpBase(data) {
     var result = '';
     if (!data.protocol) {
@@ -136,6 +143,13 @@
     if (data.url) result += '/' + data.url;
     result += '/';
     return result;
+  }
+  
+  /**
+   * User to Client/Contact
+   */
+  function User(data) {
+    
   }
   
   /**
@@ -158,6 +172,18 @@
         xmpp.status = 'disconnection';
         xmpp.con.disconnect();
       }
+    },
+    getClient: function() {
+      
+    },
+    getContacts: function(callback) {
+      
+    },
+    addContact: function(callback) {
+      
+    },
+    removeContact: function(callback) {
+      
     }
   };
   
