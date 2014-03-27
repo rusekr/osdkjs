@@ -16,13 +16,14 @@
     },
     xmpp: {
       // TODO: move to xmpp module config
-      debug: 2,
+      debug: 3,
       timer: 500,
+      resource: 'oClient',
       server: {
-        protocol: 'https',
+        protocol: 'wss',
         domain: 'osdp-teligent-test-xmpp.teligent.ru',
         port: 5280,
-        utl: 'http-bind'
+        url: 'http-bind'
       }
     },
     oauthPopup: false, // oauth login in popup
