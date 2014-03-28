@@ -53,7 +53,7 @@ module.exports = function(grunt) {
 
           'src/osdk.loaded-signal.js'
         ],
-        dest: 'build/jquery.<%= pkg.name %>.js'
+        dest: 'build/<%= pkg.name %>.js'
       },
     },
     uglify: {
@@ -62,7 +62,7 @@ module.exports = function(grunt) {
       },
       dist: {
         src: '<%= concat.dist.dest %>',
-        dest: 'build/jquery.<%= pkg.name %>.min.js'
+        dest: 'build/<%= pkg.name %>.min.js'
       },
     },
     jsdoc: {
