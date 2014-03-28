@@ -8,13 +8,46 @@
   var xmpp = {
     // Debuger
     dbg: null,
-    // Connection
+    // XMPP Connection
     con: null,
-    // Information about current client
+    // User, temp info to connect
     usr: {},
     // Current status
     status: 'not inited'
   };
+  
+  // Inner storage (session)
+  var storage = {
+    // Current client
+    client: null,
+    // Contacts list
+    contacts: []
+  };
+  
+  // Roster ID counter
+  var rosterId = 0;
+  function getRosterId() {
+    return 'roster_' + oSDK.utils.hash(xmpp.usr.login + '@' + xmpp.usr.domain);
+    /*
+    rosterId ++;
+    return 'roster_' + rosterId;
+    */
+  }
+  
+  /**
+   * Client/Contact
+   */
+  function Client(data) {
+    var self = this;
+    this.photo = false;
+    this.group = data.group;
+    this.login = data.login;
+    this.domain = data.domain;
+    this.account = data.login + '@' + data.domain;
+    this.history = [];
+    this.favorite = false;
+    this.deletable = false;
+  }
   
   // Registering module in oSDK
   var moduleName = 'xmpp';
@@ -52,10 +85,27 @@
     connect: function() {
       oSDK.log('XMPP handler - connect');
       if (xmpp.status == 'connection') {
-        oSDK.trigger('connected', [].slice.call(arguments, 0));
+        xmpp.status = 'get contacts';
+        // Get contacts list
+        oSDK.log('XMPP get contacts list');
+        var roster = new JSJaCIQ();
+        roster.setIQ(null, 'get', getRosterId());
+        roster.setQuery(NS_ROSTER);
+        xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
+          var nodes = aIq.getQuery();
+          var me = oSDK.getClient().login + '@' + oSDK.getClient().domain;
+          var i, l = nodes.childNodes.length;
+          for (i = 0; i != l; i ++) {
+            var jid = nodes.childNodes[i].getAttribute('jid');
+            if (jid != me) {
+              storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
+            }
+          }
+          oSDK.trigger('connected', [].slice.call(arguments, 0));
+        }});
+        // Change XMPP status
+        xmpp.status = 'connected';
       }
-      // Change XMPP status
-      xmpp.status = 'connected';
     },
     disconnect: function() {
       oSDK.log('XMPP handler - disconnect');
@@ -83,6 +133,12 @@
       }
     },
     message: {
+      fn: function(e) {
+        oSDK.log('XMPP handler - message', e);
+        console.log(e.getFrom() + '>' + e.getTo() + ':' + e.getType());
+        console.log(e.getBody());
+        console.log(e.getFromJID().getResource());
+      },
       incoming: function(e) {
         oSDK.log('XMPP handler - incoming message', e);
       },
@@ -91,6 +147,9 @@
       }
     },
     presence: {
+      fn: function(e) {
+        oSDK.log('XMPP handler - presence', e);
+      },
       incoming: function(e) {
         oSDK.log('XMPP handler - incoming presence', e);
       },
@@ -149,13 +208,6 @@
   }
   
   /**
-   * Client/Contact
-   */
-  function Client(data) {
-    
-  }
-  
-  /**
    * XMPP fn
    * 
    * Connect
@@ -209,22 +261,47 @@
       xmpp.con.registerHandler(i, attachEvent);
     }
     */
-    xmpp.con.registerHandler('onConnect', xmpp.events.connect);
-    xmpp.con.registerHandler('onDisconnect', xmpp.events.disconnect);
-    xmpp.con.registerHandler('onResume', xmpp.events.resume);
-    xmpp.con.registerHandler('onStatusChanged', xmpp.events.statusChanged);
-    xmpp.con.registerHandler('onError', xmpp.events.error);
-    xmpp.con.registerHandler('packet_in', xmpp.events.packet.incoming);
-    xmpp.con.registerHandler('packet_out', xmpp.events.packet.outcoming);
-    xmpp.con.registerHandler('message_in', xmpp.events.message.incoming);
-    xmpp.con.registerHandler('message_out', xmpp.events.message.outcoming);
+    /*
+    xmpp.con.registerHandler('onconnect', xmpp.events.connect);
+    xmpp.con.registerHandler('ondisconnect', xmpp.events.disconnect);
+    xmpp.con.registerHandler('onresume', xmpp.events.resume);
+    xmpp.con.registerHandler('status_changed', xmpp.events.statusChanged);
+    xmpp.con.registerHandler('onerror', xmpp.events.error);
+    xmpp.con.registerHandler('message', xmpp.events.message.fn);
+    xmpp.con.registerHandler('presence', xmpp.events.presence.fn);
+    xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
+    xmpp.con.registerIQGet('query', NS_VERSION, xmpp.events.iq.version);
+    xmpp.con.registerIQGet('query', NS_TIME, xmpp.events.iq.time);
+    
+    xmpp.con.registerHandler('message', xmpp.events.message.fn);
+    xmpp.con.registerHandler('presence', xmpp.events.presence.fn);
+    xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
+    xmpp.con.registerHandler('onconnect', xmpp.events.connect);
+    xmpp.con.registerHandler('onerror', xmpp.events.error);
+    xmpp.con.registerHandler('status_changed', xmpp.events.statusChanged);
+    xmpp.con.registerHandler('ondisconnect', xmpp.events.disconnect);
+    xmpp.con.registerIQGet('query', NS_VERSION, xmpp.events.iq.version);
+    xmpp.con.registerIQGet('query', NS_TIME, xmpp.events.iq.time);
+    */
+    
+    xmpp.con.registerHandler('onconnect', xmpp.events.connect);
+    xmpp.con.registerHandler('ondisconnect', xmpp.events.disconnect);
+    xmpp.con.registerHandler('onresume', xmpp.events.resume);
+    xmpp.con.registerHandler('onstatuschanged', xmpp.events.statusChanged);
+    xmpp.con.registerHandler('onerror', xmpp.events.error);
+    // xmpp.con.registerHandler('packet_in', xmpp.events.packet.incoming);
+    // xmpp.con.registerHandler('packet_out', xmpp.events.packet.outcoming);
+    xmpp.con.registerHandler('message', xmpp.events.message.fn);
+    // xmpp.con.registerHandler('message_in', xmpp.events.message.incoming);
+    // xmpp.con.registerHandler('message_out', xmpp.events.message.outcoming);
     xmpp.con.registerHandler('presence_in', xmpp.events.presence.incoming);
     xmpp.con.registerHandler('presence_in', xmpp.events.presence.outcoming);
     xmpp.con.registerIQGet('query', NS_VERSION, xmpp.events.iq.version);
     xmpp.con.registerIQGet('query', NS_TIME, xmpp.events.iq.time);
-    xmpp.con.registerIQGet('query', NS_ROSTER, xmpp.events.iq.get);
-    xmpp.con.registerIQSet('query', NS_ROSTER, xmpp.events.iq.set);
+    // xmpp.con.registerIQGet('query', NS_ROSTER, xmpp.events.iq.get);
+    // xmpp.con.registerIQSet('query', NS_ROSTER, xmpp.events.iq.set);
     xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
+    
     // Change XMPP status
     xmpp.status = 'inited';
     // Authorization
@@ -235,6 +312,8 @@
       password: data.password,
       pass: data.password
     });
+    // Current client
+    storage.client = new Client({ login: data.login, domain: data.domain, group: false });
   };
   
   // Attaching internal events to internal oSDK events
@@ -259,19 +338,92 @@
    * oSDK methods
    */
   oSDK.getClient = function() {
-    
+    return storage.client;
   };
   
   oSDK.getContacts = function(callback) {
-    
+    if (callback) {
+      oSDK.log('XMPP get contacts list');
+      var roster = new JSJaCIQ();
+      roster.setIQ(null, 'get', getRosterId());
+      roster.setQuery(NS_ROSTER);
+      xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
+        var nodes = aIq.getQuery();
+        var me = oSDK.getClient().login + '@' + oSDK.getClient().domain;
+        var i, l = nodes.childNodes.length;
+        storage.contacts = [];
+        for (i = 0; i != l; i ++) {
+          var jid = nodes.childNodes[i].getAttribute('jid');
+          if (jid != me) {
+            storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
+          }
+        }
+        callback(storage.contacts);
+      }});
+    } else {
+      return storage.contacts;
+    }
   };
   
-  oSDK.addContact = function(callback) {
-    
+  oSDK.addContact = function(account, callback) {
+    var attribs = {jid: account};
+    var iq = new JSJaCIQ();
+    var itemNode = iq.buildNode('item', attribs);
+    itemNode.appendChild(iq.buildNode('group', 'general'));
+    iq.setType('set');
+    iq.setQuery(NS_ROSTER).appendChild(itemNode);
+    if (!callback) callback = function(){return true;};
+    xmpp.con.send(iq, callback);
   };
   
-  oSDK.removeContact = function(callback) {
-    
+  oSDK.removeContact = function(account, callback) {
+    var iq = new JSJaCIQ();
+    var itemNode = iq.buildNode('item', {
+      jid: account,
+      subscription: 'remove'
+    });
+    iq.setType('set');
+    iq.setQuery(NS_ROSTER).appendChild(itemNode);
+    if (!callback) callback = function(){return true;};
+    xmpp.con.send(iq, callback);
+  };
+  
+  oSDK.sendMessage = function(account, message, callback) {
+    var msg = new JSJaCMessage();
+    console.log('MESSAGE to: ' + oSDK.getContactByAccount(account).login);
+    msg.setTo(new JSJaCJID(oSDK.getContactByAccount(account).login));
+    msg.setBody(message);
+    xmpp.con.send(msg);
+    if (callback) callback();
+  };
+  
+  oSDK.addHistoryTo = function(account, history) {
+    var i, l = storage.contacts.length;
+    for (i = 0; i != l; i ++) {
+      if (storage.contacts[i].account == account) {
+        storage.contacts[i].history.push(history);
+      }
+    }
+  };
+  
+  oSDK.getContactByAccount = function(account) {
+    var i, l = storage.contacts.length;
+    for (i = 0; i != l; i ++) {
+      if (storage.contacts[i].account == account) {
+        return storage.contacts[i];
+      }
+    }
+    return false;
+  };
+  
+  oSDK.getContactByLogin = function(login) {
+    var i, l = storage.contacts.length;
+    for (i = 0; i != l; i ++) {
+      if (storage.contacts[i].login == login) {
+        return storage.contacts[i];
+      }
+    }
+    return false;
   };
   
 })(oSDK, JSJaC);
