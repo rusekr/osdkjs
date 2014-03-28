@@ -22,10 +22,10 @@
 
   var attachableEvents = {
     'connected': 'sip.connected',
-    'disconnected': 'sip.disconnected',
+    'disconnected': ['sip.disconnected', 'disconnected'],
     'registered': ['sip.registered', 'connected'],
     'unregistered': 'sip.unregistered',
-    'registrationFailed': 'sip.registrationFailed',
+    'registrationFailed': ['sip.registrationFailed', 'connectionFailed'],
     'newRTCSession': 'newMediaSession'
   };
 
@@ -53,23 +53,8 @@
     sip.JsSIPUA = new sip.JsSIP.UA(config);
 
     // Attaching external events to registered in oSDK events
-    var attachEvent = function (e) {
-      oSDK.trigger(typeof(attachableEvents[e.type])==='string'?attachableEvents[e.type]:e.type, e);
-    };
-    for(var i in attachableEvents) {
-      sip.JsSIPUA.on(i, attachEvent );
-    }
+    oSDK.utils.attachTriggers(attachableEvents, sip.JsSIPUA.on, sip.JsSIPUA);
 
-    // Attaching internal events to main oSDK events
-    oSDK.on('sip.registered', function () {
-      oSDK.trigger('connected', [].slice.call(arguments, 0));
-    } );
-    oSDK.on('sip.registrationFailed', function () {
-      oSDK.trigger('connectionFailed', {'error': 'SIP can\'t register.'});
-    } );
-    oSDK.on('sip.disconnected', function () {
-      oSDK.trigger('disconnected', {});
-    } );
   };
 
   // Attaching internal events to internal oSDK events
@@ -89,6 +74,11 @@
     });
 
     sip.start();
+  });
+
+  oSDK.on('auth.disconnected', function (e) {
+        //TODO: Upgrade direct use to augmenting handler for disconnect by sip module.
+    oSDK.sip.stop();
   });
 
   // Attaching registered in oSDK methods to internal methods

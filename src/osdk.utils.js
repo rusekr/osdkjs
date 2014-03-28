@@ -7,7 +7,7 @@
   var utils = {};
 
   utils.debug = true;
-  
+
   /**
    * Test var types
    * @isNumber
@@ -20,13 +20,13 @@
    */
   utils.isNumber = function(value) {
     return (!isNaN(parseFloat(value)) && isFinite(value));
-  };    
+  };
   utils.isArray = function(value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
     }
     return (!fnIsNull(value) && (Object.prototype.toString.call(value) === '[object Array]'));
-  };    
+  };
   utils.isObject = function(value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
@@ -35,23 +35,23 @@
       return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
     }
     return (!fnIsEmpty(value) && (typeof value == 'object'));
-  };    
+  };
   utils.isBoolean = function(value) {
     return (typeof value == 'boolean');
   };
   utils.isString = function(value) {
     return (typeof value == 'string');
-  };    
+  };
   utils.isNull = function(value) {
     return ((value === undefined) || (value === null));
-  };    
+  };
   utils.isEmpty = function(value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
     }
     return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
   };
-  
+
   /*
    * Log/warn/err functions
    */
@@ -437,6 +437,7 @@
   };
 
   // FOR MODULE. Needed to register namespace, method or event in oSDK by its module.
+  // attachableEvents - map internal events to same named oSDK events, aliases or array of aliases
   utils.attach = function (moduleName, object) {
     // TODO: merge similar conditions
     var i;
@@ -483,13 +484,10 @@
       for (i in object.events) {
         // Each i must be an array
         if (typeof(object.events[i]) === 'string') { // Assuming event alias
-          oSDK.log('event is string', i, object.events[i]);
           i = [object.events[i]];
         } else if (object.events[i] instanceof Array){ // Assuming array of event aliases
-          oSDK.log('event is array', i, object.events[i]);
           i = [].concat(object.events[i]);
         } else {
-          oSDK.log('event is bool', i, object.events[i]);
           i = [i]; // Assuming boolean
         }
         i.map(registerEvents);
@@ -508,6 +506,29 @@
 //       }
 //     };
 
+  };
+
+  // Attach triggers for registered events through initialized module object
+  utils.attachTriggers = function (attachableEvents, triggerFunction, context) {
+
+      utils.each(attachableEvents, function (ev, i) {
+        var outer = [];
+        if (typeof(ev) === 'string') { // Assuming event alias
+          outer.push(ev);
+        } else if (ev instanceof Array){ // Assuming array of event aliases
+          outer = outer.concat(ev);
+        } else {
+          outer.push(i); // Assuming boolean
+        }
+
+        utils.each(outer, function (outerEvent) {
+          triggerFunction.call(context || this, i, function (e) {
+            utils.fireEvent(outerEvent, e);
+          });
+        });
+
+
+      });
   };
 
   /*

@@ -21,7 +21,7 @@
     'loaded': true,
     'gotTempCreds': 'auth.gotTempCreds',
     'connected': true,
-    'disconnected': true,
+    'disconnected': ['auth.disconnected', 'disconnected'],
     'connectionFailed': true,
   };
 
@@ -58,7 +58,7 @@
       type: 'get',
       headers: {'Authorization':'Bearer '+oSDK.config.appToken},
       data: {
-        service: 'sip' // FIXME: needed?
+        //service: 'sip' // FIXME: needed?
       },
       success: function(data) {
         data = JSON.parse(data);
@@ -92,8 +92,8 @@
   };
   // Imperative disconnection from openSDP network
   auth.disconnect = function () {
-    //TODO: Upgrade direct use to augmenting handler for disconnect by sip module.
-    oSDK.sip.stop();
+    oSDK.trigger('auth.disconnected');
+    oSDK.trigger('disconnected');
   };
 
   auth.tokenCheck = function (agressive) {
