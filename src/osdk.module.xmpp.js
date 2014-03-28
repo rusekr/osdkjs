@@ -70,6 +70,9 @@
     },
     error: function(e) {
       oSDK.log('XMPP handler - error', e);
+      if (xmpp.status == 'connection') {
+        
+      }
     },
     packet: {
       incoming: function(e) {
@@ -146,9 +149,9 @@
   }
   
   /**
-   * User to Client/Contact
+   * Client/Contact
    */
-  function User(data) {
+  function Client(data) {
     
   }
   
@@ -172,18 +175,6 @@
         xmpp.status = 'disconnection';
         xmpp.con.disconnect();
       }
-    },
-    getClient: function() {
-      
-    },
-    getContacts: function(callback) {
-      
-    },
-    addContact: function(callback) {
-      
-    },
-    removeContact: function(callback) {
-      
     }
   };
   
@@ -250,18 +241,37 @@
   oSDK.on('auth.gotTempCreds', function (e) {
     oSDK.log('XMPP got temp creds', arguments);
     xmpp.usr.domain = (arguments[0].data.username.split(':')[1]).split('@')[1];
-    xmpp.usr.stamp = arguments[0].data.username.split(':')[0];
-    xmpp.usr.lgn = (arguments[0].data.username.split(':')[1]).split('@')[0];
-    xmpp.usr.pwd = arguments[0].data.password;
+    xmpp.usr.timestamp = arguments[0].data.username.split(':')[0];
+    xmpp.usr.login = (arguments[0].data.username.split(':')[1]).split('@')[0];
+    xmpp.usr.password = arguments[0].data.password;
     xmpp.init({
       debug: oSDK.config.xmpp.debug,
       timerval: oSDK.config.xmpp.timer,
       httpbase: ((oSDK.utils.isString(oSDK.config.xmpp.server)) ? oSDK.config.xmpp.server : getHttpBase(oSDK.config.xmpp.server)),
-      login: xmpp.usr.lgn,
-      password: xmpp.usr.pwd,
+      login: xmpp.usr.login,
+      password: xmpp.usr.password,
       domain: xmpp.usr.domain,
       resource: oSDK.config.xmpp.resource
     });
   });
-
+  
+  /**
+   * oSDK methods
+   */
+  oSDK.getClient = function() {
+    
+  };
+  
+  oSDK.getContacts = function(callback) {
+    
+  };
+  
+  oSDK.addContact = function(callback) {
+    
+  };
+  
+  oSDK.removeContact = function(callback) {
+    
+  };
+  
 })(oSDK, JSJaC);
