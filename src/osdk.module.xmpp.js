@@ -3,7 +3,8 @@
  */
 
 (function (oSDK, JSJaC) {
-  
+  "use strict";
+
   // Module namespace
   var xmpp = {
     // Debuger
@@ -15,7 +16,7 @@
     // Current status
     status: 'not inited'
   };
-  
+
   // Inner storage (session)
   var storage = {
     // Current client
@@ -23,17 +24,17 @@
     // Contacts list
     contacts: []
   };
-  
+
   // Roster ID counter
   var rosterId = 0;
   function getRosterId() {
-    return 'roster_' + oSDK.utils.hash(xmpp.usr.login + '@' + xmpp.usr.domain);
+    return 'roster_' + oSDK.utils.md5(xmpp.usr.login + '@' + xmpp.usr.domain);
     /*
     rosterId ++;
     return 'roster_' + rosterId;
     */
   }
-  
+
   /**
    * Client/Contact
    */
@@ -48,7 +49,7 @@
     this.favorite = false;
     this.deletable = false;
   }
-  
+
   // Registering module in oSDK
   var moduleName = 'xmpp';
 
@@ -61,7 +62,7 @@
   //     'stop': 'disconnect',
     'send': true
   };
-  
+
   var attachableEvents = {
     'onConnect': ['xmpp.events.connect', 'connected'],
     'onDisconnect': 'xmpp.events.disconnect',
@@ -77,7 +78,7 @@
     'iq_in': 'xmpp.events.iq.incoming',
     'iq_out': 'xmpp.events.iq.outcoming'
   };
-  
+
   /**
    * XMPP Events
    */
@@ -121,7 +122,7 @@
     error: function(e) {
       oSDK.log('XMPP handler - error', e);
       if (xmpp.status == 'connection') {
-        
+
       }
     },
     packet: {
@@ -175,13 +176,13 @@
       }
     }
   };
-  
+
   oSDK.utils.attach(moduleName, {
     namespaces: attachableNamespaces,
     methods: attachableMethods,
     events: attachableEvents
   });
-  
+
   /**
    * Get HttpBase from config to XMPP connection:
    * @protocol {String}
@@ -206,10 +207,10 @@
     result += '/';
     return result;
   }
-  
+
   /**
    * XMPP fn
-   * 
+   *
    * Connect
    * Disconnect
    */
@@ -229,10 +230,10 @@
       }
     }
   };
-  
+
   /**
    * XMPP initiation
-   * 
+   *
    * @param {Number} [dbg=false|true|number] disabled|enabled JSJaC inner console
    * if dbg is number: 0 - warn, 1 - error, 2 - info, 4 - debug, default - log, 3|true - all
    */
@@ -272,7 +273,7 @@
     xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
     xmpp.con.registerIQGet('query', NS_VERSION, xmpp.events.iq.version);
     xmpp.con.registerIQGet('query', NS_TIME, xmpp.events.iq.time);
-    
+
     xmpp.con.registerHandler('message', xmpp.events.message.fn);
     xmpp.con.registerHandler('presence', xmpp.events.presence.fn);
     xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
@@ -283,7 +284,7 @@
     xmpp.con.registerIQGet('query', NS_VERSION, xmpp.events.iq.version);
     xmpp.con.registerIQGet('query', NS_TIME, xmpp.events.iq.time);
     */
-    
+
     xmpp.con.registerHandler('onconnect', xmpp.events.connect);
     xmpp.con.registerHandler('ondisconnect', xmpp.events.disconnect);
     xmpp.con.registerHandler('onresume', xmpp.events.resume);
@@ -301,7 +302,7 @@
     // xmpp.con.registerIQGet('query', NS_ROSTER, xmpp.events.iq.get);
     // xmpp.con.registerIQSet('query', NS_ROSTER, xmpp.events.iq.set);
     xmpp.con.registerHandler('iq', xmpp.events.iq.fn);
-    
+
     // Change XMPP status
     xmpp.status = 'inited';
     // Authorization
@@ -315,7 +316,7 @@
     // Current client
     storage.client = new Client({ login: data.login, domain: data.domain, group: false });
   };
-  
+
   // Attaching internal events to internal oSDK events
   oSDK.on('auth.gotTempCreds', function (e) {
     oSDK.log('XMPP got temp creds', arguments);
@@ -333,14 +334,14 @@
       resource: oSDK.config.xmpp.resource
     });
   });
-  
+
   /**
    * oSDK methods
    */
   oSDK.getClient = function() {
     return storage.client;
   };
-  
+
   oSDK.getContacts = function(callback) {
     if (callback) {
       oSDK.log('XMPP get contacts list');
@@ -364,7 +365,7 @@
       return storage.contacts;
     }
   };
-  
+
   oSDK.addContact = function(account, callback) {
     var attribs = {jid: account};
     var iq = new JSJaCIQ();
@@ -375,7 +376,7 @@
     if (!callback) callback = function(){return true;};
     xmpp.con.send(iq, callback);
   };
-  
+
   oSDK.removeContact = function(account, callback) {
     var iq = new JSJaCIQ();
     var itemNode = iq.buildNode('item', {
@@ -387,7 +388,7 @@
     if (!callback) callback = function(){return true;};
     xmpp.con.send(iq, callback);
   };
-  
+
   oSDK.sendMessage = function(account, message, callback) {
     var msg = new JSJaCMessage();
     console.log('MESSAGE to: ' + oSDK.getContactByAccount(account).login);
@@ -396,7 +397,7 @@
     xmpp.con.send(msg);
     if (callback) callback();
   };
-  
+
   oSDK.addHistoryTo = function(account, history) {
     var i, l = storage.contacts.length;
     for (i = 0; i != l; i ++) {
@@ -405,7 +406,7 @@
       }
     }
   };
-  
+
   oSDK.getContactByAccount = function(account) {
     var i, l = storage.contacts.length;
     for (i = 0; i != l; i ++) {
@@ -415,7 +416,7 @@
     }
     return false;
   };
-  
+
   oSDK.getContactByLogin = function(login) {
     var i, l = storage.contacts.length;
     for (i = 0; i != l; i ++) {
@@ -425,5 +426,5 @@
     }
     return false;
   };
-  
+
 })(oSDK, JSJaC);

@@ -2,6 +2,7 @@
  * oSDK SIP module
  */
 (function (oSDK, JsSIP) {
+  "use strict";
 
   // Module namespace
   var sip = {};

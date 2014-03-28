@@ -2,6 +2,7 @@
  * oSDK auth module
  */
 (function (oSDK) {
+  "use strict";
 
   // Registering module in oSDK
   var moduleName = 'auth';

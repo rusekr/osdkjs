@@ -2,6 +2,7 @@
  * oSDK initial configuration.
  */
 (function (oSDK) {
+  "use strict";
 
   // Default configuration
   oSDK.defaultConfig = {

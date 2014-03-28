@@ -8,6 +8,7 @@
 
 /** @namespace */
 var oSDK = function (config) {
+  "use strict";
 
   // Translate default config to working config
   oSDK.config = oSDK.defaultConfig;

@@ -43,12 +43,11 @@ module.exports = function(grunt) {
           'libs/jsjac/jsjac.js',
 
           'src/osdk.namespace.js',
-          'src/osdk.deps.js',
           'src/osdk.utils.js',
           'src/osdk.errors.js',
           'src/osdk.auth.js',
           'src/osdk.module.sip.js',
-          //'src/osdk.module.xmpp.js',
+          'src/osdk.module.xmpp.js',
           'src/osdk.config.js',
 
           'src/osdk.loaded-signal.js'

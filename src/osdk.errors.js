@@ -2,6 +2,7 @@
  * oSDK Errors module
  */
 (function (oSDK) {
+  "use strict";
 
   // Registering module in oSDK
   var moduleName = 'error';
@@ -15,14 +16,14 @@
 
   var attachableEvents = {
   };
-  
+
   oSDK.utils.attach(moduleName, {
     namespaces: attachableNamespaces,
     methods: attachableMethods,
     events: attachableEvents
   });
-  
-  
+
+
   // Module namespace
   // TODO: override error message prefixing osdk.
   var error = window.Error;
