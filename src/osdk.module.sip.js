@@ -23,10 +23,10 @@
 
   var attachableEvents = {
     'connected': 'sip.connected',
-    'disconnected': ['sip.disconnected', 'disconnected'],
-    'registered': ['sip.registered', 'connected'],
+    'disconnected': ['sip.disconnected', 'core.disconnected'],
+    'registered': ['sip.registered', 'core.connected'],
     'unregistered': 'sip.unregistered',
-    'registrationFailed': ['sip.registrationFailed', 'connectionFailed'],
+    'registrationFailed': ['sip.registrationFailed', 'core.connectionFailed'],
     'newRTCSession': 'newMediaSession'
   };
 
@@ -78,7 +78,6 @@
   });
 
   oSDK.on('auth.disconnected', function (e) {
-        //TODO: Upgrade direct use to augmenting handler for disconnect by sip module.
     oSDK.sip.stop();
   });
 

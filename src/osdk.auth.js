@@ -21,9 +21,9 @@
     'initialized': true,
     'loaded': true,
     'gotTempCreds': 'auth.gotTempCreds',
-    'connected': true,
-    'disconnected': ['auth.disconnected', 'disconnected'],
-    'connectionFailed': true,
+    'connected': ['auth.connected', 'core.connected'],
+    'disconnected': ['auth.disconnected', 'core.disconnected'],
+    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
   };
 
   oSDK.utils.attach(moduleName, {
@@ -65,7 +65,7 @@
         data = JSON.parse(data);
         if(data.error) {
           oSDK.err("got error:", data);
-          oSDK.trigger('connectionFailed', { 'error': data.error });
+          oSDK.trigger('core.connectionFailed', { 'error': data.error });
         } else {
 
           // Filling user client sturcture
@@ -73,7 +73,7 @@
           clientInfo.domain = clientInfo.id.split('@')[1];
 
           oSDK.trigger('auth.gotTempCreds', { 'data': data });
-          oSDK.trigger('connected');
+          oSDK.trigger('core.connected');
         }
       },
       error: function(jqxhr, status, string) {
@@ -86,7 +86,7 @@
 
         // If all is ok with token - throw connectionFailed event.
 
-        oSDK.trigger('connectionFailed', { 'error': 'Server error', 'code': 401 });
+        oSDK.trigger('core.connectionFailed', { 'error': 'Server error', 'code': 401 });
       }
     });
 
@@ -94,9 +94,15 @@
   // Imperative disconnection from openSDP network
   auth.disconnect = function () {
     oSDK.trigger('auth.disconnected');
-    oSDK.trigger('disconnected');
+    oSDK.trigger('core.disconnected');
   };
 
+  //
+  auth.autoConnect = function () {
+
+  };
+
+  // Main function for in-hash token checking, auth popup generation and auth redirect handling
   auth.tokenCheck = function (agressive) {
 
     oSDK.utils.oauth.configure({
@@ -156,6 +162,20 @@
     oSDK.utils.oauth.popup().close();
     oSDK.connect();
   });
+
+  // Proxying main events for internal handling priorities and syncronious firing.
+  // Connected event
+  oSDK.on('core.connected', function () {
+    oSDK.trigger('connected');
+  });
+  // Disconnected event
+  oSDK.on('core.disconnected', function () {
+    oSDK.trigger('disconnected');
+  });
+  // Proxy for every connectionFailed message
+  oSDK.on('core.connectionFailed', function () {
+    oSDK.trigger('connectionFailed');
+  }, 'every');
 
   document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
