@@ -3,6 +3,11 @@
  */
 
 (function (oSDK, JSJaC) {
+  
+  /**
+   * Strict mode
+   * Activation
+   */
   "use strict";
 
   // Module namespace
@@ -14,7 +19,9 @@
     // User, temp info to connect
     usr: {},
     // Current status
-    status: 'not inited'
+    status: 'not inited',
+    // Offline message
+    offlineMessages: []
   };
 
   // Inner storage (session)
@@ -84,15 +91,25 @@
    */
   
   function handleIQ(oIQ) {
+    xmpp.con.send(oIQ.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
   }
   
   function handleMessage(oJSJaCPacket) {
-    var from = oJSJaCPacket.getFromJID().getNode();
-    var msg = oJSJaCPacket.getBody().htmlEnc();
-    app.com.inf.chat.incoming(from, msg);
+    if (xmpp.status == 'connected') {
+      oSDK.trigger('textMessage', {
+        from: oJSJaCPacket.getFromJID().getNode(),
+        message: oJSJaCPacket.getBody().htmlEnc()
+      });
+    } else {
+      xmpp.offlineMessages.push({
+        from: oJSJaCPacket.getFromJID().getNode(),
+        message: oJSJaCPacket.getBody().htmlEnc()
+      });
+    }
   }
   
   function handlePresence(oJSJaCPacket) {
+    console.log('PRESENCE: ' + oJSJaCPacket.getFromJID());
   }
   
   function handleError(e) {
@@ -122,6 +139,15 @@
         }
         xmpp.status = 'connected';
         oSDK.trigger('core.connected', [].slice.call(arguments, 0));
+        if (xmpp.offlineMessages.length) {
+          var i, l = xmpp.offlineMessages.length;
+          for (i = 0; i != l; i ++) {
+            oSDK.trigger('textMessage', {
+              from: xmpp.offlineMessages[i].from,
+              message: xmpp.offlineMessages[i].message
+            });
+          }
+        }
       }});
     }
   }
@@ -130,9 +156,14 @@
   }
   
   function handleIqVersion(iq) {
+    xmpp.con.send(iq.reply([iq.buildNode('name', 'jsjac simpleclient'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
+    return true;
   }
   
   function handleIqTime(iq) {
+    var now = new Date();
+    xmpp.con.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
+    return true;
   }
   
   xmpp.events = {
@@ -402,7 +433,7 @@
   oSDK.getClient = function() {
     return storage.client;
   };
-
+  
   oSDK.getContacts = function(callback) {
     if (callback) {
       oSDK.log('XMPP get contacts list');
@@ -459,10 +490,10 @@
     if (callback) callback();
   };
 
-  oSDK.addHistoryTo = function(account, history) {
+  oSDK.addToHistory = function(to, history) {
     var i, l = storage.contacts.length;
     for (i = 0; i != l; i ++) {
-      if (storage.contacts[i].account == account) {
+      if (storage.contacts[i].login == to) {
         storage.contacts[i].history.push(history);
       }
     }
