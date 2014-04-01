@@ -441,8 +441,17 @@
     return false;
   };
   
+  oSDK.setMyStatus = function(status) {
+    var presence = new JSJaCPresence();
+    presence.setStatus(status);
+    presence.setType('');
+    presence.setShow('');
+    presence.setPriority(100);
+    xmpp.con.send(presence);
+  };
+  
   oSDK.on('auth.disconnected', function (e) {
     xmpp.con.disconnect();
   });
-
+  
 })(oSDK, JSJaC);
