@@ -109,7 +109,17 @@
   }
   
   function handlePresence(oJSJaCPacket) {
-    console.log('PRESENCE: ' + oJSJaCPacket.getFromJID());
+    if (!oJSJaCPacket.getType()) {
+      oSDK.trigger('contactAvailable', {
+        login: oJSJaCPacket.getFrom().split('@')[0]
+      });
+    } else {
+      if (oJSJaCPacket.getType() == 'unavailable') {
+        oSDK.trigger('contactUnavailable', {
+          login: oJSJaCPacket.getFrom().split('@')[0]
+        });
+      }
+    }
   }
   
   function handleError(e) {
@@ -135,6 +145,12 @@
           var jid = nodes.childNodes[i].getAttribute('jid');
           if (jid != me) {
             storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
+            var presence = new JSJaCPresence();
+            presence.setTo(jid);
+            presence.setType('');
+            presence.setShow('');
+            presence.setPriority(100);
+            xmpp.con.send(presence);
           }
         }
         xmpp.status = 'connected';
@@ -153,6 +169,7 @@
   }
   
   function handleDisconnected() {
+    /*TODO*/
   }
   
   function handleIqVersion(iq) {
@@ -165,101 +182,6 @@
     xmpp.con.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
     return true;
   }
-  
-  xmpp.events = {
-    connect: function() {
-      oSDK.log('XMPP handler - connect');
-      if (xmpp.status == 'connection') {
-        xmpp.status = 'get contacts';
-        // Get contacts list
-        oSDK.log('XMPP get contacts list');
-        var roster = new JSJaCIQ();
-        roster.setIQ(null, 'get', getRosterId());
-        roster.setQuery(NS_ROSTER);
-        xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
-          var nodes = aIq.getQuery();
-          var me = oSDK.getClient().login + '@' + oSDK.getClient().domain;
-          var i, l = nodes.childNodes.length;
-          for (i = 0; i != l; i ++) {
-            var jid = nodes.childNodes[i].getAttribute('jid');
-            if (jid != me) {
-              storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
-            }
-          }
-          oSDK.trigger('connected', [].slice.call(arguments, 0));
-        }});
-        // Change XMPP status
-        xmpp.status = 'connected';
-      }
-    },
-    disconnect: function() {
-      oSDK.log('XMPP handler - disconnect');
-      // Change XMPP status
-      xmpp.status = 'disconnected';
-    },
-    resume: function(e) {
-      oSDK.log('XMPP handler - resume', e);
-    },
-    statusChanged: function(e) {
-      oSDK.log('XMPP handler - status changed', e);
-    },
-    error: function(e) {
-      oSDK.log('XMPP handler - error', e);
-      if (xmpp.status == 'connection') {
-
-      }
-    },
-    packet: {
-      incoming: function(e) {
-        oSDK.log('XMPP handler - incoming packet', e);
-      },
-      outcoming: function(e) {
-        oSDK.log('XMPP handler - outcoming packet', e);
-      }
-    },
-    message: {
-      fn: function(e) {
-        oSDK.log('XMPP handler - message', e);
-        console.log(e.getFrom() + '>' + e.getTo() + ':' + e.getType());
-        console.log(e.getBody());
-        console.log(e.getFromJID().getResource());
-      },
-      incoming: function(e) {
-        oSDK.log('XMPP handler - incoming message', e);
-      },
-      outcoming: function(e) {
-        oSDK.log('XMPP handler - outcoming message', e);
-      }
-    },
-    presence: {
-      fn: function(e) {
-        oSDK.log('XMPP handler - presence', e);
-      },
-      incoming: function(e) {
-        oSDK.log('XMPP handler - incoming presence', e);
-      },
-      outcoming: function(e) {
-        oSDK.log('XMPP handler - outcoming presence', e);
-      }
-    },
-    iq: {
-      fn: function(e) {
-        oSDK.log('XMPP handler - iq', e);
-      },
-      get: function(e) {
-        oSDK.log('XMPP handler - iq get', e);
-      },
-      set: function(e) {
-        oSDK.log('XMPP handler - iq set', e);
-      },
-      version: function(e) {
-        oSDK.log('XMPP handler - iq version', e);
-      },
-      time: function(e) {
-        oSDK.log('XMPP handler - iq time', e);
-      }
-    }
-  };
 
   oSDK.utils.attach(moduleName, {
     namespaces: attachableNamespaces,
@@ -518,5 +440,9 @@
     }
     return false;
   };
+  
+  oSDK.on('auth.disconnected', function (e) {
+    xmpp.con.disconnect();
+  });
 
 })(oSDK, JSJaC);
