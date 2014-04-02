@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+  
+  <head>
+    
+    <title>UX WebRTC proto</title>
+    
+    <meta http-equiv="x-ua-compatible" content="ie-edge" />
+    
+    <meta charset="utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    
+    <meta name="description" content="UX WebRTC proto" />
+    <meta name="keywords" content="UX WebRTC proto" />
+    
+    <meta http-equiv="content-language" content="ru" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+    
+    <link rel="stylesheet" type="text/css" href="libraries/bootstrap3/css/bootstrap.min.css" media="all" />
+    <link rel="stylesheet" type="text/css" href="libraries/bootstrap2/css/icon.adapter.css" media="all" />
+    <link rel="stylesheet" type="text/css" href="libraries/jquery-ui/css/black-tie/jquery-ui-1.10.3.custom.min.css" media="all" />
+    <link rel="stylesheet" type="text/css" href="libraries/bootstrap3/css/bootstrap-theme.min.css" media="all" />
+    <link rel="stylesheet" type="text/css" href="libraries/scrolling/style.css" media="all" />
+    
+    <script type="text/javascript" src="libraries/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="libraries/jquery-ui/js/jquery-ui-1.10.3.custom.min.js"></script>
+    <script type="text/javascript" src="libraries/bootstrap3/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="libraries/scrolling/jquery.mousewheel.min.js"></script>
+    <script type="text/javascript" src="libraries/scrolling/script.js"></script>
+
+    <script type="text/javascript" src="libraries/jssip-0.3.7.js"></script>
+    <script type="text/javascript" src="libraries/jso/jso.js"></script>
+    <script type="text/javascript" src="libraries/osdk.js"></script>
+    <script type="text/javascript" src="libraries/hash.js"></script>
+    
+    <link rel="stylesheet" type="text/css" href="styles/styles.css" media="all" />
+    
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <script type="text/javascript" src="scripts/interface.js"></script>
+    <script type="text/javascript" src="scripts/setting.js"></script>
+
+    <script type="text/javascript" src="scripts/_devel.js"></script>
+
+  </head>
+  
+  <body>
+  Выполняет запросы на каждый из урлов подсовывая юзер токен и токен приложения в разных сочетаниях (пять сочетаний).
+            <div class="next-block">
+              <input type="text" class="form-control appid hashsave" data-name="appid" placeholder="введите консьюмер кей приложения" value="" />
+            </div>
+          <div class="next-block">
+              <input type="text" class="form-control apptoken hashsave" data-name="apptoken" placeholder="введите токен приложения" value="" />
+            </div>
+                              <div class="next-block">
+              <input type="text" class="form-control appauthurl hashsave" data-name="appauthurl" placeholder="введите url авторизации" value="" />
+            </div>
+                            <div class="next-block">
+              <input type="text" class="form-control appurl1 hashsave" data-name="appurl1" placeholder="введите url1" value="" />
+            </div>
+                            <div class="next-block">
+              <input type="text" class="form-control appurl2 hashsave" data-name="appurl2" placeholder="введите url2" value="" />
+            </div>
+                            <div class="next-block">
+              <input type="text" class="form-control appurl3 hashsave" data-name="appurl3" placeholder="введите url3" value="" />
+            </div>
+            <button class="btn btn-sm btn-default getdefaults" title="Defaults">paste defaults</button>
+            <button class="btn btn-sm btn-default connect" title="Connect to network"><span class="b2icon-flag" data-color="b2icon-gefault"></span></button>
+    
+    <div id="oclient" style="display: none; visibility: hidden;">
+      
+      <!-- Left column > -->
+      <div class="cfl">
+      
+        <div class="head">
+          
+          <div class="l"><img src="" alt="" /></div>
+          
+          <div>
+            <div class="caption number">
+              <div class="fr"><button class="btn btn-sm btn-default cosnnect" title="Connect to network"><span class="b2icon-flag" data-color="b2icon-gefault"></span></button></div>
+              <div class="text"></div>
+            </div>
+            <div class="caption balance">
+              <div class="fr"><button class="btn btn-sm btn-default usereditor"><span class="b2icon-cog"></span></button></div>
+              <div class="text"></div>
+            </div>
+          </div>
+          
+        </div>
+        
+        <div class="search">
+
+          <div class="fr icon"><button class="btn btn-sm btn-default call call-number"><span class="b2icon-th"></span></button></div>
+          <div class="fr icon"><button class="btn btn-sm btn-default call add-new-user"><span class="b2icon-user"></span></button></div>
+          
+          <div>
+            <input type="text" class="form-control" placeholder="поиск">
+          </div>
+          
+        </div>
+        
+        <div class="contacts"></div>
+        
+      </div>
+      <!-- < Left column -->
+      
+      <!-- Right column > -->
+      <div class="cfr">
+        
+        <div class="tab phone">
+
+          <div class="fr icon"><button class="btn btn-sm btn-default delnum"><span class="b2icon-arrow-left"></span></button></div>
+
+          <div>
+            <input type="text" class="form-control hashsave input-number" data-name="sip-out-number" placeholder="введите номер" />
+          </div>
+
+          <div class="btn-groups">
+            <div class="btn-group">
+              <button type="button" class="btn btn-lg btn-default dial-one" data-pri="1" data-sub="@" ></button>
+              <button type="button" class="btn btn-lg btn-default dial-two" data-pri="2"></button>
+              <button type="button" class="btn btn-lg btn-default dial-three" data-pri="3"></button>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="btn btn-lg btn-default dial-four" data-pri="4"></button>
+              <button type="button" class="btn btn-lg btn-default dial-five" data-pri="5"></button>
+              <button type="button" class="btn btn-lg btn-default dial-six" data-pri="6"></button>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="btn btn-lg btn-default dial-seven" data-pri="7"></button>
+              <button type="button" class="btn btn-lg btn-default dial-eight" data-pri="8"></button>
+              <button type="button" class="btn btn-lg btn-default dial-nine" data-pri="9"></button>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="btn btn-lg btn-default dial-star" data-pri="*">*</button>
+              <button type="button" class="btn btn-lg btn-default dial-zero" data-pri="0" data-sub="+" ></button>
+              <button type="button" class="btn btn-lg btn-default dial-she" data-pri="#">#</button>
+            </div>
+          </div>
+          
+          <button type="button" class="btn btn-success btn-block start-call btn-tab-phone">Позвонить</button>
+          <button type="button" class="btn btn-success btn-block start-call start-call-video">Видеозвонок</button>
+          
+        </div>
+        
+        <div class="tab profile">
+          
+          <div class="head">
+            
+            <div class="l"><img src="" alt="" /></div>
+            
+            <div>
+              <div class="caption name">
+                <div class="fr"><button class="btn btn-sm btn-default edit-contact"><span class="b2icon-pencil"></span></button></div>
+                <div class="text"></div>
+              </div>
+              <div class="caption status">
+                <div class="fr"><button class="btn btn-sm btn-default delete-contact"><span class="b2icon-trash"></span></button></div>
+                <div class="text"></div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <ul class="list-group">
+            <li class="list-group-item">Ник: <span class="nickname"></span></li>
+            <li class="list-group-item">Имя: <span class="name"></span></li>
+            <li class="list-group-item">Фамилия: <span class="family"></span></li>
+            <li class="list-group-item">Телефон: <span class="phonen"></span></li>
+          </ul>
+          
+          <div class="buttons">
+            
+            <button type="button" class="btn btn-success btn-block start-call btn-tab-profile">Позвонить</button>
+            <button type="button" class="btn btn-success btn-block start-call start-call-video btn-tab-profile">Видеозвонок</button>
+            
+          </div>
+          
+        </div>
+        
+        <div class="tab cphone">
+          
+          <div class="head">
+            
+            <div class="l"><img src="" alt="" /></div>
+            
+            <div>
+              <div class="caption name">
+                <div class="fr"><button class="btn btn-sm btn-default" disabled="disabled"><span class="b2icon-trash"></span></button></div>
+                <div class="text"></div>
+              </div>
+              <div class="caption status">
+                <div class="text"></div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <div class="dynamic-picture"><img src="images/photo-mic.jpg" alt="" />
+            <audio class="opponent" autoplay="autoplay"></audio>
+          </div>
+          
+          <div class="timer">--:--</div>
+          
+          <div class="item">
+            <div class="l mymic"></div>
+            <div class="l value">100%</div>
+            <div><div class="slider" data-link="mymic"></div></div>
+          </div>
+          <div class="item">
+            <div class="l othvol"></div>
+            <div class="l value">100%</div>
+            <div><div class="slider" data-link="othvol"></div></div>
+          </div>
+          
+          <div class="block">
+            <div class="foot">
+              <button type="button" class="btn btn-success btn-block start-call-video btn-tab-cphone">Видеозвонок</button>
+            </div>
+            <div class="next-block">
+              <button type="button" class="btn btn-danger btn-block to-profile end-call btn-tab-cphone-stop">Завершить вызов</button>
+            </div>
+          </div>
+          
+        </div>
+        
+        <div class="tab cvideo">
+          
+          <div class="head">
+            
+            <div class="l"><img src="" alt="" /></div>
+            
+            <div>
+              <div class="caption name">
+                <div class="fr"><button class="btn btn-sm btn-default" disabled="disabled"><span class="b2icon-trash"></span></button></div>
+                <div class="text"></div>
+              </div>
+              <div class="caption status">
+                <div class="text"></div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <div class="dynamic-picture dynamic-picture-plus">
+            <video class="opponent" autoplay="autoplay" poster="images/its-putin.jpg"></video>
+            <div class="me"><video class="player" autoplay="autoplay" poster="images/its-obama.jpg" muted="muted" ></video></div>
+          </div>
+          
+          <div class="timer">--:--</div>
+          
+          <div class="video-settings">
+            
+            <div class="l">
+              
+              <small>Мое изображение</small><br />
+              
+              <div class="btn-group myvideoshow" data-toggle="buttons">
+                <label class="v-toggle v-on btn btn-sm btn-default active">
+                  <input type="radio" name="options" class="option1"> <span class="b2icon-ok"></span>
+                </label>
+                <label class="v-toggle v-off btn btn-sm btn-default">
+                  <input type="radio" name="options" class="option2"> <span class="b2icon-remove"></span>
+                </label>
+              </div>
+              
+            </div>
+            
+            <div class="r">
+              
+              <small>Моя камера</small><br />
+              
+              <div class="btn-group myvideosend" data-toggle="buttons">
+                <label class="v-toggle v-on btn btn-sm btn-default active">
+                  <input type="radio" name="options" class="option1"> <span class="b2icon-ok"></span>
+                </label>
+                <label class="v-toggle v-off btn btn-sm btn-default">
+                  <input type="radio" name="options" class="option2"> <span class="b2icon-remove"></span>
+                </label>
+              </div>
+              
+            </div>
+            
+          </div>
+          
+          <div class="item">
+            <div class="l mymic"></div>
+            <div class="l value">100%</div>
+            <div><div class="slider" data-link="mymic"></div></div>
+          </div>
+          <div class="item">
+            <div class="l othvol"></div>
+            <div class="l value">100%</div>
+            <div><div class="slider" data-link="othvol"></div></div>
+          </div>
+          
+          <!--<button type="button" class="btn btn-success btn-block start-call btn-tab-cvideo">Аудиозвонок</button>-->
+          <div class="block">
+            <button type="button" class="btn btn-danger btn-block end-call to-profile">Завершить вызов</button>
+          </div>
+        </div>
+
+        <div class="tab edit-user">
+        
+          <div class="block">
+
+            <div class="caption">
+              <div class="fr"><button class="btn btn-sm btn-default returnto"><span class="b2icon-arrow-left"></span></button></div>
+              <div class="text">Настройки соединения:</div>
+            </div>
+
+            <div class="next-block">
+              <input type="text" class="form-control sip-login hashsave" data-name="sip-url" placeholder="введите логин@сервер" value="" />
+            </div>
+            
+            <div class="next-block">
+              <input type="text" class="form-control sip-pswd hashsave" data-name="sip-pswd" placeholder="введите пароль" value="" />
+            </div>
+            
+          </div>
+          
+        </div>
+        
+        <div class="tab incoming-call">
+          <div class="block">
+
+            <div class="caption">
+              <div class="fr"><button class="btn btn-sm btn-default returnto" title="Игнорировать" ><span class="b2icon-arrow-left"></span></button></div>
+              <div class="text">Входящий <span class="calltype"></span>вызов</div>
+            </div>
+            
+            <div class="incoming-name">
+            
+            </div>
+            
+            <div class="incoming-photo">
+            
+            </div>
+
+            <div class="next-block foot">
+              <button type="button" class="btn btn-success btn-block answer-call">Принять</button>
+            </div>
+            
+            <div class="next-block">
+              <button type="button" class="btn btn-danger btn-block end-call">Отклонить</button>
+            </div>
+
+          </div>
+        </div>
+        
+        <div class="tab edit-contact-list">
+          
+          <div class="sub-tab add-user">
+            
+            <div class="block">
+              
+              <h5>Новый пользователь</h5>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="ник" value="" />
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="имя" value="" />
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="фамилия" value="" />
+              </div>
+              
+              <div class="line-item">
+                <div class="fr btn-group" data-toggle="buttons">
+                  <label class="btn btn-default active">
+                    <input type="radio" name="m" /> М
+                  </label>
+                  <label class="btn btn-default">
+                    <input type="radio" name="w" /> Ж
+                  </label>
+                </div>
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="номер" value="" />
+              </div>
+              
+              <div class="line-item">
+                <button type="button" class="btn btn-primary btn-block">Сохранить</button>
+              </div>
+              
+            </div>
+            
+          </div>
+          
+          <div class="sub-tab edit-user">
+            
+            <div class="block">
+              
+              <h5>Редактирование пользователя</h5>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="ник" value="" />
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="имя" value="" />
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="фамилия" value="" />
+              </div>
+              
+              <div class="line-item">
+                <div class="fr btn-group" data-toggle="buttons">
+                  <label class="btn btn-default active">
+                    <input type="radio" name="m" /> М
+                  </label>
+                  <label class="btn btn-default">
+                    <input type="radio" name="w" /> Ж
+                  </label>
+                </div>
+              </div>
+              
+              <div class="line-item">
+                <input type="text" class="form-control" placeholder="номер" value="" />
+              </div>
+              
+              <div class="line-item">
+                <button type="button" class="btn btn-primary btn-block">Сохранить</button>
+              </div>
+              
+            </div>
+            
+          </div>
+          
+        </div>
+        
+      </div>
+      <!-- < Right column -->
+      
+    </div>
+
+    
+  </body>
+  
+</html>
