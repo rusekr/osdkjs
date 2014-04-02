@@ -59,7 +59,7 @@
   };
 
   // Attaching internal events to internal oSDK events
-  oSDK.on('auth.gotTempCreds', function (e) {
+  oSDK.on('core.gotTempCreds', function (e) {
     oSDK.log('SIP got temp creds', arguments);
     sip.init({
       'ws_servers': oSDK.config.sip.serverURL,
@@ -77,7 +77,7 @@
     sip.start();
   });
 
-  oSDK.on('auth.disconnected', function (e) {
+  oSDK.on('core.disconnected', function (e) {
     oSDK.sip.stop();
   });
 

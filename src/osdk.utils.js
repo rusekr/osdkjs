@@ -395,6 +395,13 @@
         }
         return false;
       },
+      clearToken: function () {
+        utils.oauth.configure({
+          access_token: null,
+          expires_in: null,
+          expires_start: null
+        });
+      },
       // Returns authorization popup object
       popup: function () { return authPopup; }
     };
@@ -622,7 +629,7 @@
     eventData.type = eventType;
 
     if(!events[eventType]) {
-      throw new oSDK.error('Event', eventType, 'not registered therefore can\'t trigger!');
+      throw new oSDK.error('Event' + eventType + 'not registered therefore can\'t trigger!');
     }
 
     // Regstered emitters may be zero (e.g. in case of oauth popup)

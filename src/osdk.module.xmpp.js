@@ -3,7 +3,7 @@
  */
 
 (function (oSDK, JSJaC) {
-  
+
   /**
    * Strict mode
    * Activation
@@ -89,11 +89,11 @@
   /**
    * XMPP Events
    */
-  
+
   function handleIQ(oIQ) {
     xmpp.con.send(oIQ.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
   }
-  
+
   function handleMessage(oJSJaCPacket) {
     if (xmpp.status == 'connected') {
       oSDK.trigger('textMessage', {
@@ -107,7 +107,7 @@
       });
     }
   }
-  
+
   function handlePresence(oJSJaCPacket) {
     if (!oJSJaCPacket.getType()) {
       oSDK.trigger('contactAvailable', {
@@ -121,15 +121,16 @@
       }
     }
   }
-  
+
   function handleError(e) {
   }
-  
+
   function handleStatusChanged(status) {
   }
-  
+
   function handleConnected() {
     xmpp.con.send(new JSJaCPresence());
+    var i, l = null;
     if (xmpp.status == 'connection') {
       xmpp.status = 'get contacts';
       // Get contacts list
@@ -140,7 +141,7 @@
       xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
         var nodes = aIq.getQuery();
         var me = oSDK.getClient().login + '@' + oSDK.getClient().domain;
-        var i, l = nodes.childNodes.length;
+        i = l = nodes.childNodes.length;
         for (i = 0; i != l; i ++) {
           var jid = nodes.childNodes[i].getAttribute('jid');
           if (jid != me) {
@@ -156,7 +157,7 @@
         xmpp.status = 'connected';
         oSDK.trigger('core.connected', [].slice.call(arguments, 0));
         if (xmpp.offlineMessages.length) {
-          var i, l = xmpp.offlineMessages.length;
+          i = l = xmpp.offlineMessages.length;
           for (i = 0; i != l; i ++) {
             oSDK.trigger('textMessage', {
               from: xmpp.offlineMessages[i].from,
@@ -167,16 +168,16 @@
       }});
     }
   }
-  
+
   function handleDisconnected() {
     /*TODO*/
   }
-  
+
   function handleIqVersion(iq) {
     xmpp.con.send(iq.reply([iq.buildNode('name', 'jsjac simpleclient'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
     return true;
   }
-  
+
   function handleIqTime(iq) {
     var now = new Date();
     xmpp.con.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
@@ -332,7 +333,7 @@
   };
 
   // Attaching internal events to internal oSDK events
-  oSDK.on('auth.gotTempCreds', function (e) {
+  oSDK.on('core.gotTempCreds', function (e) {
     oSDK.log('XMPP got temp creds', arguments);
     xmpp.usr.domain = (arguments[0].data.username.split(':')[1]).split('@')[1];
     xmpp.usr.timestamp = arguments[0].data.username.split(':')[0];
@@ -355,7 +356,7 @@
   oSDK.getClient = function() {
     return storage.client;
   };
-  
+
   oSDK.getContacts = function(callback) {
     if (callback) {
       oSDK.log('XMPP get contacts list');
@@ -440,7 +441,7 @@
     }
     return false;
   };
-  
+
   oSDK.setMyStatus = function(status) {
     var presence = new JSJaCPresence();
     presence.setStatus(status);
@@ -449,9 +450,9 @@
     presence.setPriority(100);
     xmpp.con.send(presence);
   };
-  
+
   oSDK.on('auth.disconnected', function (e) {
     xmpp.con.disconnect();
   });
-  
+
 })(oSDK, JSJaC);

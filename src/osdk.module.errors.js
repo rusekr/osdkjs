@@ -5,10 +5,10 @@
   "use strict";
 
   // Registering module in oSDK
-  var moduleName = 'error';
+  var moduleName = 'errors';
 
   var attachableNamespaces = {
-    'error': true
+    'errors': true
   };
 
   var attachableMethods = {
@@ -23,13 +23,16 @@
     events: attachableEvents
   });
 
-
   // Module namespace
   // TODO: override error message prefixing osdk.
-  var error = window.Error;
+  var errors = {};
+
+  errors.error = window.Error;
 
   // Direct bindings to namespace
   //TODO: make this bindings automatic by registering module function
-  oSDK.error = error;
+  oSDK.errors = errors;
+
+  oSDK.error = errors.error;
 
 })(oSDK);

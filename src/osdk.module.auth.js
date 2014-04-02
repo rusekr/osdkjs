@@ -14,16 +14,18 @@
 
   var attachableMethods = {
     'connect': true,
-    'disconnect': true
+    'disconnect': true,
+    'logout': true
   };
 
   var attachableEvents = {
     'initialized': true,
     'loaded': true,
-    'gotTempCreds': 'auth.gotTempCreds',
+    'gotTempCreds': ['auth.gotTempCreds', 'core.gotTempCreds'],
     'connected': ['auth.connected', 'core.connected'],
     'disconnected': ['auth.disconnected', 'core.disconnected'],
-    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
+    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed'],
+    'loggedOut': ['auth.loggedOut', 'core.loggedOut']
   };
 
   oSDK.utils.attach(moduleName, {
@@ -97,8 +99,16 @@
     oSDK.trigger('core.disconnected');
   };
 
+  // Imperative disconnection from openSDP network and forgetting of user token
+  auth.logout = function () {
+    oSDK.disconnect.apply(this);
+    oSDK.utils.oauth.clearToken();
+    oSDK.trigger('auth.loggedOut');
+    oSDK.trigger('core.loggedOut');
+  };
+
   //
-  auth.autoConnect = function () {
+  auth.connectAfterRedirect = function () {
 
   };
 
@@ -172,6 +182,10 @@
   oSDK.on('core.disconnected', function () {
     oSDK.trigger('disconnected');
   });
+  // Logged out event
+  oSDK.on('core.loggedOut', function () {
+    oSDK.trigger('loggedOut');
+  });
   // Proxy for every connectionFailed message
   oSDK.on('core.connectionFailed', function () {
     oSDK.trigger('connectionFailed');
@@ -199,6 +213,7 @@
   oSDK.auth = auth;
   oSDK.connect = oSDK.auth.connect;
   oSDK.disconnect = oSDK.auth.disconnect;
+  oSDK.logout = oSDK.auth.logout;
   oSDK.clientInfo = oSDK.auth.clientInfo;
 
 })(oSDK);

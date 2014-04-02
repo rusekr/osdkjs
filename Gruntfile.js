@@ -44,8 +44,8 @@ module.exports = function(grunt) {
 
           'src/osdk.namespace.js',
           'src/osdk.utils.js',
-          'src/osdk.errors.js',
-          'src/osdk.auth.js',
+          'src/osdk.module.errors.js',
+          'src/osdk.module.auth.js',
           'src/osdk.module.sip.js',
           'src/osdk.module.xmpp.js',
           'src/osdk.config.js',
@@ -102,9 +102,10 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-jsdoc');
 
 
-  // Default task(s).
-  grunt.registerTask('default', ['clean', 'concat', 'uglify', 'jsdoc', 'copy']);
-
+  // Tasks
   grunt.registerTask('check', ['jshint']);
+
+  grunt.registerTask('default', ['check', 'clean', 'concat', 'uglify', 'jsdoc', 'copy']);
+
 
 };
