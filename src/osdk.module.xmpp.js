@@ -155,6 +155,7 @@
           }
         }
         xmpp.status = 'connected';
+        oSDK.log('xmpp triggering core.connected');
         oSDK.trigger('core.connected', [].slice.call(arguments, 0));
         if (xmpp.offlineMessages.length) {
           i = l = xmpp.offlineMessages.length;
@@ -451,7 +452,7 @@
     xmpp.con.send(presence);
   };
 
-  oSDK.on('auth.disconnected', function (e) {
+  oSDK.on('core.disconnected', function (e) {
     xmpp.con.disconnect();
   });
 

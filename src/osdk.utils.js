@@ -531,6 +531,7 @@
 
         utils.each(outer, function (outerEvent) {
           triggerFunction.call(context || this, i, function (e) {
+            oSDK.log('triggering', outerEvent);
             utils.fireEvent(outerEvent, e);
           });
         });

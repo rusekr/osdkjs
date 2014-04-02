@@ -75,6 +75,7 @@
           clientInfo.domain = clientInfo.id.split('@')[1];
 
           oSDK.trigger('auth.gotTempCreds', { 'data': data });
+          oSDK.trigger('core.gotTempCreds', { 'data': data });
           oSDK.trigger('core.connected');
         }
       },
@@ -107,9 +108,16 @@
     oSDK.trigger('core.loggedOut');
   };
 
-  //
+  // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
   auth.connectAfterRedirect = function () {
-
+    var events  = oSDK.utils.events();
+    if(events.connected && events.connected.listeners.length) {
+      auth.connect();
+    } else {
+      setTimeout(function () {
+          auth.connectAfterRedirect();
+      },500);
+    }
   };
 
   // Main function for in-hash token checking, auth popup generation and auth redirect handling
@@ -133,10 +141,8 @@
       if(oSDK.config.oauthPopup != 'popup' && oSDK.utils.storage.getItem('osdk.connectAfterRedirect')) {
         oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
         oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
-        // FIXME: instead of settimeout wait for user add event listener on connected (and connfailed) and then connect immediately (on never if no user events).
-        setTimeout(function () {
-          auth.connect();
-        },1000);
+        // Wait for user app event handlers to autoconnect
+        auth.connectAfterRedirect();
       }
 
     } else {
