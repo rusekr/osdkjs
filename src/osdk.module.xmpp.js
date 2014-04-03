@@ -335,7 +335,7 @@
   };
 
   // Attaching internal events to internal oSDK events
-  oSDK.on('core.gotTempCreds', function (e) {
+  oSDK.on('auth.gotTempCreds', function (e) {
     oSDK.log('XMPP got temp creds', arguments);
     xmpp.usr.domain = (arguments[0].data.username.split(':')[1]).split('@')[1];
     xmpp.usr.timestamp = arguments[0].data.username.split(':')[0];

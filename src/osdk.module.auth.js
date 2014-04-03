@@ -24,8 +24,7 @@
     'gotTempCreds': ['auth.gotTempCreds', 'core.gotTempCreds'],
     'connected': ['auth.connected', 'core.connected'],
     'disconnected': ['auth.disconnected', 'core.disconnected'],
-    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed'],
-    'loggedOut': ['auth.loggedOut', 'core.loggedOut']
+    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
   };
 
   oSDK.utils.attach(moduleName, {
@@ -94,28 +93,23 @@
     });
 
   };
-  // Imperative disconnection from openSDP network
-  auth.disconnect = function () {
+  // Imperative disconnection from openSDP network (optionally with clearing token
+  auth.disconnect = function (clearToken) {
+    if(clearToken) {
+      oSDK.utils.oauth.clearToken();
+    }
     oSDK.trigger('auth.disconnected');
     oSDK.trigger('core.disconnected');
   };
 
-  // Imperative disconnection from openSDP network and forgetting of user token
-  auth.logout = function () {
-    oSDK.disconnect.apply(this);
-    oSDK.utils.oauth.clearToken();
-    oSDK.trigger('auth.loggedOut');
-    oSDK.trigger('core.loggedOut');
-  };
-
   // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
-  auth.connectAfterRedirect = function () {
+  auth.connectOnGotListener = function () {
     var events  = oSDK.utils.events();
     if(events.connected && events.connected.listeners.length) {
       auth.connect();
     } else {
       setTimeout(function () {
-          auth.connectAfterRedirect();
+          auth.connectOnGotListener();
       },500);
     }
   };
@@ -142,7 +136,7 @@
         oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
         oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
         // Wait for user app event handlers to autoconnect
-        auth.connectAfterRedirect();
+        auth.connectOnGotListener();
       }
 
     } else {
@@ -187,10 +181,6 @@
   // Disconnected event
   oSDK.on('core.disconnected', function () {
     oSDK.trigger('disconnected');
-  });
-  // Logged out event
-  oSDK.on('core.loggedOut', function () {
-    oSDK.trigger('loggedOut');
   });
   // Proxy for every connectionFailed message
   oSDK.on('core.connectionFailed', function () {
