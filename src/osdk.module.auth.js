@@ -15,7 +15,7 @@
   var attachableMethods = {
     'connect': true,
     'disconnect': true,
-    'logout': true
+    'isAuthorized': true
   };
 
   var attachableEvents = {
@@ -93,6 +93,7 @@
     });
 
   };
+
   // Imperative disconnection from openSDP network (optionally with clearing token
   auth.disconnect = function (clearToken) {
     if(clearToken) {
@@ -100,6 +101,10 @@
     }
     oSDK.trigger('auth.disconnected');
     oSDK.trigger('core.disconnected');
+  };
+
+  auth.isAuthorized = function () {
+    return oSDK.utils.oauth.isTokenAlive();
   };
 
   // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
@@ -209,6 +214,7 @@
   oSDK.auth = auth;
   oSDK.connect = oSDK.auth.connect;
   oSDK.disconnect = oSDK.auth.disconnect;
+  oSDK.isAuthorized = oSDK.auth.isAuthorized;
   oSDK.logout = oSDK.auth.logout;
   oSDK.clientInfo = oSDK.auth.clientInfo;
 
