@@ -192,9 +192,13 @@
     oSDK.trigger('connectionFailed');
   }, 'every');
 
+  // Instant actions
+
+  auth.tokenCheck(false);
+
+  // Delayed actions
   document.addEventListener("DOMContentLoaded", function () {
     oSDK.log('window.onload');
-    auth.tokenCheck(false);
   });
 
   window.onbeforeunload = function (event) {
