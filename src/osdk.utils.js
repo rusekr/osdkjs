@@ -297,6 +297,7 @@
     return {
       // Configure oauth object
       configure: function (cfgObject) {
+        cfgObject = oSDK.utils.isObject(cfgObject)?cfgObject:{};
 
         config.access_token = utils.storage.getItem('osdk.access_token') || null;
         config.expires_start = utils.storage.getItem('osdk.expires_start') || null;
@@ -369,9 +370,10 @@
           return false;
         } else if (config.expires_in + config.expires_start <= nowTime) {
           oSDK.log('User token has expired');
+        } else {
+          oSDK.log('User token is alive', config);
+          return true;
         }
-        oSDK.log('User token is alive', config);
-        return true;
 
       },
       // Go to auth page if token expired or not exists (or forcibly if force == true)

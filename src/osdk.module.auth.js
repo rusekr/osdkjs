@@ -194,10 +194,12 @@
 
   // Instant actions
 
-  auth.tokenCheck(false);
+  // Getting token from storage instantly
+  oSDK.utils.oauth.configure();
 
   // Delayed actions
   document.addEventListener("DOMContentLoaded", function () {
+    auth.tokenCheck(false);
     oSDK.log('window.onload');
   });
 
