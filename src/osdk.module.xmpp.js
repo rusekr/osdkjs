@@ -144,6 +144,7 @@
         i = l = nodes.childNodes.length;
         for (i = 0; i != l; i ++) {
           var jid = nodes.childNodes[i].getAttribute('jid');
+          console.log(nodes.childNodes[i]);
           if (jid != me) {
             storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
             var presence = new JSJaCPresence();
@@ -359,7 +360,7 @@
   };
 
   oSDK.getContacts = function(callback) {
-    if (callback) {
+    if (callback || callback === false) {
       oSDK.log('XMPP get contacts list');
       var roster = new JSJaCIQ();
       roster.setIQ(null, 'get', getRosterId());
@@ -370,6 +371,7 @@
         var i, l = nodes.childNodes.length;
         storage.contacts = [];
         for (i = 0; i != l; i ++) {
+          console.log(nodes.childNodes[i]);
           var jid = nodes.childNodes[i].getAttribute('jid');
           if (jid != me) {
             storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
