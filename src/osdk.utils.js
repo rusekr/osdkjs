@@ -9,6 +9,27 @@
 
   utils.debug = true;
 
+  /*
+   * Console.log/warn/err/.. oSDK wrappers
+   * If it'll can't work in ie9 try http://stackoverflow.com/questions/5538972/console-log-apply-not-working-in-ie9
+   */
+  (function () {
+    var methods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
+
+    var lf = function (method) {
+      return function () {
+        if(!utils.debug) {
+          return;
+        }
+          console[method].apply(console, ['oSDK:'].concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    };
+
+    methods.forEach( function (method) {
+      utils[method] = lf(method);
+    });
+  })();
+
   /**
    * Test var types
    * @isNumber
@@ -52,24 +73,6 @@
     }
     return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
   };
-
-  /*
-   * Log/warn/err functions
-   */
-  (function () {
-
-    var lf = function () {
-      if(!utils.debug) {
-        return;
-      }
-
-      console.log('oSDK:', Array.prototype.slice.call(arguments, 0));
-    };
-    for(var cli in {'log': !0, 'warn': !0, 'err': !0}) {
-
-      utils[cli] = lf;
-    }
-  })();
 
   // UUID generator
   utils.uuid = function () {
