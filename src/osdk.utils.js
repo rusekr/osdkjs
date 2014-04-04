@@ -608,6 +608,7 @@
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
   utils.fireEvent = function (/*context, eventType, eventData*/) {
+    oSDK.log('fireEvent parameters', arguments);
     var context = null,
       eventTypes = null,
       eventData = null;
@@ -619,23 +620,26 @@
       context = this;
       eventTypes = [].concat(arguments[0]);
       eventData = arguments[1] || {};
+      oSDK.log('fireEvent first arg is array or string, eventData is', eventData);
     } else {
+
       context = arguments[0];
       eventTypes = [].concat(arguments[1]);
       eventData = arguments[2] || {};
-    }
-
-    // oSDK.log('fireEvent plain data is', eventData, 'for event(s)', eventTypes);
-    // Normalizing eventData to object
-    if(!utils.isObject(eventData)) {
-      eventData = {
-        data: eventData
-      };
+      oSDK.log('fireEvent first arg is context object, eventData is', eventData);
     }
 
     eventTypes.forEach(function (eventType) {
       // Appending/rewriting of eventType in data with last event type
+
+      // Normalizing eventData to object
+      if(!utils.isObject(eventData) || utils.isArray(eventData)) {
+        eventData = {
+          data: eventData
+        };
+      }
       eventData.type = eventType;
+      oSDK.log('final eventdata' , eventData);
 
       if(!events[eventType]) {
         // Non fatal
@@ -646,12 +650,12 @@
 
       // Fire every listener for event type
       var fireToListener = function (listener) {
-        // oSDK.log('Checking if can fire', eventType, 'with event data', eventData, listener.fireData, 'for listener', listener);
+        // Extending data
+        listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
+        oSDK.log('extended data', listener.fireData, 'with', eventData);
+
         if (listener.fireType === 'last') {
-          // Extending data
-          if(eventData) {
-            listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
-          }
+
           // oSDK.log('listener.fireData', listener.fireData);
           // Checking if we can fire
           if (++listener.fireCounter >= events[eventType].emitters.length) {
@@ -668,17 +672,20 @@
           if (++listener.fireCounter === 1) {
             oSDK.log('Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
             // Firing with current data
-            listener.handler.call(context, eventData);
+            listener.handler.call(context, listener.fireData);
+            listener.fireData = {};
           }
           else {
             oSDK.log('NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
             // Not firing
             listener.fireCounter--; // No to overflow
+            listener.fireData = {};
           }
         } else if (listener.fireType === 'every') {
           oSDK.log('Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
           // Just firing
-          listener.handler.call(context, eventData);
+          listener.handler.call(context, listener.fireData);
+          listener.fireData = {};
         }
       };
       events[eventType].listeners.forEach(fireToListener);

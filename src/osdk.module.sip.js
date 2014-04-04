@@ -75,7 +75,6 @@
             //,hack_via_tcp: true
       });
     } catch (ex) {
-      oSDK.trigger('core.error', { error: "SIP configuration error.", data: ex});
       throw new oSDK.error("SIP configuration error."); // TODO: better error object
     }
 
