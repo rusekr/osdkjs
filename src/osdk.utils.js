@@ -551,7 +551,6 @@
    * @param fireType may be 'last' (default, fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (fires every time emitter emits)
    */
   utils.addEventListener = function (eventType, eventHandler, fireType) {
-    oSDK.log('Trying to add event listener for', eventType);
 
     var fireTypes = {
       'last': !0,
@@ -600,6 +599,7 @@
         events[eventType].listeners.forEach(removeListener);
       }
       if(!foundById) {
+        // Non fatal
         throw new oSDK.error('Can\'t remove event listener(s) - this event type or ID is not registered.');
       }
     }
@@ -609,72 +609,80 @@
   // Fires custom callbacks
   utils.fireEvent = function (/*context, eventType, eventData*/) {
     var context = null,
-      eventType = null,
+      eventTypes = null,
       eventData = null;
 
-    if(typeof(arguments[0]) == 'undefined' || typeof(arguments[0]) == 'object' && typeof(arguments[1]) == 'undefined') {
+    if(utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
+      // Non fatal
       throw new oSDK.error('oSDK: Insufficient arguments.');
-    } else if(typeof(arguments[0]) == 'string') {
+    } else if(utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
       context = this;
-      eventType = arguments[0];
+      eventTypes = [].concat(arguments[0]);
       eventData = arguments[1] || {};
     } else {
       context = arguments[0];
-      eventType = arguments[1];
+      eventTypes = [].concat(arguments[1]);
       eventData = arguments[2] || {};
     }
 
-    oSDK.log('fireEvent plain data is', eventData, 'for event', eventType);
+    // oSDK.log('fireEvent plain data is', eventData, 'for event(s)', eventTypes);
     // Normalizing eventData to object
     if(!utils.isObject(eventData)) {
       eventData = {
         data: eventData
       };
     }
-    // Appending of eventType to data
-    eventData.type = eventType;
 
-    if(!events[eventType]) {
-      throw new oSDK.error('Event' + eventType + 'not registered therefore can\'t trigger!');
-    }
+    eventTypes.forEach(function (eventType) {
+      // Appending/rewriting of eventType in data with last event type
+      eventData.type = eventType;
 
-    // Regstered emitters may be zero (e.g. in case of oauth popup)
+      if(!events[eventType]) {
+        // Non fatal
+        throw new oSDK.error('Event' + eventType + 'not registered therefore can\'t trigger!');
+      }
 
-    // Fire every listener for event type
-    var fireToListener = function (listener) {
-      oSDK.log('Checking if can fire', eventType, 'with event data', eventData, listener.fireData, 'for listener', listener);
-      if (listener.fireType === 'last') {
-        // Extending data
-        if(eventData) {
-          listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
-        }
-        oSDK.log('listener.fireData', listener.fireData);
-        // Checking if we can fire
-        if (++listener.fireCounter >= events[eventType].emitters.length) {
-          oSDK.log('Firing', eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-          // Firing with cumulative data
-          listener.handler.call(context, listener.fireData);
-          // Cleaning cumulative data
-          listener.fireCounter = 0;
-          listener.fireData = {};
-        } else {
-          oSDK.log('NOT firing', eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-        }
-      } else if (listener.fireType === 'first') {
-        if (++listener.fireCounter === 1) {
-          // Firing with current data
+      // Regstered emitters may be zero (e.g. in case of oauth popup)
+
+      // Fire every listener for event type
+      var fireToListener = function (listener) {
+        // oSDK.log('Checking if can fire', eventType, 'with event data', eventData, listener.fireData, 'for listener', listener);
+        if (listener.fireType === 'last') {
+          // Extending data
+          if(eventData) {
+            listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
+          }
+          // oSDK.log('listener.fireData', listener.fireData);
+          // Checking if we can fire
+          if (++listener.fireCounter >= events[eventType].emitters.length) {
+            oSDK.log('Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+            // Firing with cumulative data
+            listener.handler.call(context, listener.fireData);
+            // Cleaning cumulative data
+            listener.fireCounter = 0;
+            listener.fireData = {};
+          } else {
+            oSDK.log('NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+          }
+        } else if (listener.fireType === 'first') {
+          if (++listener.fireCounter === 1) {
+            oSDK.log('Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+            // Firing with current data
+            listener.handler.call(context, eventData);
+          }
+          else {
+            oSDK.log('NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+            // Not firing
+            listener.fireCounter--; // No to overflow
+          }
+        } else if (listener.fireType === 'every') {
+          oSDK.log('Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+          // Just firing
           listener.handler.call(context, eventData);
         }
-        else {
-          listener.fireCounter--; // No to overflow
-        }
-      } else if (listener.fireType === 'every') {
-        // Just firing
-        listener.handler.call(context, eventData);
-      }
-    };
-    events[eventType].listeners.forEach(fireToListener);
-
+      };
+      events[eventType].listeners.forEach(fireToListener);
+    });
   };
 
   /**

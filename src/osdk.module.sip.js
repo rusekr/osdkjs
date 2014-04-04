@@ -61,18 +61,23 @@
   // Attaching internal events to internal oSDK events
   oSDK.on('auth.gotTempCreds', function (e) {
     oSDK.log('SIP got temp creds', arguments);
-    sip.init({
-      'ws_servers': oSDK.config.sip.serverURL,
-          'uri': 'sip:' + e.data.username.split(':')[1],
-          'password': e.data.password,
-          'stun_servers': [],
-          'registrar_server': 'sip:'+oSDK.config.sip.serverURL.replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
-          'trace_sip': true,
-          'register': true,
-          'authorization_user': e.data.username.split(':')[1],
-          'use_preloaded_route': false
-          //,hack_via_tcp: true
-    });
+    try {
+      sip.init({
+        'ws_servers': oSDK.config.sip.serverURL,
+            'uri': 'sip:' + e.data.username.split(':')[1],
+            'password': e.data.password,
+            'stun_servers': [],
+            'registrar_server': 'sip:'+oSDK.config.sip.serverURL.replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
+            'trace_sip': true,
+            'register': true,
+            'authorization_user': e.data.username.split(':')[1],
+            'use_preloaded_route': false
+            //,hack_via_tcp: true
+      });
+    } catch (ex) {
+      oSDK.trigger('core.error', { error: "SIP configuration error.", data: ex});
+      throw new oSDK.error("SIP configuration error."); // TODO: better error object
+    }
 
     sip.start();
   });
@@ -84,7 +89,7 @@
   oSDK.on('sip.disconnected', function (e) {
     oSDK.trigger('core.disconnected');
   });
-  
+
 
   // Attaching registered in oSDK methods to internal methods
   sip.call = function () {

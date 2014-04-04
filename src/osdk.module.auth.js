@@ -43,9 +43,6 @@
 
   // Connection to openSDP network
   auth.connect = function () {
-
-    oSDK.log('Connecting');
-
     // Checking user token
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect
@@ -73,9 +70,10 @@
           clientInfo.id = data.username.split(':')[1];
           clientInfo.domain = clientInfo.id.split('@')[1];
 
-          oSDK.trigger('auth.gotTempCreds', { 'data': data });
-          oSDK.trigger('core.gotTempCreds', { 'data': data });
-          oSDK.trigger('core.connected');
+          oSDK.log('auth triggering core.gotTempCreds');
+          oSDK.trigger(['auth.gotTempCreds', 'core.gotTempCreds'], { 'data': data });
+          oSDK.log('auth triggering core.connected');
+          oSDK.trigger(['auth.connected', 'core.connected']);
         }
       },
       error: function(jqxhr, status, string) {
@@ -88,7 +86,7 @@
 
         // If all is ok with token - throw connectionFailed event.
 
-        oSDK.trigger('core.connectionFailed', { 'error': 'Server error', 'code': 401 });
+        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed'], { 'error': 'Server error', 'code': 401 });
       }
     });
 
@@ -99,8 +97,7 @@
     if(clearToken) {
       oSDK.utils.oauth.clearToken();
     }
-    oSDK.trigger('auth.disconnected');
-    oSDK.trigger('core.disconnected');
+    oSDK.trigger(['auth.disconnected', 'core.disconnected']);
   };
 
   auth.isAuthorized = function () {
