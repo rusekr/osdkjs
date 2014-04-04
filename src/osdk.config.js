@@ -19,7 +19,7 @@
       // TODO: move to xmpp module config
       debug: 4,
       timer: 500,
-      resource: 'oClient',
+      resource: 'oClient-' + oSDK.utils.uuid(),
       server: {
         protocol: 'wss',
         domain: 'osdp-teligent-test-xmpp.teligent.ru',
