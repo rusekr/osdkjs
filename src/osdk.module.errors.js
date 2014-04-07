@@ -1,5 +1,5 @@
 /*
- * oSDK Errors module
+ * oSDK Errors module (http://jira.teligent.ru/browse/OSDKJS-27)
  */
 (function (oSDK) {
   "use strict";
@@ -29,22 +29,41 @@
   // TODO: override error message prefixing osdk.
   var errors = {};
 
-  errors.error = window.Error;
+  //errors.error = window.Error;
+  errors.error = function (eobj) {
+    // Defaults
+    this.ecode = 0;
+    this.name = "Error";
+    this.level = "Error";
+    this.message = "Unknown error detected";
+    this.htmlMessage = "Unknown error detected";
+    this.data = {};
+    this.toString = function(){return this.name + ": " + this.message;};
 
-  oSDK.on('core.error', function () {
-    oSDK.trigger('error', Array.prototype.slice.call(arguments, 0));
+    // Updating properties
+    var self = this;
+    oSDK.utils.each(eobj, function (prop, propname) {
+      self[propname] = prop;
+
+    });
+
+  };
+
+  oSDK.on('core.error', function (data) {
+    // Here after core.error must be data object
+    oSDK.trigger('error', data);
   }, 'every');
 
   // Catching all unhandled exceptions and converting to core.error events
-  window.onerror = function(msg, url, line) {
+  window.onerror = function(message, url, line) {
     // TODO: Report this error via ajax so you can keep track
     //       of what pages have JS issues
 
-    oSDK.trigger('core.error', { error: true, data: Array.prototype.slice.call(arguments, 0) });
+    oSDK.trigger('core.error', new oSDK.error({ message: message, data: Array.prototype.slice.call(arguments, 0) }));
 
-    var suppressErrorAlert = true;
-    // If you return true, then error alerts (like in older versions of
-    // Internet Explorer) will be suppressed.
+    // NOTICE: Not suppressing errors propagation after this function
+    var suppressErrorAlert = false;
+
     return suppressErrorAlert;
   };
 

@@ -121,7 +121,7 @@
 
   function handleMessage(oJSJaCPacket) {
     if (xmpp.status == 'connected') {
-      oSDK.trigger('textMessage', {
+      oSDK.trigger('core.textMessage', {
         from: oJSJaCPacket.getFromJID().getNode(),
         message: oJSJaCPacket.getBody().htmlEnc()
       });
@@ -480,6 +480,11 @@
     presence.setPriority(100);
     xmpp.con.send(presence);
   };
+
+  oSDK.on('core.textMessage', function (data) {
+    // Here after core.error must be data object
+    oSDK.trigger('textMessage', data);
+  }, 'every');
 
   oSDK.on('core.disconnected', function (e) {
     xmpp.con.disconnect();

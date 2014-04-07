@@ -62,8 +62,7 @@
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          oSDK.err("got error:", data);
-          oSDK.trigger('core.connectionFailed', { 'error': data.error });
+          oSDK.trigger(['core.connectionFailed', 'core.error'], new oSDK.error({ 'message': data.error }));
         } else {
 
           // Filling user client sturcture
@@ -77,8 +76,6 @@
         }
       },
       error: function(jqxhr, status, string) {
-        oSDK.log("Got error:", 'Server error.', jqxhr, status, string);
-
         // Force new token autoobtaining if old token returns 401.
         if (jqxhr.status === 401) {
           auth.tokenCheck(true); //TODO: //alert with confirmed redirect?
@@ -86,7 +83,7 @@
 
         // If all is ok with token - throw connectionFailed event.
 
-        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed'], { 'error': 'Server error', 'code': 401 });
+        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed', 'core.error'], new oSDK.error({ 'message': 'Server error', 'ecode': 401 }));
       }
     });
 

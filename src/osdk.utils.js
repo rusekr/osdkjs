@@ -457,7 +457,7 @@
     if (object.namespaces) {
       for (i in object.namespaces) {
         if (typeof(object.namespaces[i]) === 'string' && namespaces[object.namespaces[i]] ^ namespaces[i]) {
-          throw new oSDK.error('Registering module: ' + moduleName + '. Namespace "' + i + '" is already taken by module ' + namespaces[i]);
+          throw new oSDK.error({ message: 'Registering module: ' + moduleName + '. Namespace "' + i + '" is already taken by module ' + namespaces[i] });
         }
         if (typeof(object.namespaces[i]) === 'string') {
           namespaces[object.namespaces[i]] = moduleName;
@@ -470,7 +470,7 @@
     if (object.methods) {
       for (i in object.methods) {
         if (typeof(object.methods[i]) === 'string' && methods[object.methods[i]] ^ methods[i]) {
-          throw new oSDK.error('Registering module: ' + moduleName + '. Method "' + i + '" is already taken by module ' + methods[i]);
+          throw new oSDK.error({ message: 'Registering module: ' + moduleName + '. Method "' + i + '" is already taken by module ' + methods[i] });
         }
         if (typeof(object.methods[i]) === 'string') {
           methods[object.methods[i]] = moduleName;
@@ -600,7 +600,7 @@
       }
       if(!foundById) {
         // Non fatal
-        throw new oSDK.error('Can\'t remove event listener(s) - this event type or ID is not registered.');
+        throw new oSDK.error({ message: 'Can\'t remove event listener(s) - this event type or ID is not registered.' });
       }
     }
   };
@@ -608,14 +608,14 @@
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
   utils.fireEvent = function (/*context, eventType, eventData*/) {
-    oSDK.log('fireEvent parameters', arguments);
+    oSDK.log('fireEvent started with parameters', arguments);
     var context = null,
       eventTypes = null,
       eventData = null;
 
     if(utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
       // Non fatal
-      throw new oSDK.error('oSDK: Insufficient arguments.');
+      throw new oSDK.error({ message: 'oSDK: Insufficient arguments.' });
     } else if(utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
       context = this;
       eventTypes = [].concat(arguments[0]);
@@ -633,17 +633,19 @@
       // Appending/rewriting of eventType in data with last event type
 
       // Normalizing eventData to object
-      if(!utils.isObject(eventData) || utils.isArray(eventData)) {
+      if(!utils.isObject(eventData)) {
+        oSDK.log('fireEvent event data is not object, wrapping', eventData);
         eventData = {
           data: eventData
         };
+        oSDK.log('fireEvent event data wrapped as', eventData);
       }
       eventData.type = eventType;
       oSDK.log('final eventdata' , eventData);
 
       if(!events[eventType]) {
         // Non fatal
-        throw new oSDK.error('Event' + eventType + 'not registered therefore can\'t trigger!');
+        throw new oSDK.error({ message: 'Event' + eventType + 'not registered therefore can\'t trigger!' });
       }
 
       // Regstered emitters may be zero (e.g. in case of oauth popup)

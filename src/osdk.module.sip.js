@@ -26,7 +26,7 @@
     'disconnected': ['sip.disconnected', 'core.disconnected'],
     'registered': ['sip.registered', 'core.connected'],
     'unregistered': 'sip.unregistered',
-    'registrationFailed': ['sip.registrationFailed', 'core.connectionFailed'],
+    'registrationFailed': ['sip.registrationFailed', 'core.connectionFailed', 'core.error'], // TODO: test
     'newRTCSession': 'newMediaSession'
   };
 
@@ -75,7 +75,13 @@
             //,hack_via_tcp: true
       });
     } catch (ex) {
-      throw new oSDK.error("SIP configuration error."); // TODO: better error object
+      var err = {
+        message: "SIP configuration error.",
+        ecode: 397496,
+        data: ex
+      };
+      oSDK.trigger('core.connectionFailed', err);
+      throw new oSDK.error(err);
     }
 
     sip.start();
