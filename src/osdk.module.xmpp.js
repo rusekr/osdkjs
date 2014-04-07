@@ -57,6 +57,31 @@
     this.deletable = false;
   }
 
+  /**
+   * Sorting contacts list
+   */
+  function sortContacts(contacts) {
+    return contacts.sort(function(a, b) {
+      var len;
+      if (a.login.length > b.login.length) {
+        len = b.login.length;
+      } else {
+        len = a.login.length;
+      }
+      var cx;
+      for (cx = 0; cx != len; cx ++) {
+        var ca = a.login.charCodeAt(cx);
+        var cb = b.login.charCodeAt(cx);
+        if (ca != cb) return ca - cb;
+      }
+      if (a.login.length > b.login.length) {
+        return -1;
+      } else {
+        return 1;
+      }
+    });
+  }
+  
   // Registering module in oSDK
   var moduleName = 'xmpp';
 
@@ -155,6 +180,7 @@
             xmpp.con.send(presence);
           }
         }
+        storage.contacts = sortContacts(storage.contacts);
         xmpp.status = 'connected';
         oSDK.log('xmpp triggering core.connected');
         oSDK.trigger('core.connected', [].slice.call(arguments, 0));
@@ -259,7 +285,7 @@
     // Connection
     xmpp.con = new JSJaCWebSocketConnection({
       oDbg: ((xmpp.dbg) ? xmpp.dbg : false),
-      /*timerval: data.timerval,*/
+      timerval: data.timerval,
       httpbase: data.httpbase
     });
     xmpp.con.registerHandler('message', handleMessage);
@@ -377,6 +403,7 @@
             storage.contacts.push(new Client({login: jid.split('@')[0], domain: jid.split('@')[1], group: false}));
           }
         }
+        storage.contacts = sortContacts(storage.contacts);
         callback(storage.contacts);
       }});
     } else {
