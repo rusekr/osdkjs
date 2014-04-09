@@ -17,9 +17,22 @@
     },
     xmpp: {
       // TODO: move to xmpp module config
-      debug: 4,
-      timer: 500,
-      resource: 'oClient-' + oSDK.utils.uuid(),
+      /**
+       * Inner JSJaC debuger
+       */
+      debug: false,
+      /**
+       * IQ Out interval
+       */
+      timer: 2000,
+      /**
+       * Resource name
+       */
+      resource: 'oClient-' + oSDK.utils.uuid().replace('-', ''),
+      /**
+       * Server params
+       * Mey be {string} or {object}
+       */
       server: {
         protocol: 'wss',
         domain: 'osdp-teligent-test-xmpp.teligent.ru',
