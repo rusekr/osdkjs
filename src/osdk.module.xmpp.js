@@ -146,6 +146,12 @@
         oSDK.changeStatus(account, 'error');
         oSDK.trigger('core.contactError', oSDK.getContactByAccount(account));
       } else {
+        if (oJSJaCPacket.getType() == 'unsubscribe') {
+          oSDK.removeContact(account);
+          oSDK.getRoster(function() {
+            oSDK.trigger('core.newContactsList', {});
+          });
+        }
         if (oJSJaCPacket.getType() == 'unsubscribed') {
           if (oSDK.waitSubscription(account)) {
             var presence;
@@ -710,9 +716,9 @@
     });
     return true;
   };
-  
+
   oSDK.waitSubscription = function(account) {
-    var i, len = xmpp.subscribe;
+    var i, len = xmpp.subscribe.length;
     for (i = 0; i != len; i ++) {
       if (xmpp.subscribe[i].account == account) return true;
     }
