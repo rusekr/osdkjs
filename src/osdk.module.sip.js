@@ -11,6 +11,9 @@
   // Registering module in oSDK
   var moduleName = 'sip';
 
+  // Other modules dependencies
+  var moduleDeps = ['auth']; // TODO: apply to register function
+
   var attachableNamespaces = {
     'sip': true
   };
@@ -64,6 +67,7 @@
     try {
       sip.init({
         'ws_servers': oSDK.config.sip.serverURL,
+            'ws_server_max_reconnection': 0,
             'uri': 'sip:' + e.data.username.split(':')[1],
             'password': e.data.password,
             'stun_servers': [],
@@ -74,41 +78,36 @@
             'use_preloaded_route': false
             //,hack_via_tcp: true
       });
-    } catch (ex) {
-      var err = {
+
+      sip.JsSIPUA.start();
+
+    } catch (data) {
+      oSDK.trigger(['sip.connectionFailed', 'core.connectionFailed'], new oSDK.error({
         message: "SIP configuration error.",
         ecode: 397496,
-        data: ex
-      };
-      oSDK.trigger('core.connectionFailed', err);
-      throw new oSDK.error(err);
+        data: data
+      }));
     }
 
-    sip.start();
   });
 
-  oSDK.on('auth.disconnected', function (e) {
-    oSDK.sip.stop();
+  oSDK.on('auth.disconnected', function (data) {
+    // We may have connection error and therefore not initialized sip module without stop method.
+    if(sip.JsSIPUA) {
+      sip.JsSIPUA.stop();
+    }
   });
 
-  oSDK.on('sip.disconnected', function (e) {
-    oSDK.trigger('core.disconnected');
+  oSDK.on('sip.disconnected', function (data) {
+    // Stopping jssip autoreconnect after first connection failure
+    sip.JsSIPUA.stop();
+    oSDK.trigger('core.disconnected', data);
   });
 
 
   // Attaching registered in oSDK methods to internal methods
   sip.call = function () {
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
-  };
-
-  // Starts the sip module (async)
-  sip.start = function () {
-    return sip.JsSIPUA.start.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
-  };
-
-  // Stops the sip module (async)
-  sip.stop = function () {
-    return sip.JsSIPUA.stop.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
   // Direct bindings to namespace

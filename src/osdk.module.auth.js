@@ -9,13 +9,13 @@
 
   var attachableNamespaces = {
     'auth': true,
-    'clientInfo': true
+    'clientInfo': true,
   };
 
   var attachableMethods = {
     'connect': true,
     'disconnect': true,
-    'isAuthorized': true
+    'isAuthorized': true // Is user token alive?
   };
 
   var attachableEvents = {
@@ -36,6 +36,9 @@
   // Module namespace
   var auth = {};
 
+  // Status (disconnected, connecting, connected, disconnecting)
+  auth.status = 'disconnected';
+
   var clientInfo = {
     id: null,
     domain: null
@@ -43,6 +46,11 @@
 
   // Connection to openSDP network
   auth.connect = function () {
+    if(auth.status == 'connected' || auth.status == 'connecting') {
+      return;
+    }
+    auth.status = 'connecting';
+
     // Checking user token
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect
@@ -54,36 +62,35 @@
     oSDK.utils.oauth.ajax({
 
       url: oSDK.config.apiServerURL+oSDK.config.credsURI,
-      type: 'get',
-      headers: {'Authorization':'Bearer '+oSDK.config.appToken},
+      type: 'post',
+      oauthType: 'both',
       data: {
         //service: 'sip' // FIXME: needed?
       },
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          oSDK.trigger(['core.connectionFailed', 'core.error'], new oSDK.error({ 'message': data.error }));
+          oSDK.trigger(['core.connectionFailed'], new oSDK.error({ 'message': data.error, 'ecode': 'auth0002' }));
         } else {
 
           // Filling user client sturcture
           clientInfo.id = data.username.split(':')[1];
           clientInfo.domain = clientInfo.id.split('@')[1];
 
-          oSDK.log('auth triggering core.gotTempCreds');
+          //oSDK.log('auth triggering core.gotTempCreds');
           oSDK.trigger(['auth.gotTempCreds', 'core.gotTempCreds'], { 'data': data });
-          oSDK.log('auth triggering core.connected');
+          //oSDK.log('auth triggering core.connected');
           oSDK.trigger(['auth.connected', 'core.connected']);
         }
       },
       error: function(jqxhr, status, string) {
         // Force new token autoobtaining if old token returns 401.
         if (jqxhr.status === 401) {
-          auth.tokenCheck(true); //TODO: //alert with confirmed redirect?
+          auth.tokenCheck(true);
         }
 
         // If all is ok with token - throw connectionFailed event.
-
-        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed', 'core.error'], new oSDK.error({ 'message': 'Server error', 'ecode': 401 }));
+        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed'], new oSDK.error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
       }
     });
 
@@ -91,12 +98,16 @@
 
   // Imperative disconnection from openSDP network (optionally with clearing token
   auth.disconnect = function (clearToken) {
+    if(auth.status == 'disconnected' || auth.status == 'disconnecting') {
+      return false;
+    }
     if(clearToken) {
       oSDK.utils.oauth.clearToken();
     }
     oSDK.trigger(['auth.disconnected', 'core.disconnected']);
   };
 
+  // Returns status of user access token to client.
   auth.isAuthorized = function () {
     return oSDK.utils.oauth.isTokenAlive();
   };
@@ -125,14 +136,11 @@
     });
 
     // If we need to connect after redirect (no errors returned from oauth server)
-    if(window.location.hash.match(/access_token/) && !window.location.href.match(/(&|\?)error=/)) {
-      oSDK.log('Checking for token in hash');
-
-      oSDK.utils.oauth.checkUrl();
+    if(oSDK.utils.oauth.checkUrl()) {
       oSDK.utils.oauth.clearUrl();
 
       if(oSDK.config.oauthPopup != 'popup' && oSDK.utils.storage.getItem('osdk.connectAfterRedirect')) {
-        oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
+        //oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
         oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
         // Wait for user app event handlers to autoconnect
         auth.connectOnGotListener();
@@ -140,7 +148,7 @@
 
     } else {
       if(agressive) {
-        oSDK.log('Ensuring tokens');
+        oSDK.log('Ensuring tokens.');
 
         if(oSDK.utils.oauth.getToken()) {
           return true;
@@ -148,7 +156,7 @@
 
         if(oSDK.config.oauth != 'popup') {
           oSDK.utils.storage.setItem('osdk.connectAfterRedirect', true);
-          oSDK.log('set oSDK.utils.storage.osdk.connectAfterRedirect', oSDK.utils.storage.getItem('osdk.connectAfterRedirect'));
+          //oSDK.log('set oSDK.utils.storage.osdk.connectAfterRedirect', oSDK.utils.storage.getItem('osdk.connectAfterRedirect'));
         }
 
       }
@@ -166,7 +174,7 @@
   };
 
   oSDK.on('oauth.gotTokenFromPopup', function (data) {
-    oSDK.log('Setting up main window with oauth config and connecting', data);
+    //oSDK.log('Setting up main window with oauth config and connecting', data);
     oSDK.utils.oauth.configure(data);
     oSDK.utils.oauth.popup().close();
     oSDK.connect();
@@ -174,17 +182,23 @@
 
   // Proxying main events for internal handling priorities and syncronious firing.
   // Connected event
-  oSDK.on('core.connected', function () {
-    oSDK.trigger('connected');
+  oSDK.on('core.connected', function (data) {
+    oSDK.utils.resetTriggerCounters('core.disconnected');
+    auth.status = 'connected';
+    oSDK.trigger('connected', data);
   });
   // Disconnected event
-  oSDK.on('core.disconnected', function () {
-    oSDK.trigger('disconnected');
+  oSDK.on('core.disconnected', function (data) {
+    auth.status = 'disconnected';
+    oSDK.trigger('disconnected', data);
   });
   // Proxy for every connectionFailed message
-  oSDK.on('core.connectionFailed', function () {
-    oSDK.trigger('connectionFailed');
+  oSDK.on('core.connectionFailed', function (data) {
+    oSDK.utils.resetTriggerCounters('core.connected');
+    auth.disconnect();
+    oSDK.trigger('connectionFailed', data);
   }, 'every');
+
 
   // Instant actions
 
@@ -194,11 +208,11 @@
   // Delayed actions
   document.addEventListener("DOMContentLoaded", function () {
     auth.tokenCheck(false);
-    oSDK.log('window.onload');
+    //oSDK.log('window.onload');
   });
 
   window.onbeforeunload = function (event) {
-    oSDK.log('window.onload');
+    //oSDK.log('window.onbeforeunload');
     // TODO: handle gracefully auth redirection page unload.
     // trying to quit gracefully
 //       if(rtcSession && rtcSession.terminate) {

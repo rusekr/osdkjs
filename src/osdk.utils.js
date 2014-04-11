@@ -113,7 +113,7 @@
 
   // JQuery like simple ajax wrapper
   utils.ajax = function (config) {
-
+    oSDK.log('sending ajax with config', config);
     var dConfig = {
       url: '',
       type: 'GET',
@@ -312,16 +312,16 @@
         utils.storage.setItem('osdk.expires_start', config.expires_start);
         utils.storage.setItem('osdk.expires_in', config.expires_in);
 
-        oSDK.log('oauth config', config);
+        // oSDK.log('oauth config', config);
       },
-      // Checks hash for token
+      // Checks hash for token, returns true if token found, return false otherwise, if error throws it
       checkUrl: function () {
         //TODO: test check for server error-strings in not hash but !url! in query parameters.
         var error = utils.getUrlParameter('error');
         if(error) {
           var error_description = utils.getUrlParameter('error_description');
           console.log(error, error_description);
-          alert(error + ':' + error_description);
+          oSDK.trigger('core.error', new oSDK.error({ message: error + ':' + error_description }));
         }
 
         var token = utils.hash.getItem('access_token');
@@ -341,9 +341,12 @@
               expires_start: config.expires_start
             });
           }
+
+          return true;
         }
 
         // TODO: No error and no token case?
+        return false;
       },
       // Clears url from token stuff
       clearUrl: function () {
@@ -352,29 +355,37 @@
       },
       // Wrapper for ordinary ajax
       ajax: function (options) {
-        // Bearer to authorization
-        if(config.bearer) {
-          options.headers.Authorization = 'Bearer ' + config.bearer;
-        }
         // Access token to query string
         if(utils.oauth.isTokenAlive()) {
-          var delim = '?';
-          if(options.url.match(/\?/)) {
-            delim = '&';
+          // Bearer, query string or both authorization
+          if(!options.oauthType) {
+            options.oauthType = 'bearer';
           }
-          options.url += delim + 'access_token=' + config.access_token;
+          if(options.oauthType == 'bearer' || options.oauthType == 'both') {
+            options.headers = options.headers || {};
+            options.headers.Authorization = 'Bearer ' + config.access_token;
+          }
+          if(options.oauthType == 'qs' || options.oauthType == 'both') {
+            var delim = '?';
+            if(options.url.match(/\?/)) {
+              delim = '&';
+            }
+            options.url += delim + 'access_token=' + config.access_token;
+          }
+        } else {
+          throw new oSDK.error({ message: 'Token not found or exosted' });
         }
         return utils.ajax.call(this, options);
       },
       isTokenAlive: function () {
         var nowTime = new Date().getTime();
         if(!config.access_token) {
-          oSDK.log('User token not found');
+          // oSDK.log('User token not found');
           return false;
         } else if (config.expires_in + config.expires_start <= nowTime) {
-          oSDK.log('User token has expired');
+          // oSDK.log('User token has expired');
         } else {
-          oSDK.log('User token is alive', config);
+          // oSDK.log('User token is alive', config);
           return true;
         }
 
@@ -387,6 +398,7 @@
 
         var authUrl = config.authorization_uri + '?redirect_uri=' + encodeURIComponent(config.redirect_uri) + '&client_id=' + encodeURIComponent(config.client_id) + '&response_type=token';
         if(config.popup) {
+          oSDK.log('oAuth doing popup');
           // Create popup
           var params = "menubar=no,location=yes,resizable=yes,scrollbars=yes,status=no,width=800,height=600";
           authPopup = window.open(authUrl, "oSDP Auth", params);
@@ -395,6 +407,7 @@
             alert('Error. Authorization popup blocked by browser.');
           }
         } else {
+          oSDK.log('oAuth doing redirect');
           // Redirect current page
           window.location = authUrl;
         }
@@ -550,7 +563,7 @@
    * Returns id of added listener for removing through {@link oSDK.utils.removeEventListener}.
    * @param fireType may be 'last' (default, fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (fires every time emitter emits)
    */
-  utils.addEventListener = function (eventType, eventHandler, fireType) {
+  utils.addEventListener = function (eventTypes, eventHandler, fireType) {
 
     var fireTypes = {
       'last': !0,
@@ -558,20 +571,47 @@
       'every': !0
     };
 
-    if(!events[eventType]) {
-      events[eventType] = utils.eventSkel();
+    var ids = [];
+    eventTypes = [].concat(eventTypes);
+
+    utils.each(eventTypes, function (eventType) {
+      if(!events[eventType]) {
+        events[eventType] = utils.eventSkel();
+      }
+      var id  = utils.uuid();
+      fireType = fireTypes[fireType]?fireType:'last';
+      var listener = {
+        id: id,
+        handler: eventHandler,
+        fireType: fireType,
+        fireCounter: 0,
+        fireData: {}
+      };
+
+      events[eventType].listeners.push(listener);
+      ids.push(id);
+    });
+    return (ids.length == 1)?ids[0]:ids;
+  };
+
+  /*
+   * Resets firecounters for eventName or globally for all registered event listeners
+   */
+  utils.resetTriggerCounters = function (eventName) {
+    oSDK.log('starting clearing triggers for', eventName);
+    var eventNames = [];
+    if(!utils.isNull(eventName)) {
+      eventNames.concat(eventName);
     }
-    var id  = utils.uuid();
-    fireType = fireTypes[fireType]?fireType:'last';
-    var listener = {
-      id: id,
-      handler: eventHandler,
-      fireType: fireType,
-      fireCounter: 0,
-      fireData: {}
-    };
-    events[eventType].listeners.push(listener);
-    return id;
+    utils.each(events, function (event, name) {
+      if(eventNames.length && eventNames.indexOf(name) == -1) {
+        return;
+      }
+      utils.each(event.listeners, function (listener) {
+        listener.fireCounter = 0;
+        oSDK.log('cleared counter', listener, eventName);
+      });
+    });
   };
 
   /*
@@ -608,7 +648,7 @@
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
   utils.fireEvent = function (/*context, eventType, eventData*/) {
-    oSDK.log('fireEvent started with parameters', arguments);
+    //oSDK.log('fireEvent started with parameters', arguments);
     var context = null,
       eventTypes = null,
       eventData = null;
@@ -620,13 +660,13 @@
       context = this;
       eventTypes = [].concat(arguments[0]);
       eventData = arguments[1] || {};
-      oSDK.log('fireEvent first arg is array or string, eventData is', eventData);
+      //oSDK.log('fireEvent first arg is array or string, eventData is', eventData);
     } else {
 
       context = arguments[0];
       eventTypes = [].concat(arguments[1]);
       eventData = arguments[2] || {};
-      oSDK.log('fireEvent first arg is context object, eventData is', eventData);
+      //oSDK.log('fireEvent first arg is context object, eventData is', eventData);
     }
 
     eventTypes.forEach(function (eventType) {
@@ -634,14 +674,14 @@
 
       // Normalizing eventData to object
       if(!utils.isObject(eventData)) {
-        oSDK.log('fireEvent event data is not object, wrapping', eventData);
+        //oSDK.log('fireEvent event data is not object, wrapping', eventData);
         eventData = {
           data: eventData
         };
-        oSDK.log('fireEvent event data wrapped as', eventData);
+        //oSDK.log('fireEvent event data wrapped as', eventData);
       }
       eventData.type = eventType;
-      oSDK.log('final eventdata' , eventData);
+      //oSDK.log('final eventdata' , eventData);
 
       if(!events[eventType]) {
         // Non fatal
@@ -654,7 +694,7 @@
       var fireToListener = function (listener) {
         // Extending data
         listener.fireData = oSDK.utils.extend({}, listener.fireData, eventData);
-        oSDK.log('extended data', listener.fireData, 'with', eventData);
+        //oSDK.log('extended data', listener.fireData, 'with', eventData);
 
         if (listener.fireType === 'last') {
 
