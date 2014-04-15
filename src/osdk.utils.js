@@ -169,21 +169,21 @@
     };
 
     // For firefox // FIXME: more universal chrome and firefox handlers
-    try {
-      setHeaders();
-    }
-    catch (e) {
-      oSDK.log('Chrome..not setRequestHeader, firefox set');
-      headersNotSet = true;
-    }
+//     try {
+//       setHeaders();
+//     }
+//     catch (e) {
+//       oSDK.log('Chrome..not setRequestHeader, firefox set');
+//       headersNotSet = true;
+//     }
 
     r.open(config.type, config.url, config.async,config.username, config.password);
 
     // For chrome // FIXME more universal chrome and firefox handlers
-    if(headersNotSet) {
-      oSDK.log('Chrome..setRequestHeader');
+//     if(headersNotSet) {
+//       oSDK.log('Chrome..setRequestHeader');
       setHeaders();
-    }
+//     }
 
     // ReadyStateChange handlers
     r.onreadystatechange = function () {
