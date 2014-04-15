@@ -32,7 +32,8 @@
     notice: [],
     //Already subscribe
     subscribe: [],
-    wait: null
+    wait: null,
+    temp: null
   };
 
   // Inner storage (session)
@@ -331,6 +332,9 @@
       password: data.password,
       pass: data.password
     });
+    xmpp.temp = setTimeout(function() {
+      oSDK.trigger('core.connectionFailed', {});
+    }, 5000);
   };
 
   // Attaching internal events to internal oSDK events
