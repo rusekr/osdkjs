@@ -242,6 +242,7 @@
 
   function handleConnected() {
     if (xmpp.status.connection == 'connection' && xmpp.con.connected()) {
+      if (xmpp.temp) clearTimeout(xmpp.temp);
       xmpp.status.connection = 'connected';
       oSDK.trigger('core.connected', [].slice.call(arguments, 0));
       return true;
