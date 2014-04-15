@@ -47,7 +47,7 @@
    * Get roster id
    */
   function getRosterId() {return 'roster_' + oSDK.utils.md5(xmpp.usr.login + '@' + xmpp.usr.domain);}
-  
+
   /**
    * Get HttpBase from config to XMPP connection:
    * @protocol {String}
@@ -72,7 +72,7 @@
     result += '/';
     return result;
   }
-  
+
   /**
    * Client/Contact
    */
@@ -90,7 +90,7 @@
     this.favorite = false;
     this.deletable = false;
   }
-  
+
   // Registering module in oSDK
   var moduleName = 'xmpp';
   var attachableNamespaces = { 'xmpp': true };
@@ -119,7 +119,7 @@
   function handleIQ(oIQ) {
     xmpp.con.send(oIQ.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
   }
-  
+
   function handleMessage(oJSJaCPacket) {
     console.log('MEEESSAGE');
     if (xmpp.con.connected()) {
@@ -134,7 +134,7 @@
       });
     }
   }
-  
+
   function handlePresenceIn(oJSJaCPacket) {
     var login = oJSJaCPacket.getFromJID()._node;
     var domain = oJSJaCPacket.getFromJID()._domain;
@@ -229,13 +229,13 @@
     }
     return true;
   }
-  
+
   function handlePresenceOut(oJSJaCPacket) {
   }
-  
+
   function handlePacketIn(oJSJaCPacket) {
   }
-  
+
   function handlePacketOut(oJSJaCPacket) {
   }
 
@@ -256,15 +256,15 @@
     }
     return false;
   }
-  
+
   function handleStatusChanged(status) {
-    
+
   }
-  
+
   function handleError(e) {
-    
+
   }
-  
+
   function handleIqVersion(iq) {
     xmpp.con.send(iq.reply([iq.buildNode('name', 'jsjac simpleclient'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
     return true;
@@ -354,7 +354,7 @@
   /**
    * oSDK XMPP methods
    */
-  
+
   /**
    * Work with client
    * @getClient - return current connected client
@@ -365,7 +365,7 @@
     }
     return false;
   };
-  
+
   /**
    * Subscribe to JabberID(s)
    * @param data may be {String} (JID) or {Array} (contacts list)
@@ -395,7 +395,7 @@
     }
     return false;
   };
-  
+
   /**
    * Subscribe to all who save in contacts list
    */
@@ -409,7 +409,7 @@
     }
     return false;
   };
-  
+
   /**
    * Cinfirm subscribe
    */
@@ -419,7 +419,7 @@
     presence.setType('subscribed');
     xmpp.con.send(presence);
   };
-  
+
   /**
    * Send presence about me to all
    * @param to {String} (JID) - if not exists, to send all
@@ -433,7 +433,7 @@
     }
     return false;
   };
-  
+
   /**
    * Clear roster
    */
@@ -462,7 +462,7 @@
     }
     return false;
   };
-  
+
   /**
    * Work with roster (contacts list)
    * @getRoster - get roster from server and convert to inner contacts list, sort contacts list and save in inner storage
@@ -506,7 +506,7 @@
     }
     return false;
   };
-  
+
   oSDK.alreadySubscribeSend = function(login) {
     var i, len = xmpp.subscribe.length;
     for(i = 0; i != len; i ++) {
@@ -514,12 +514,12 @@
     }
     return false;
   };
-  
+
   oSDK.getContactsList = function(callback) {
     if (callback && typeof callback == 'function') callback(storage.contacts);
     return storage.contacts;
   };
-  
+
   oSDK.sortContactsList = function(data) {
     if (!data) data = storage.contacts;
     return data.sort(function(a, b) {
@@ -542,7 +542,7 @@
       }
     });
   };
-  
+
   oSDK.sendAuthRequest = function(login, callback) {
     if (xmpp.con.connected()) {
       xmpp.iAsking = login;
@@ -554,7 +554,7 @@
       xmpp.subscribe.push(new Client(login + '@' + oSDK.clientInfo.domain(), 'General'));
     }
   };
-  
+
   oSDK.addContact = function(login, callback) {
     xmpp.iAsking = true;
     var presence = new JSJaCPresence();
@@ -624,7 +624,7 @@
     }
     return false;
   };
-  
+
   oSDK.loginExists = function(login) {
     var i, l = storage.contacts.length;
     for (i = 0; i != l; i ++) {
@@ -634,7 +634,7 @@
     }
     return false;
   };
-  
+
   oSDK.setMyStatus = function(status) {
     var presence = new JSJaCPresence();
     presence.setStatus(status);
@@ -643,7 +643,7 @@
     presence.setPriority(100);
     xmpp.con.send(presence);
   };
-  
+
   oSDK.changeStatus = function(to, status) {
     var i, len = storage.contacts.length;
     for (i = 0; i != len; i ++) {
@@ -654,7 +654,7 @@
     }
     return true;
   };
-  
+
   oSDK.xmppTemp = function() {
     var presence;
     presence = new JSJaCPresence();
@@ -671,7 +671,7 @@
       oSDK.on('core.newContactsList', {});
     });
   };
-  
+
   oSDK.acceptAuthSubscribe = function(account) {
     xmpp.wait = account;
     var presence;
@@ -687,7 +687,7 @@
       xmpp.con.send(presence);
     }, 1000);
   };
-  
+
   oSDK.rejectAuthSubscribe = function(account) {
     var presence;
     presence = new JSJaCPresence();
@@ -700,11 +700,11 @@
       oSDK.trigger('core.newContactsList', {});
     });
   };
-  
+
   oSDK.getNotice = function() {
     return xmpp.notice;
   };
-  
+
   oSDK.removeNotice = function(account) {
     var i, len = xmpp.notice.length, result = [];
     for (i = 0; i != len; i ++) {
@@ -725,44 +725,48 @@
     }
     return false;
   };
-  
+
+  oSDK.createClient = function(jid) {
+    return new Client(jid, 'General');
+  };
+
   oSDK.on('core.xmppNewNotice', function(data) {
     oSDK.trigger('xmppNewNotice', data);
   }, 'every');
-  
+
   oSDK.on('core.newContactsList', function(data) {
     oSDK.trigger('newContactsList', data);
   }, 'every');
-  
+
   oSDK.on('core.askToSubscribe', function(data) {
     oSDK.trigger('askToSubscribe', data);
   }, 'every');
-  
+
   oSDK.on('core.requestToAddContact', function (data) {
     oSDK.trigger('requestToAddContact', data);
   }, 'every');
-  
+
   oSDK.on('core.contactError', function (data) {
     oSDK.trigger('contactError', data);
   }, 'every');
-  
+
   oSDK.on('core.contactAvailable', function (data) {
     oSDK.trigger('contactAvailable', data);
   }, 'every');
-  
+
   oSDK.on('core.contactUnavailable', function (data) {
     oSDK.trigger('contactUnavailable', data);
   }, 'every');
-  
+
   oSDK.on('core.textMessage', function (data) {
     // Here after core.error must be data object
     oSDK.trigger('textMessage', data);
   }, 'every');
-  
+
   oSDK.on('core.disconnected', function (e) {
     xmpp.con.disconnect();
   });
-  
+
   oSDK.on('core.xmppDisconnected', function (e) {
     oSDK.trigger('xmppDisconnected', {});
   });
