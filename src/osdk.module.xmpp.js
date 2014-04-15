@@ -251,6 +251,7 @@
   function handleDisconnected() {
     if (!xmpp.con.connected()) {
       xmpp.status.connection = 'disconnected';
+      oDSK.trigger('core.xmppDisconnected', {});
       return true;
     }
     return false;
@@ -760,6 +761,10 @@
   
   oSDK.on('core.disconnected', function (e) {
     xmpp.con.disconnect();
+  });
+  
+  oSDK.on('core.xmppDisconnected', function (e) {
+    oSDK.trigger('xmppDisconnected', {});
   });
 
 })(oSDK, JSJaC);
