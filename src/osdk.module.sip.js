@@ -5,7 +5,9 @@
   "use strict";
 
   // Module namespace
-  var sip = {};
+  var sip = {
+    sessions: []
+  };
 
 
   // Registering module in oSDK
@@ -30,7 +32,7 @@
     'registered': ['sip.registered', 'core.connected'],
     'unregistered': 'sip.unregistered',
     'registrationFailed': ['sip.registrationFailed', 'core.connectionFailed', 'core.error'], // TODO: test
-    'newRTCSession': 'newMediaSession'
+    'newRTCSession': ['sip.newMediaSession', 'core.newMediaSession']
   };
 
   // TODO: not used now
@@ -104,10 +106,27 @@
     oSDK.trigger('core.disconnected', data);
   });
 
+  oSDK.on('sip.newMediaSession', function (data) {
+    oSDK.log(data);
+    sip.sessions.push(data.data.session);
+  });
+
+  oSDK.on('core.newMediaSession', function (data) {
+    oSDK.trigger('newMediaSession', data);
+  });
 
   // Attaching registered in oSDK methods to internal methods
   sip.call = function () {
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
+  };
+
+
+  window.onbeforeunload = function (event) {
+    sip.sessions.forEach(function (session) {
+      if(session) {
+        session.terminate();
+      }
+    });
   };
 
   // Direct bindings to namespace
