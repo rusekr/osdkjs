@@ -123,6 +123,7 @@
 
   window.onbeforeunload = function (event) {
     sip.sessions.forEach(function (session) {
+      // TODO: make sure session is opened
       if(session) {
         session.terminate();
       }
