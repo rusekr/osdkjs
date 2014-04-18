@@ -74,6 +74,25 @@
     return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
   };
 
+  /**
+   * Test to other data
+   * @isValidLogin
+   * @isValidAccount
+   */
+  utils.isValidLogin = function(login) {
+    if (login && oSDK.utils.isString(login)) {
+      if (login.match(/^[-fa-z0-9_]+$/i)) return true;
+    }
+    return false;
+  };
+  utils.isValidAccount = function(account) {
+    if (account && oSDK.utils.isString(account)) {
+      if (account.match(/^[-a-z0-9_]+@[a-z0-9_]+\.[a-z]{2,3}$/i)) return true;
+    }
+    return false;
+  };
+
+
   // UUID generator
   utils.uuid = function () {
 
@@ -918,5 +937,6 @@
   oSDK.trigger = oSDK.utils.fireEvent;
   oSDK.log = oSDK.utils.log;
   oSDK.warn = oSDK.utils.warn;
+  oSDK.info = oSDK.utils.info;
   oSDK.err = oSDK.utils.err;
 })(oSDK);
