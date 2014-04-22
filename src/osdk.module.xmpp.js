@@ -33,7 +33,32 @@
     //Already subscribe
     subscribe: [],
     wait: null,
-    temp: null
+    temp: null,
+    config: {
+      /**
+       * Inner JSJaC debuger
+       */
+      debug: true,
+      /**
+       * IQ Out interval
+       */
+      timer: 2000,
+      /**
+       * Resource name
+       */
+      resource: 'oClient-' + oSDK.utils.uuid().replace('-', ''),
+      /**
+       * Server params
+       * Mey be {string} or {object}
+       */
+      server: {
+        protocol: 'wss',
+        domain: 'osdp-teligent-dev-xmpp.virt.teligent.ru',
+        port: 5280,
+        url: 'http-bind'
+      }
+    },
+    oauthPopup: false // oauth login in popup
   };
 
   // Inner storage (session)
@@ -334,7 +359,7 @@
       pass: data.password
     });
     xmpp.temp = setTimeout(function() {
-      oSDK.trigger('core.connectionFailed', {});
+      oSDK.trigger('core.connectionFailed', {message: 'XMPP connection failure.'});
     }, 5000);
   };
 
