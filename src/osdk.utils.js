@@ -92,6 +92,25 @@
     return false;
   };
 
+  /**
+   * Work with json objects
+   * @jsonEncode
+   * @jsonDecode
+   */
+  utils.jsonEncode = function(data) {
+    try {
+      return JSON.stringify(data);
+    } catch(eJsonEncode) {
+      return null;
+    }
+  };
+  utils.jsonDecode = function(data) {
+    try {
+      return JSON.parse(data);
+    } catch(eJsonDecode) {
+      return null;
+    }
+  };
 
   // UUID generator
   utils.uuid = function () {

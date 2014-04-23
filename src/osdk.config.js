@@ -2,7 +2,13 @@
  * oSDK initial configuration.
  */
 (function (oSDK) {
+
+  // Strict mode on
   "use strict";
+
+  // Constants
+  var OSDK_XMPP_SUBSCRIPTIONS_METHOD_CLASSIC = 'classic';
+  var OSDK_XMPP_SUBSCRIPTIONS_METHOD_BLIND = 'blind';
 
   // Default configuration
   oSDK.defaultConfig = {
@@ -16,28 +22,38 @@
       serverURL: 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
     },
     xmpp: {
-      // TODO: move to xmpp module config
       /**
-       * Inner JSJaC debuger
+       * Settings
        */
-      debug: true,
+      settings: {
+        subscriptionsMethod: OSDK_XMPP_SUBSCRIPTIONS_METHOD_CLASSIC
+      },
       /**
-       * IQ Out interval
+       * Connection
        */
-      timer: 2000,
-      /**
-       * Resource name
-       */
-      resource: 'oClient-' + oSDK.utils.uuid().replace('-', ''),
-      /**
-       * Server params
-       * Mey be {string} or {object}
-       */
-      server: {
-        protocol: 'wss',
-        domain: 'osdp-teligent-dev-xmpp.virt.teligent.ru',
-        port: 5280,
-        url: 'http-bind'
+      connection: {
+        /**
+        * Inner JSJaC debuger
+        */
+        debug: false,
+        /**
+        * IQ Out interval
+        */
+        timer: 2000,
+        /**
+        * Resource name
+        */
+        resource: 'oClient-' + oSDK.utils.uuid().replace('-', ''),
+        /**
+        * Server params
+        * Mey be {string} or {object}
+        */
+        server: {
+          protocol: 'wss',
+          domain: 'osdp-teligent-dev-xmpp.virt.teligent.ru',
+          port: 5280,
+          url: 'http-bind'
+        }
       }
     },
     oauthPopup: false, // oauth login in popup

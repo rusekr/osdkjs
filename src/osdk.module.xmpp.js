@@ -1,282 +1,361 @@
 /*
  * oSDK XMPP module
+ * with JSJaC inside
  */
-
 (function (oSDK, JSJaC) {
 
   /**
-   * Strict mode
-   * Activation
+   * Strict mode on
    */
+
   "use strict";
 
-  // Module namespace
-  var xmpp = {
-    // Debuger
-    dbg: null,
-    // XMPP Connection
-    con: null,
-    // User, temp info to connect
-    usr: {},
-    // Current status
-    status: {
-      connection: null,
-      message: null,
-      presence: null
-    },
-    // Offline message
-    offlineMessages: [],
-    // Who ask flag
-    iAsking: false,
-    // Notice
-    notice: [],
-    //Already subscribe
-    subscribe: [],
-    wait: null,
-    temp: null
-  };
+  /**
+   * Constants
+   */
 
-  // Inner storage (session)
+  var OSDK_SUBSCRIPTION_NONE = 'none';
+  var OSDK_SUBSCRIPTION_FROM = 'from';
+  var OSDK_SUBSCRIPTION_TO = 'to';
+  var OSDK_SUBSCRIPTION_BOTH = 'both';
+
+  var OSDK_PRESENCE_TYPE_AVAILABLE = 'available';
+  var OSDK_PRESENCE_TYPE_UNAVAILABLE = 'unavailable';
+  var OSDK_PRESENCE_TYPE_SUBSCRIBE = 'subscribe';
+  var OSDK_PRESENCE_TYPE_SUBSCRIBED = 'subscribed';
+  var OSDK_PRESENCE_TYPE_UNSUBSCRIBE = 'unsubscribe';
+  var OSDK_PRESENCE_TYPE_UNSUBSCRIBED = 'unsubscribed';
+  var OSDK_PRESENCE_TYPE_PROBE = 'probe';
+  var OSDK_PRESENCE_TYPE_ERROR = 'error';
+
+  var OSDK_PRESENCE_SHOW_CHAT = 'chat';
+  var OSDK_PRESENCE_SHOW_AWAY = 'away';
+  var OSDK_PRESENCE_SHOW_DND = 'dnd';
+  var OSDK_PRESENCE_SHOW_XA = 'xa';
+
+  var OSDK_ROSTER_ASK_SUBSCRIBE = 'subscribe';
+  var OSDK_ROSTER_ASK_UNSUBSCRIBE = 'unsubscribe';
+
+  var OSDK_SUBSCRIPTIONS_METHOD_CLASSIC = 'classic';
+  var OSDK_SUBSCRIPTIONS_METHOD_BLIND = 'blind';
+
+  /**
+   * JSJaC exemplar
+   */
+
+  var xmpp = null;
+
+  /**
+   * Inner storage
+   */
+
   var storage = {
-    // Current client
+    // Logged user
     client: null,
-    // Contacts list
-    contacts: []
+    // Contacts list (and links)
+    contacts: [],
+    linksToContacts: {},
+    // Requests list (and links)
+    requests: [],
+    linksToRequests: {},
+    // State flag's
+    flags: {
+      // I am logged now
+      iAmLoggedNow: false,
+      // Status changed to
+      status: false,
+      // Connection status
+      connect: false
+    }
   };
 
   /**
-   * Get roster id
+   * Helper - generate server url
    */
-  function getRosterId() {return 'roster_' + oSDK.utils.md5(xmpp.usr.login + '@' + xmpp.usr.domain);}
 
-  /**
-   * Get HttpBase from config to XMPP connection:
-   * @protocol {String}
-   * @domain {String}
-   * @port {String}
-   * @url {String}
-   */
-  function getHttpBase(data) {
+  function generateServerUrl(param) {
     var result = '';
-    if (!data.protocol) {
+    if (!param.protocol) {
       result = location.protocol + '://';
     } else {
-      result = data.protocol + '://';
+      result = param.protocol + '://';
     }
-    if (!data.domain) {
+    if (!param.domain) {
       result += location.domain;
     } else {
-      result += data.domain;
+      result += param.domain;
     }
-    if (data.port) result += ':' + data.port;
-    if (data.url) result += '/' + data.url;
+    if (param.port) result += ':' + param.port;
+    if (param.url) result += '/' + param.url;
     result += '/';
     return result;
   }
 
   /**
-   * Client/Contact
+   * Helper - generate roster id
    */
-  function Client(jid, group) {
-    var self = this;
-    var JabberID = jid.toLowerCase();
-    oSDK.log('XMPP: create new client - ' + JabberID);
-    this.photo = false;
-    this.group = (group) ? group : 'ungrouped';
-    this.login = JabberID.split('@')[0];
-    this.domain = (typeof JabberID.split('@')[1] != 'undefined') ? JabberID.split('@')[1] : oSDK.clientInfo.domain();
-    this.account = this.login + '@' + this.domain;
-    this.status = 'unavailable';
-    this.history = [];
-    this.favorite = false;
-    this.deletable = false;
+
+  function generateRosterId() {return 'roster_' + oSDK.utils.md5(storage.client.account);}
+
+  /**
+   * Get contacts/requests by account
+   * @generateLinkToItem - helper
+   * @getContactByAccount - return contact by account from contacts list
+   * @getRequestByAccount - return request by account from reqyests list
+   */
+
+  function generateLinkToItem(account) {
+    return '__' + oSDK.utils.md5(account);
   }
 
-  // Registering module in oSDK
-  var moduleName = 'xmpp';
-  var attachableNamespaces = { 'xmpp': true };
-  var attachableMethods = { 'send': true };
+  function getContactByAccount(account) {
+    var index = storage.linksToContacts[generateLinkToItem(account)];
+    return (typeof storage.contacts[index] != 'undefined') ? storage.contacts[index] : false;
+  }
 
-  var attachableEvents = {
-    'onConnect': ['xmpp.events.connect', 'core.connected'],
-    'onDisconnect': 'xmpp.events.disconnect',
-    'onResume': 'xmpp.events.resume',
-    'onStatusChanged': 'xmpp.events.statusChanged',
-    'onError': 'xmpp.events.error',
-    'packet_in': 'xmpp.events.packet.incoming',
-    'packet_out': 'xmpp.events.packet.outcoming',
-    'message_in': 'xmpp..events.message.incoming',
-    'message_out': 'xmpp..events.message.outcoming',
-    'presence_in': 'xmpp.events.presence.incoming',
-    'presence_out': 'xmpp.events.presence.outcoming',
-    'iq_in': 'xmpp.events.iq.incoming',
-    'iq_out': 'xmpp.events.iq.outcoming'
+  function getRequestByAccount(account) {
+    var index = storage.linksToRequests[generateLinkToItem(account)];
+    return (typeof storage.requests[index] != 'undefined') ? storage.requests[index] : false;
+  }
+
+  /**
+   * Inner commands
+   */
+
+  var commands = {
+    iAmLogged: function(data) {
+      if (storage.flags.iAmLoggedNow) {
+        storage.flags.iAmLoggedNow = false;
+      } else {
+        oSDK.info('COMMAND I AM LOGGED: ', data);
+        oSDK.sendPresence({to: data.account, show: 'chat', status: oSDK.utils.jsonEncode({cmd: 'thatICan', chat: true, audio: true, video: true})});
+        var contact = getContactByAccount(data.account);
+        contact.can.chat = data.chat;
+        contact.can.audio = data.audio;
+        contact.can.video = data.video;
+        oSDK.trigger('contactCapabilitiesChanged', {contact: contact});
+      }
+    },
+    thatICan: function(data) {
+      oSDK.info('COMMAND THAT I CAN: ', data);
+      var contact = getContactByAccount(data.account);
+      contact.can.chat = data.chat;
+      contact.can.audio = data.audio;
+      contact.can.video = data.video;
+      oSDK.trigger('contactCapabilitiesChanged', {contact: contact});
+    }
   };
 
   /**
-   * XMPP Events handlers
+   * Handler's to XMPP connection
    */
 
-  function handleIQ(oIQ) {
-    xmpp.con.send(oIQ.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
-  }
+  var handlers = {
+    fnIQ: function(iq) {
+      oSDK.info('XMPP HANDLER(iq)');
+      xmpp.send(iq.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
+      return true;
+    },
+    fnIQV: function(iq) {
+      oSDK.info('XMPP HANDLER(iq version)');
+      xmpp.send(iq.reply([iq.buildNode('name', 'oSDK client'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
+      return true;
+    },
+    fnIQT: function(iq) {
+      oSDK.info('XMPP HANDLER(iq time)');
+      var now = new Date();
+      xmpp.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
+      return true;
+    },
+    fnIncomingMessage: function(packet) {
+      oSDK.info('XMPP HANDLER(incoming message)');
 
-  function handleMessage(oJSJaCPacket) {
-    console.log('MEEESSAGE');
-    if (xmpp.con.connected()) {
-      oSDK.trigger('core.textMessage', {
-        from: oJSJaCPacket.getFromJID().getNode(),
-        message: oJSJaCPacket.getBody().htmlEnc()
-      });
-    } else {
-      xmpp.offlineMessages.push({
-        from: oJSJaCPacket.getFromJID().getNode(),
-        message: oJSJaCPacket.getBody().htmlEnc()
-      });
-    }
-  }
+    },
+    fnOutcomingMessage: function(packet) {
+      oSDK.info('XMPP HANDLER(outcoming message)');
 
-  function handlePresenceIn(oJSJaCPacket) {
-    var login = oJSJaCPacket.getFromJID()._node;
-    var domain = oJSJaCPacket.getFromJID()._domain;
-    var account = (login + '@' + domain).toLowerCase();
-    console.warn('TRY TO GET PRESENCE');
-    console.warn(account, oJSJaCPacket.getType(), oJSJaCPacket.getShow(), oJSJaCPacket.getPriority());
-    if (account != oSDK.getClient().account) {
-      if (oJSJaCPacket.getType() == 'error') {
-        oSDK.changeStatus(account, 'error');
-        oSDK.trigger('core.contactError', oSDK.getContactByAccount(account));
+    },
+    fnIncomingPresence: function(packet) {
+      oSDK.info('XMPP HANDLER(incoming presence)');
+      var data = oSDK.getPresenceData(packet);
+      if (!data) {
+        /* TODO */
       } else {
-        if (oJSJaCPacket.getType() == 'unsubscribe') {
-          oSDK.removeContact(account);
-          oSDK.getRoster(function() {
-            oSDK.trigger('core.newContactsList', {});
-          });
-        }
-        if (oJSJaCPacket.getType() == 'unsubscribed') {
-          if (oSDK.waitSubscription(account)) {
-            var presence;
-            presence = new JSJaCPresence();
-            presence.setTo(account);
-            presence.setType('unsubscribed');
-            xmpp.con.send(presence);
-            oSDK.removeContact(account);
-            oSDK.getRoster(function() {
-              oSDK.trigger('core.newContactsList', {});
-            });
-          }
-        }
-        if (oJSJaCPacket.getType() == 'subscribe' || oJSJaCPacket.getType() == 'subscribed') {
-          if(oJSJaCPacket.getType() == 'subscribed' && xmpp.wait == account) {
-            xmpp.iAsking = false;
-            xmpp.wait = null;
-            oSDK.getRoster(function() {
-              oSDK.trigger('core.newContactsList', {});
-              oSDK.trigger('core.contactAvailable', oSDK.getContactByAccount(account));
-              var presencekk;
-              presencekk = new JSJaCPresence();
-              presencekk.setShow('chat');
-              xmpp.con.send(presencekk);
-            });
-          }
-          if(oJSJaCPacket.getType() == 'subscribe' && oSDK.waitSubscription(account)) {
-            xmpp.iAsking = false;
-            var presencek;
-            presencek = new JSJaCPresence();
-            presencek.setTo(account);
-            presencek.setType('subscribed');
-            xmpp.con.send(presencek);
-            setTimeout(function() {
-              oSDK.getRoster(function() {
-                oSDK.trigger('core.newContactsList', {});
-                oSDK.trigger('core.contactAvailable', oSDK.getContactByAccount(account));
-                presencek = new JSJaCPresence();
-                presencek.setShow('chat');
-                xmpp.con.send(presencek);
-              });
-            }, 500);
-          }
-          if(oJSJaCPacket.getType() == 'subscribe' && !oSDK.waitSubscription(account)) {
-            if (!xmpp.iAsking) {
-              xmpp.notice.push({
-                type: 'xmpp.auth.request',
-                data: account
-              });
-              oSDK.trigger('core.xmppNewNotice', {
-                type: 'xmpp.auth.request',
-                data: account
-              });
+        if (data.from) oSDK.log('FROM: ' + data.from);
+        if (data.to) oSDK.log('TO: ' + data.to);
+        if (data.type) oSDK.log('TYPE: ' + data.type);
+        if (data.show) oSDK.log('SHOW: ' + data.show);
+        if (data.status) oSDK.log('STATUS: ', data.status.account);
+        if (data.priority) oSDK.log('PRIORITY: ' + data.priority);
+        if (data.from == data.to) {
+          /* TODO */
+        } else {
+          if (data.status && data.status.cmd) {
+            if (typeof commands[data.status.cmd] == 'function') {
+              data.status.account = data.from;
+              commands[data.status.cmd](data.status);
             }
           }
-        } else {
-          if (oJSJaCPacket.getType() == 'unavailable') {
-            oSDK.changeStatus(account, 'unavailable');
-            oSDK.trigger('core.contactUnavailable', oSDK.getContactByAccount(account));
+          var contact = getContactByAccount(data.from);
+          if (!data.type && contact.status == OSDK_PRESENCE_TYPE_UNAVAILABLE) data.type = OSDK_PRESENCE_TYPE_AVAILABLE;
+          if (data.type == OSDK_PRESENCE_TYPE_UNAVAILABLE) {
+            contact.status = OSDK_PRESENCE_TYPE_UNAVAILABLE;
+            oSDK.trigger('contactStatusChanged', {contact: contact});
           } else {
-            if (!oJSJaCPacket.getType() && oJSJaCPacket.getShow() == 'chat') {
-              if(oSDK.getContactByAccount(account).status == 'unavailable') {
-                console.warn('SEND ABOUT ME');
-                oSDK.changeStatus(account, 'available');
-                oSDK.trigger('core.contactAvailable', oSDK.getContactByAccount(account));
-                var presencec = new JSJaCPresence();
-                //presence.setTo(account);
-                presencec.setShow('chat');
-                xmpp.con.send(presencec);
+            if (data.type == OSDK_PRESENCE_TYPE_AVAILABLE || (data.show && data.show == OSDK_PRESENCE_SHOW_CHAT)) {
+              if (contact.status != OSDK_PRESENCE_TYPE_AVAILABLE) {
+                contact.status = OSDK_PRESENCE_TYPE_AVAILABLE;
+                oSDK.trigger('contactStatusChanged', {contact: contact});
+              }
+            } else {
+              if (data.show) {
+                switch(data.show) {
+                  case OSDK_PRESENCE_SHOW_AWAY :
+                    contact.status = OSDK_PRESENCE_SHOW_AWAY;
+                    break;
+                  case OSDK_PRESENCE_SHOW_DND :
+                    contact.status = OSDK_PRESENCE_SHOW_DND;
+                    break;
+                  case OSDK_PRESENCE_SHOW_XA :
+                    contact.status = OSDK_PRESENCE_SHOW_XA;
+                    break;
+                  default :
+                    break;
+                }
+                oSDK.trigger('contactStatusChanged', {contact: contact});
               }
             }
           }
         }
       }
+    },
+    fnOutcomingPresence: function(packet) {
+      oSDK.info('XMPP HANDLER(outcoming presence)');
+      var data = oSDK.getPresenceData(packet);
+      if (!data) {
+        /* TODO */
+      } else {
+        if (data.from) oSDK.log('FROM: ' + data.from);
+        if (data.to) oSDK.log('TO: ' + data.to);
+        if (data.type) oSDK.log('TYPE: ' + data.type);
+        if (data.show) oSDK.log('SHOW: ' + data.show);
+        if (data.status) oSDK.log('STATUS: ' + data.status);
+        if (data.priority) oSDK.log('PRIORITY: ' + data.priority);
+        if (data.from == data.to) {
+          /* TODO */
+        } else {
+          /* TODO */
+        }
+      }
+    },
+    fnIncomingPacket: function(packet) {
+      oSDK.info('XMPP HANDLER(incoming packet)');
+
+    },
+    fnOutcomingPacket: function(packet) {
+      oSDK.info('XMPP HANDLER(outcoming packet)');
+
+    },
+    fnOnConnect: function() {
+      oSDK.info('XMPP HANDLER(connect)');
+      if (storage.flags.connect != 'connected') {
+        storage.flags.connect = 'connected';
+        storage.client.can.chat = true;
+        oSDK.trigger(['xmpp.connected', 'core.connected'], [].slice.call(arguments, 0));
+        return true;
+      }
+      return false;
+    },
+    fnOnDisconnect: function() {
+      oSDK.info('XMPP HANDLER(disconnect)');
+      if (storage.flags.connect != 'disconnected') {
+        storage.flags.connect = 'disconnected';
+        storage.client.can.chat = false;
+        oSDK.trigger(['xmpp.disconnected', 'core.disconnected'], [].slice.call(arguments, 0));
+        return true;
+      }
+      return false;
+    },
+    fnOnError: function(error) {
+      oSDK.info('XMPP HANDLER(error)');
+      oSDK.trigger('core.connectionFailed', [].slice.call(arguments, 0));
+      /* TODO */
+    },
+    fnOnResume: function() {
+      oSDK.info('XMPP HANDLER(resume)');
+      /* TODO */
+    },
+    fnOnStatusChanged: function(status) {
+      oSDK.info('XMPP HANDLER(status changed)');
+      storage.flags.status = status;
     }
-    return true;
-  }
+  };
 
-  function handlePresenceOut(oJSJaCPacket) {
-  }
+  /**
+   * Init fn
+   */
 
-  function handlePacketIn(oJSJaCPacket) {
-  }
-
-  function handlePacketOut(oJSJaCPacket) {
-  }
-
-  function handleConnected() {
-    if (xmpp.status.connection == 'connection' && xmpp.con.connected()) {
-      if (xmpp.temp) clearTimeout(xmpp.temp);
-      xmpp.status.connection = 'connected';
-      oSDK.trigger('core.connected', [].slice.call(arguments, 0));
-      return true;
+  function init(params) {
+    // Create client
+    storage.client = oSDK.user(params.login + '@' + params.domain);
+    // JSJaC logger config
+    var debug = false;
+    if (params.debug || params.debug === 0) {
+      if (oSDK.utils.isBoolean(params.debug)) {
+        debug = new JSJaCConsoleLogger();
+      } else {
+        if (oSDK.utils.isNumber(params.debug)) debug = new JSJaCConsoleLogger(params.debug);
+      }
     }
-    return false;
+    // XMPP connection
+    xmpp = new JSJaCWebSocketConnection({
+      oDbg: debug,
+      timerval: (params.timer) ? params.timer : 2000,
+      httpbase: params.server
+    });
+    // Handler's
+    xmpp.registerHandler('onConnect', handlers.fnOnConnect);
+    xmpp.registerHandler('onDisconnect', handlers.fnOnDisconnect);
+    xmpp.registerHandler('onError', handlers.fnOnError);
+    xmpp.registerHandler('onResume', handlers.fnOnResume);
+    xmpp.registerHandler('onStatusChanged', handlers.fnOnStatusChanged);
+    xmpp.registerHandler('iq', handlers.fnIQ);
+    xmpp.registerHandler('message_in', handlers.fnIncomingMessage);
+    xmpp.registerHandler('message_out', handlers.fnOutcomingMessage);
+    xmpp.registerHandler('presence_in', handlers.fnIncomingPresence);
+    xmpp.registerHandler('presence_out', handlers.fnOutcomingPresence);
+    xmpp.registerHandler('packet_in', handlers.fnIncomingPacket);
+    xmpp.registerHandler('packet_out', handlers.fnOutcomingPacket);
+    xmpp.registerIQGet('query', NS_VERSION, handlers.fnIQV);
+    xmpp.registerIQGet('query', NS_TIME, handlers.fnIQV);
+    // Connect and login
+    xmpp.connect({
+      domain: params.domain,
+      resource: params.resource,
+      username: params.login,
+      password: params.password
+    });
   }
 
-  function handleDisconnected() {
-    if (!xmpp.con.connected()) {
-      xmpp.status.connection = 'disconnected';
-      oDSK.trigger('core.xmppDisconnected', {});
-      return true;
-    }
-    return false;
-  }
+  /**
+   * Data to registering module in oSDK
+   */
 
-  function handleStatusChanged(status) {
+  var moduleName = 'xmpp';
+  var attachableNamespaces = { 'xmpp': true };
+  var attachableMethods = {  };
 
-  }
+  var attachableEvents = {
+    'onConnect': ['xmpp.connected', 'core.connected'],
+    'onDisconnect': ['xmpp.disconnected', 'core.disconnected'],
+    'onResume': 'xmpp.events.resume',
+    'onStatusChanged': 'xmpp.events.statusChanged',
+    'onError': 'xmpp.events.error'
+  };
 
-  function handleError(e) {
-
-  }
-
-  function handleIqVersion(iq) {
-    xmpp.con.send(iq.reply([iq.buildNode('name', 'jsjac simpleclient'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
-    return true;
-  }
-
-  function handleIqTime(iq) {
-    var now = new Date();
-    xmpp.con.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
-    return true;
-  }
+  /**
+   * Registering module in oSDK
+   */
 
   oSDK.utils.attach(moduleName, {
     namespaces: attachableNamespaces,
@@ -285,259 +364,44 @@
   });
 
   /**
-   * XMPP initiation
-   *
-   * @param data {Object}
-   * @data.debug info
-   * [dbg=false|true|number] disabled|enabled JSJaC inner console
-   * if dbg is number: 0 - warn, 1 - error, 2 - info, 4 - debug, default - log, 3|true - all
+   * Attaching internal events to internal oSDK events
    */
-  xmpp.init = function(data) {
-    // Start initiation
-    xmpp.status.connection = 'initiation';
-    // Current client
-    storage.client = new Client(data.login + '@' + data.domain);
-    // JSJaC logger config
-    if (data.debug || data.debug === 0) {
-      if (oSDK.utils.isBoolean(data.debug)) {
-        xmpp.dbg = new JSJaCConsoleLogger();
-      } else {
-        if (oSDK.utils.isNumber(data.debug)) xmpp.dbg = new JSJaCConsoleLogger(data.debug);
-      }
-    }
-    // Connection
-    xmpp.con = new JSJaCWebSocketConnection({
-      oDbg: ((xmpp.dbg) ? xmpp.dbg : false),
-      timerval: data.timerval,
-      httpbase: data.httpbase
-    });
-    // Handlers
-    xmpp.con.registerHandler('iq', handleIQ);
-    xmpp.con.registerHandler('message', handleMessage);
-    xmpp.con.registerHandler('presence_in', handlePresenceIn);
-    xmpp.con.registerHandler('presence_out', handlePresenceOut);
-    xmpp.con.registerHandler('packet_in', handlePacketIn);
-    xmpp.con.registerHandler('packet_out', handlePacketOut);
-    xmpp.con.registerHandler('onConnect', handleConnected);
-    xmpp.con.registerHandler('onDisconnect', handleDisconnected);
-    xmpp.con.registerHandler('onError', handleError);
-    xmpp.con.registerHandler('onStatusChanged', handleStatusChanged);
-    xmpp.con.registerIQGet('query', NS_VERSION, handleIqVersion);
-    xmpp.con.registerIQGet('query', NS_TIME, handleIqTime);
-    // Connection
-    xmpp.status.connection = 'connection';
-    xmpp.con.connect({
-      domain: data.domain,
-      resource: data.resource,
-      username: data.login,
-      password: data.password,
-      pass: data.password
-    });
-    xmpp.temp = setTimeout(function() {
-      oSDK.trigger('core.connectionFailed', {});
-    }, 5000);
-  };
 
-  // Attaching internal events to internal oSDK events
-  oSDK.on('auth.gotTempCreds', function (e) {
-    xmpp.status.connection = 'got temp creds';
-    xmpp.usr.domain = (arguments[0].data.username.split(':')[1]).split('@')[1];
-    xmpp.usr.timestamp = arguments[0].data.username.split(':')[0];
-    xmpp.usr.login = (arguments[0].data.username.split(':')[1]).split('@')[0];
-    xmpp.usr.password = arguments[0].data.password;
-    xmpp.init({
-      debug: oSDK.config.xmpp.debug,
-      timerval: oSDK.config.xmpp.timer,
-      httpbase: ((oSDK.utils.isString(oSDK.config.xmpp.server)) ? oSDK.config.xmpp.server : getHttpBase(oSDK.config.xmpp.server)),
-      login: xmpp.usr.login,
-      password: xmpp.usr.password,
-      domain: xmpp.usr.domain,
-      resource: oSDK.config.xmpp.resource
+  oSDK.on('auth.gotTempCreds', function() {
+    init({
+      debug: oSDK.config.xmpp.connection.debug,
+      timer: oSDK.config.xmpp.connection.timer,
+      server: ((oSDK.utils.isString(oSDK.config.xmpp.connection.server)) ? oSDK.config.xmpp.connection.server : generateServerUrl(oSDK.config.xmpp.connection.server)),
+      login: arguments[0].data.username.split(':')[1].split('@')[0],
+      password: arguments[0].data.password,
+      domain: arguments[0].data.username.split(':')[1].split('@')[1],
+      resource: oSDK.config.xmpp.connection.resource,
+      timestamp: arguments[0].data.username.split(':')[0]
     });
   });
 
   /**
-   * oSDK XMPP methods
+   * oSDK interface to work with XMPP & JSJaC
    */
 
   /**
-   * Work with client
-   * @getClient - return current connected client
+   * XMPP Roster & contacts
+   * @getRoster - get roster from XMPP server and convert him to contacts list and requests list,handling callbacks
+   * @getContacts - return contacts list
+   * @getRequests - return requests list
    */
-  oSDK.getClient = function() {
-    if (xmpp.con.connected()) {
-      return storage.client;
-    }
-    return false;
-  };
 
-  /**
-   * Subscribe to JabberID(s)
-   * @param data may be {String} (JID) or {Array} (contacts list)
-   */
-  oSDK.subscribeTo = function(data) {
-    if (xmpp.con.connected()) {
-      if (data && oSDK.utils.isString(data)) {
-        var presence = new JSJaCPresence();
-        presence.setTo(data);
-        presence.setShow('chat');
-        xmpp.con.send(presence);
-      } else {
-        var i, len;
-        if (!data) {
-          len = storage.contacts.length;
-          for (i = 0; i != len; i ++) {
-            oSDK.subscribeTo(storage.contacts[i].account);
-          }
-        } else {
-          len = data.length;
-          for (i = 0; i != len; i ++) {
-            oSDK.subscribeTo(data[i].account);
-          }
-        }
-      }
-      return true;
-    }
-    return false;
-  };
-
-  /**
-   * Subscribe to all who save in contacts list
-   */
-  oSDK.subscribeToAll = function() {
-    if (xmpp.con.connected()) {
-      var i, len = storage.contacts.length;
-      for (i = 0; i != len; i ++) {
-        oSDK.subscribeTo(storage.contacts[i].account);
-      }
-      return true;
-    }
-    return false;
-  };
-
-  /**
-   * Cinfirm subscribe
-   */
-  oSDK.confirmSubscribe = function(account) {
-    var presence = new JSJaCPresence();
-    presence.setTo(account);
-    presence.setType('subscribed');
-    xmpp.con.send(presence);
-  };
-
-  /**
-   * Send presence about me to all
-   * @param to {String} (JID) - if not exists, to send all
-   */
-  oSDK.sendPresence = function() {
-    if (xmpp.con.connected()) {
-      var presence = new JSJaCPresence();
-      presence.setShow('chat');
-      xmpp.con.send(presence);
-      return true;
-    }
-    return false;
-  };
-
-  /**
-   * Clear roster
-   */
-  oSDK.clearRoster = function(callback) {
-    if (xmpp.con.connected()) {
-      var roster = new JSJaCIQ();
-      roster.setIQ(null, 'get', getRosterId());
-      roster.setQuery(NS_ROSTER);
-      xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
-        var nodes = aIq.getQuery();
-        var client = oSDK.getClient().account;
-        var i, len = nodes.childNodes.length;
-        storage.contacts = [];
-        for (i = 0; i != len; i ++) {
-          var jid = nodes.childNodes[i].getAttribute('jid');
-          if (jid != client) {
-            oSDK.removeContact(jid);
-          }
-        }
-        storage.contacts = [];
-        oSDK.getRoster(function() {
-          if (callback && typeof callback == 'function') callback(storage.contacts);
-        });
-        return true;
-      }});
-    }
-    return false;
-  };
-
-  /**
-   * Work with roster (contacts list)
-   * @getRoster - get roster from server and convert to inner contacts list, sort contacts list and save in inner storage
-   * @getContacts - get contacts list from inner storage
-   * @param callback {Function} - be call after get roster/contacts
-   * @sortContactsList - sorting contacts list by logins (sort by ascii codes)
-   * @param data {Array} - list of Client's class exemplars (if @param data is not set: deta = storage.contacts)
-   */
-  oSDK.getRoster = function(callback) {
-    if (xmpp.con.connected()) {
-      var roster = new JSJaCIQ();
-      roster.setIQ(null, 'get', getRosterId());
-      roster.setQuery(NS_ROSTER);
-      xmpp.con.sendIQ(roster, {result_handler: function(aIq, arg) {
-        var nodes = aIq.getQuery();
-        var client = oSDK.getClient().account;
-        var i, len = nodes.childNodes.length;
-        storage.contacts = [];
-        xmpp.subscribe = [];
-        for (i = 0; i != len; i ++) {
-          var jid = nodes.childNodes[i].getAttribute('jid');
-          if (jid != client) {
-            var ask = nodes.childNodes[i].getAttribute('ask');
-            var sub = nodes.childNodes[i].getAttribute('subscription');
-            if (!ask || ask != 'subscribe') {
-              if (sub && sub == 'both') {
-                storage.contacts.push(new Client(jid, 'General'));
-              }
-            }
-            if (ask && ask == 'subscribe') {
-              xmpp.subscribe.push(new Client(jid, 'General'));
-            }
-          }
-        }
-        console.log(nodes);
-        console.log(xmpp.subscribe);
-        storage.contacts = oSDK.sortContactsList();
-        if (callback && typeof callback == 'function') callback(storage.contacts);
-        return true;
-      }});
-    }
-    return false;
-  };
-
-  oSDK.alreadySubscribeSend = function(login) {
-    var i, len = xmpp.subscribe.length;
-    for(i = 0; i != len; i ++) {
-      if (login == xmpp.subscribe[i].login) return true;
-    }
-    return false;
-  };
-
-  oSDK.getContactsList = function(callback) {
-    if (callback && typeof callback == 'function') callback(storage.contacts);
-    return storage.contacts;
-  };
-
-  oSDK.sortContactsList = function(data) {
-    if (!data) data = storage.contacts;
+  function sortRosterResult(data) {
     return data.sort(function(a, b) {
-      var len;
+      var i, len;
       if (a.login.length > b.login.length) {
         len = b.login.length;
       } else {
         len = a.login.length;
       }
-      var cx;
-      for (cx = 0; cx != len; cx ++) {
-        var ca = a.login.charCodeAt(cx);
-        var cb = b.login.charCodeAt(cx);
+      for (i = 0; i != len; i ++) {
+        var ca = a.login.charCodeAt(i);
+        var cb = b.login.charCodeAt(i);
         if (ca != cb) return ca - cb;
       }
       if (a.login.length > b.login.length) {
@@ -546,234 +410,142 @@
         return 1;
       }
     });
+  }
+
+  oSDK.getRoster = function(handlers) {
+    if (xmpp.connected()) {
+      var isHandlers = handlers || {};
+      var handlerOnError = isHandlers.onError || function() {/* --- */};
+      var handlerOnSuccess = isHandlers.onSuccess || function() {/* --- */};
+      var iq = new JSJaCIQ();
+      iq.setIQ(null, 'get', generateRosterId());
+      iq.setQuery(NS_ROSTER);
+      xmpp.sendIQ(iq, {
+        error_handler: function(aiq) {
+          /* TODO */
+          handlerOnError();
+        },
+        result_handler: function(aiq, arg) {
+          var nodes = aiq.getQuery();
+          var client = storage.client;
+          var i, len = nodes.childNodes.length;
+          storage.contacts = [];
+          storage.requests = [];
+          storage.linksToContacts = {};
+          storage.linksToRequests = {};
+          for (i = 0; i != len; i ++) {
+            var jid = nodes.childNodes[i].getAttribute('jid');
+            if (jid != client.account) {
+              var user = oSDK.user(jid);
+              var ask = nodes.childNodes[i].getAttribute('ask');
+              var subscription = nodes.childNodes[i].getAttribute('subscription');
+              if (ask) {
+                switch(ask) {
+                  case OSDK_ROSTER_ASK_SUBSCRIBE :
+                    user.ask = OSDK_ROSTER_ASK_SUBSCRIBE;
+                    break;
+                  case OSDK_ROSTER_ASK_UNSUBSCRIBE :
+                    user.ask = OSDK_ROSTER_ASK_UNSUBSCRIBE;
+                    break;
+                  default :
+                    /* TODO */
+                    break;
+                }
+                storage.requests.push(user);
+                storage.linksToRequests[generateLinkToItem(user.account)] = storage.requests.length - 1;
+              } else {
+                if (subscription && subscription != OSDK_SUBSCRIPTION_NONE) {
+                  switch (subscription) {
+                    case OSDK_SUBSCRIPTION_NONE :
+                      user.subscription = OSDK_SUBSCRIPTION_NONE;
+                      break;
+                    case OSDK_SUBSCRIPTION_FROM :
+                      user.subscription = OSDK_SUBSCRIPTION_FROM;
+                      break;
+                    case OSDK_SUBSCRIPTION_TO :
+                      user.subscription = OSDK_SUBSCRIPTION_TO;
+                      break;
+                    case OSDK_SUBSCRIPTION_BOTH :
+                      user.subscription = OSDK_SUBSCRIPTION_BOTH;
+                      break;
+                    default :
+                      /* TODO */
+                      break;
+                  }
+                  storage.contacts.push(user);
+                  storage.linksToContacts[generateLinkToItem(user.account)] = storage.contacts.length - 1;
+                }
+              }
+            }
+          }
+          if (storage.contacts.length) storage.contacts = sortRosterResult(storage.contacts);
+          if (storage.requests.length) storage.requests = sortRosterResult(storage.requests);
+          handlerOnSuccess(storage.contacts, storage.requests);
+        }
+      });
+    }
+    return false;
   };
 
-  oSDK.sendAuthRequest = function(login, callback) {
-    if (xmpp.con.connected()) {
-      xmpp.iAsking = login;
+  oSDK.getContacts = function() {
+    return storage.contacts;
+  };
+
+  oSDK.getRequests = function() {
+    return storage.requests;
+  };
+
+  /**
+   * Work with logged client
+   */
+
+  oSDK.getClient = function() {
+    return storage.client;
+  };
+
+  /**
+   * Work with XMPP presence system
+   * @sendPresence
+   * @getPresenceData
+   */
+
+  oSDK.iAmLogged = function(callback) {
+    if (xmpp.connected()) {
+      storage.flags.iAmLoggedNow = true;
+      oSDK.sendPresence({show: 'chat', status: oSDK.utils.jsonEncode({cmd: 'iAmLogged', chat: true, audio: true, video: true}), callback: callback});
+      return true;
+    }
+    return false;
+  };
+
+  oSDK.sendPresence = function(params) {
+    if (xmpp.connected()) {
+      params = params || {};
       var presence = new JSJaCPresence();
-      presence.setTo(login + '@' + oSDK.clientInfo.domain());
-      presence.setType('subscribe');
-      if (typeof callback != 'function') callback = function() {};
-      xmpp.con.send(presence, callback);
-      xmpp.subscribe.push(new Client(login + '@' + oSDK.clientInfo.domain(), 'General'));
-    }
-  };
-
-  oSDK.addContact = function(login, callback) {
-    xmpp.iAsking = true;
-    var presence = new JSJaCPresence();
-    presence.setTo(login + '@' + oSDK.clientInfo.domain());
-    presence.setType('subscribe');
-    xmpp.con.send(presence);
-    /*
-    var attribs = {jid: login + '@' + oSDK.clientInfo.domain(), name: 'SomeName SomeFamily'};
-    console.warn(attribs);
-    var iq = new JSJaCIQ();
-    var itemNode = iq.buildNode('item', attribs);
-    itemNode.appendChild(iq.buildNode('group', 'general'));
-    iq.setType('set');
-    iq.setQuery(NS_ROSTER).appendChild(itemNode);
-    console.warn(iq);
-    if (!callback) callback = function(){return true;};
-    xmpp.con.send(iq, callback);
-    */
-  };
-
-  oSDK.removeContact = function(account, callback) {
-    var iq = new JSJaCIQ();
-    var itemNode = iq.buildNode('item', {
-      jid: account,
-      subscription: 'remove'
-    });
-    iq.setType('set');
-    iq.setQuery(NS_ROSTER).appendChild(itemNode);
-    if (!callback) callback = function(){return true;};
-    xmpp.con.send(iq, callback);
-  };
-
-  oSDK.sendMessage = function(account, message, callback) {
-    var msg = new JSJaCMessage();
-    console.log('MESSAGE to: ' + oSDK.getContactByAccount(account).login);
-    msg.setTo(new JSJaCJID(account));
-    msg.setBody(message);
-    xmpp.con.send(msg);
-    if (callback) callback();
-  };
-
-  oSDK.addToHistory = function(to, history) {
-    var i, l = storage.contacts.length;
-    for (i = 0; i != l; i ++) {
-      if (storage.contacts[i].login == to) {
-        storage.contacts[i].history.push(history);
-      }
-    }
-  };
-
-  oSDK.getContactByAccount = function(account) {
-    var i, l = storage.contacts.length;
-    for (i = 0; i != l; i ++) {
-      if (storage.contacts[i].account == account) {
-        return storage.contacts[i];
-      }
+      if (params.to) presence.setTo(params.to);
+      if (params.type) presence.setType(params.type);
+      if (params.show) presence.setShow(params.show);
+      if (params.status) presence.setStatus(params.status);
+      if (params.priority) presence.setPriority(params.priority);
+      // if (typeof params.callback != 'function') params.callback = function() {/* --- */};
+      xmpp.send(presence/*, params.callback*/);
+      if (params.callback) params.callback();
+      return true;
     }
     return false;
   };
 
-  oSDK.getContactByLogin = function(login) {
-    var i, l = storage.contacts.length;
-    for (i = 0; i != l; i ++) {
-      if (storage.contacts[i].login == login) {
-        return storage.contacts[i];
-      }
-    }
-    return false;
+  oSDK.getPresenceData = function(packet) {
+    try {
+      return {
+        from: (packet.getFromJID()._node + '@' + packet.getFromJID()._domain).toLowerCase(),
+        to: (packet.getToJID()._node + '@' + packet.getToJID()._domain).toLowerCase(),
+        type: packet.getType() || false,
+        show: packet.getShow() || false,
+        status: ((packet.getStatus()) ? oSDK.utils.jsonDecode(packet.getStatus()) : false),
+        priority: packet.getPriority() || false
+      };
+    } catch (eConvertPresenceData) { return false; }
   };
-
-  oSDK.loginExists = function(login) {
-    var i, l = storage.contacts.length;
-    for (i = 0; i != l; i ++) {
-      if (storage.contacts[i].login == login) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  oSDK.setMyStatus = function(status) {
-    var presence = new JSJaCPresence();
-    presence.setStatus(status);
-    presence.setType('');
-    presence.setShow('');
-    presence.setPriority(100);
-    xmpp.con.send(presence);
-  };
-
-  oSDK.changeStatus = function(to, status) {
-    var i, len = storage.contacts.length;
-    for (i = 0; i != len; i ++) {
-      if (storage.contacts[i].account == to) {
-        storage.contacts[i].status = status;
-        break;
-      }
-    }
-    return true;
-  };
-
-  oSDK.xmppTemp = function() {
-    var presence;
-    presence = new JSJaCPresence();
-    presence.setTo('tester1@carbon.super');
-    presence.setType('unsubscribed');
-    xmpp.con.send(presence);
-    presence = new JSJaCPresence();
-    presence.setTo('tester1@carbon.super');
-    presence.setType('unsubscribed');
-    xmpp.con.send(presence);
-    oSDK.removeContact('tester1@carbon.super');
-    oSDK.removeContact('tester2@carbon.super');
-    oSDK.clearRoster(function() {
-      oSDK.on('core.newContactsList', {});
-    });
-  };
-
-  oSDK.acceptAuthSubscribe = function(account) {
-    xmpp.wait = account;
-    var presence;
-    presence = new JSJaCPresence();
-    presence.setTo(account);
-    presence.setType('subscribed');
-    xmpp.con.send(presence);
-    oSDK.removeNotice(account);
-    setTimeout(function() {
-      presence = new JSJaCPresence();
-      presence.setTo(account);
-      presence.setType('subscribe');
-      xmpp.con.send(presence);
-    }, 1000);
-  };
-
-  oSDK.rejectAuthSubscribe = function(account) {
-    var presence;
-    presence = new JSJaCPresence();
-    presence.setTo(account);
-    presence.setType('unsubscribed');
-    xmpp.con.send(presence);
-    oSDK.removeContact(account);
-    oSDK.removeNotice(account);
-    oSDK.getRoster(function() {
-      oSDK.trigger('core.newContactsList', {});
-    });
-  };
-
-  oSDK.getNotice = function() {
-    return xmpp.notice;
-  };
-
-  oSDK.removeNotice = function(account) {
-    var i, len = xmpp.notice.length, result = [];
-    for (i = 0; i != len; i ++) {
-      if (account != xmpp.notice[i].data) result.push(xmpp.notice[i]);
-    }
-    xmpp.notice = result;
-    oSDK.trigger('core.xmppNewNotice', {
-      type: 'xmpp.auth.request',
-      data: account
-    });
-    return true;
-  };
-
-  oSDK.waitSubscription = function(account) {
-    var i, len = xmpp.subscribe.length;
-    for (i = 0; i != len; i ++) {
-      if (xmpp.subscribe[i].account == account) return true;
-    }
-    return false;
-  };
-
-  oSDK.createClient = function(jid) {
-    return new Client(jid, 'General');
-  };
-
-  oSDK.on('core.xmppNewNotice', function(data) {
-    oSDK.trigger('xmppNewNotice', data);
-  }, 'every');
-
-  oSDK.on('core.newContactsList', function(data) {
-    oSDK.trigger('newContactsList', data);
-  }, 'every');
-
-  oSDK.on('core.askToSubscribe', function(data) {
-    oSDK.trigger('askToSubscribe', data);
-  }, 'every');
-
-  oSDK.on('core.requestToAddContact', function (data) {
-    oSDK.trigger('requestToAddContact', data);
-  }, 'every');
-
-  oSDK.on('core.contactError', function (data) {
-    oSDK.trigger('contactError', data);
-  }, 'every');
-
-  oSDK.on('core.contactAvailable', function (data) {
-    oSDK.trigger('contactAvailable', data);
-  }, 'every');
-
-  oSDK.on('core.contactUnavailable', function (data) {
-    oSDK.trigger('contactUnavailable', data);
-  }, 'every');
-
-  oSDK.on('core.textMessage', function (data) {
-    // Here after core.error must be data object
-    oSDK.trigger('textMessage', data);
-  }, 'every');
-
-  oSDK.on('core.disconnected', function (e) {
-    xmpp.con.disconnect();
-  });
-
-  oSDK.on('core.xmppDisconnected', function (e) {
-    oSDK.trigger('xmppDisconnected', {});
-  });
 
 })(oSDK, JSJaC);
