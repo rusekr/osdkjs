@@ -4,45 +4,166 @@
 (function (oSDK) {
   "use strict";
 
-  // Registering module in oSDK
-  var moduleName = 'auth';
-
-  var attachableNamespaces = {
-    'auth': true,
-    'clientInfo': true,
-  };
-
-  var attachableMethods = {
-    'connect': true,
-    'disconnect': true,
-    'isAuthorized': true // Is user token alive?
-  };
-
-  var attachableEvents = {
-    'initialized': true,
-    'loaded': true,
-    'gotTempCreds': ['auth.gotTempCreds', 'core.gotTempCreds'],
-    'connected': ['auth.connected', 'core.connected'],
-    'disconnected': ['auth.disconnected', 'core.disconnected'],
-    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
-  };
-
-  oSDK.utils.attach(moduleName, {
-    namespaces: attachableNamespaces,
-    methods: attachableMethods,
-    events: attachableEvents
-  });
-
   // Module namespace
-  var auth = {};
+  var auth = new oSDK.Module('auth');
 
   // Status (disconnected, connecting, connected, disconnecting)
   auth.status = 'disconnected';
 
-  var clientInfo = {
+  var client = {
     id: null,
     domain: null
   };
+
+  var defaultConfig = {
+    apiServerURL: 'https://osdp-teligent-dev-apigw.virt.teligent.ru:8243', //TODO: replace this and following with sdk build parameter
+    credsURI: '/osdp/1.0.0/ephemerals',
+    authURI: '/authorize/',
+      //debug
+    testScope: 'gold wood uranium', // FIXME: may be for us(wso2) its not needed?
+
+  };
+    // Oauth handling object
+  var oauth = (function () {
+
+    var config = {
+      popup: true, // When 'false' goes redirect, to string - goes popup options
+      client_id: null,
+      redirect_uri: null,
+      authorization_uri: null,
+      bearer: null,
+      access_token: null,
+      expires_start: null, // Time when got a token
+      expires_in: null // Time To Live for token from server
+    };
+
+    var authPopup = null;
+
+    return {
+      // Configure oauth object
+      configure: function (cfgObject) {
+        cfgObject = auth.utils.isObject(cfgObject)?cfgObject:{};
+
+        config.access_token = auth.utils.storage.getItem('access_token') || null;
+        config.expires_start = auth.utils.storage.getItem('expires_start') || null;
+        config.expires_in = auth.utils.storage.getItem('expires_in') || null;
+
+        config = auth.utils.extend({}, config, cfgObject);
+
+        auth.utils.storage.setItem('access_token', config.access_token);
+        auth.utils.storage.setItem('expires_start', config.expires_start);
+        auth.utils.storage.setItem('expires_in', config.expires_in);
+
+      },
+      // Checks hash for token, returns true if token found, return false otherwise, if error throws it
+      checkUrl: function () {
+        var error = auth.utils.getUrlParameter('error');
+        if(error) {
+          var error_description = auth.utils.getUrlParameter('error_description');
+          console.log(error, error_description);
+          auth.trigger('core.error', { message: error + ':' + error_description });
+        }
+
+        var token = auth.utils.hash.getItem('access_token');
+        if(token) {
+          // Configuring us
+          oauth.configure({
+              access_token: token,
+              expires_in: auth.utils.hash.getItem('expires_in')*1000,
+              expires_start: new Date().getTime()
+          });
+
+          if(window.opener) {
+            window.opener.oSDK.auth.trigger('oauth.gotTokenFromPopup', {
+              access_token: config.access_token,
+              expires_in: config.expires_in,
+              expires_start: config.expires_start
+            });
+          }
+
+          return true;
+        }
+
+        // TODO: No error and no token case?
+        return false;
+      },
+      // Clears url from token stuff
+      clearUrl: function () {
+        auth.utils.hash.removeItem('access_token');
+        auth.utils.hash.removeItem('expires_in');
+      },
+      // Wrapper for ordinary ajax
+      ajax: function (options) {
+        // Access token to query string
+        if(oauth.isTokenAlive()) {
+          // Bearer, query string or both authorization
+          if(!options.oauthType) {
+            options.oauthType = 'bearer';
+          }
+          if(options.oauthType == 'bearer' || options.oauthType == 'both') {
+            options.headers = options.headers || {};
+            options.headers.Authorization = 'Bearer ' + config.access_token;
+          }
+          if(options.oauthType == 'qs' || options.oauthType == 'both') {
+            var delim = '?';
+            if(options.url.match(/\?/)) {
+              delim = '&';
+            }
+            options.url += delim + 'access_token=' + config.access_token;
+          }
+        } else {
+          throw new Error('Token not found or exosted');
+        }
+        return auth.utils.ajax.call(this, options);
+      },
+      isTokenAlive: function () {
+        var nowTime = new Date().getTime();
+        if(!config.access_token) {
+          // auth.utils.log('User token not found');
+          return false;
+        } else if (config.expires_in + config.expires_start <= nowTime) {
+          // auth.utils.log('User token has expired');
+        } else {
+          // auth.utils.log('User token is alive', config);
+          return true;
+        }
+
+      },
+      // Go to auth page if token expired or not exists (or forcibly if force == true)
+      getToken: function (force) {
+        if(!force && oauth.isTokenAlive()) {
+          return true;
+        }
+
+        var authUrl = config.authorization_uri + '?redirect_uri=' + encodeURIComponent(config.redirect_uri) + '&client_id=' + encodeURIComponent(config.client_id) + '&response_type=token';
+        if(config.popup) {
+          auth.log('oAuth doing popup');
+          // Create popup
+          var params = "menubar=no,location=yes,resizable=yes,scrollbars=yes,status=no,width=800,height=600";
+          authPopup = window.open(authUrl, "oSDP Auth", params);
+          if(authPopup === null) {
+            // TODO: autochange type of request to redirect?
+            alert('Error. Authorization popup blocked by browser.');
+          }
+        } else {
+          auth.log('oAuth doing redirect');
+          // Redirect current page
+          window.location = authUrl;
+        }
+        return false;
+      },
+      clearToken: function () {
+        oauth.configure({
+          access_token: null,
+          expires_in: null,
+          expires_start: null
+        });
+      },
+      // Returns authorization popup object
+      popup: function () { return authPopup; }
+    };
+  })();
+
 
   // Connection to openSDP network
   auth.connect = function () {
@@ -54,14 +175,15 @@
     // Checking user token
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect
+      auth.status = 'disconnected';
       return;
     }
 
     // Perform a ephemerals request
     // TODO: fix ajax
-    oSDK.utils.oauth.ajax({
+    oauth.ajax({
 
-      url: oSDK.config.apiServerURL+oSDK.config.credsURI,
+      url: auth.config('apiServerURL')+auth.config('credsURI'),
       type: 'post',
       oauthType: 'both',
       data: {
@@ -70,17 +192,16 @@
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          oSDK.trigger(['core.connectionFailed'], new oSDK.error({ 'message': data.error, 'ecode': 'auth0002' }));
+          auth.trigger(['core.connectionFailed'], { 'message': data.error, 'ecode': 'auth0002' });
         } else {
 
           // Filling user client sturcture
-          clientInfo.id = data.username.split(':')[1];
-          clientInfo.domain = clientInfo.id.split('@')[1];
+          client.id = data.username.split(':')[1];
+          client.domain = client.id.split('@')[1];
 
-          //oSDK.log('auth triggering core.gotTempCreds');
-          oSDK.trigger(['auth.gotTempCreds', 'core.gotTempCreds'], { 'data': data });
-          //oSDK.log('auth triggering core.connected');
-          oSDK.trigger(['auth.connected', 'core.connected']);
+          auth.trigger(['auth.gotTempCreds', 'core.gotTempCreds'], { 'data': data });
+
+          auth.trigger(['auth.connected', 'core.connected']);
         }
       },
       error: function(jqxhr, status, string) {
@@ -90,7 +211,7 @@
         }
 
         // If all is ok with token - throw connectionFailed event.
-        oSDK.trigger(['auth.connectionFailed', 'core.connectionFailed'], new oSDK.error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
+        auth.trigger(['auth.connectionFailed', 'core.connectionFailed'], { 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' });
       }
     });
 
@@ -102,19 +223,19 @@
       return false;
     }
     if(clearToken) {
-      oSDK.utils.oauth.clearToken();
+      oauth.clearToken();
     }
-    oSDK.trigger(['auth.disconnected', 'core.disconnected']);
+    auth.trigger(['auth.disconnected', 'core.disconnected']);
   };
 
   // Returns status of user access token to client.
   auth.isAuthorized = function () {
-    return oSDK.utils.oauth.isTokenAlive();
+    return oauth.isTokenAlive();
   };
 
   // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
   auth.connectOnGotListener = function () {
-    var events  = oSDK.utils.events();
+    var events  = auth.utils.events();
     if(events.connected && events.connected.listeners.length) {
       auth.connect();
     } else {
@@ -127,36 +248,34 @@
   // Main function for in-hash token checking, auth popup generation and auth redirect handling
   auth.tokenCheck = function (agressive) {
 
-    oSDK.utils.oauth.configure({
-      client_id: oSDK.config.appID,
+    oauth.configure({
+      client_id: auth.config('appID'),
       redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
-      authorization_uri: oSDK.config.apiServerURL+oSDK.config.authURI,
-      bearer: oSDK.config.appToken,
-      popup: oSDK.config.oauthPopup
+      authorization_uri: auth.config('apiServerURL')+auth.config('authURI'),
+      bearer: auth.config('appToken'),
+      popup: auth.config('popup')
     });
 
     // If we need to connect after redirect (no errors returned from oauth server)
-    if(oSDK.utils.oauth.checkUrl()) {
-      oSDK.utils.oauth.clearUrl();
+    if(oauth.checkUrl()) {
+      oauth.clearUrl();
 
-      if(oSDK.config.oauthPopup != 'popup' && oSDK.utils.storage.getItem('osdk.connectAfterRedirect')) {
-        //oSDK.log('got connectAfterRedirect. Cleaning. Logining.');
-        oSDK.utils.storage.removeItem('osdk.connectAfterRedirect');
+      if(!auth.config('popup') && auth.utils.storage.getItem('connectAfterRedirect')) {
+        auth.utils.storage.removeItem('connectAfterRedirect');
         // Wait for user app event handlers to autoconnect
         auth.connectOnGotListener();
       }
 
     } else {
       if(agressive) {
-        oSDK.log('Ensuring tokens.');
+        auth.log('Ensuring tokens.');
 
-        if(oSDK.utils.oauth.getToken()) {
+        if(oauth.getToken()) {
           return true;
         }
 
-        if(oSDK.config.oauth != 'popup') {
-          oSDK.utils.storage.setItem('osdk.connectAfterRedirect', true);
-          //oSDK.log('set oSDK.utils.storage.osdk.connectAfterRedirect', oSDK.utils.storage.getItem('osdk.connectAfterRedirect'));
+        if(!auth.config('popup')) {
+          auth.utils.storage.setItem('connectAfterRedirect', true);
         }
 
       }
@@ -164,55 +283,51 @@
     return false;
   };
 
-  auth.clientInfo = {
+  auth.client = {
     id: function () {
-      return clientInfo.id;
+      return client.id;
     },
     domain: function () {
-      return clientInfo.domain;
+      return client.domain;
     }
   };
 
-  oSDK.on('oauth.gotTokenFromPopup', function (data) {
-    //oSDK.log('Setting up main window with oauth config and connecting', data);
-    oSDK.utils.oauth.configure(data);
-    oSDK.utils.oauth.popup().close();
-    oSDK.connect();
+  auth.on('oauth.gotTokenFromPopup', function (data) {
+    oauth.configure(data);
+    oauth.popup().close();
+    auth.connect();
   });
 
   // Proxying main events for internal handling priorities and syncronious firing.
   // Connected event
-  oSDK.on('core.connected', function (data) {
-    oSDK.utils.resetTriggerCounters('core.disconnected');
+  auth.on('core.connected', function (data) {
+    auth.utils.resetTriggerCounters('core.disconnected');
     auth.status = 'connected';
-    oSDK.trigger('connected', data);
+    auth.trigger('connected', data);
   });
   // Disconnected event
-  oSDK.on('core.disconnected', function (data) {
+  auth.on('core.disconnected', function (data) {
     auth.status = 'disconnected';
-    oSDK.trigger('disconnected', data);
+    auth.trigger('disconnected', data);
   });
   // Proxy for every connectionFailed message
-  oSDK.on('core.connectionFailed', function (data) {
-    oSDK.utils.resetTriggerCounters('core.connected');
+  auth.on('core.connectionFailed', function (data) {
+    auth.utils.resetTriggerCounters('core.connected');
     auth.disconnect();
-    oSDK.trigger('connectionFailed', data);
+    auth.trigger('connectionFailed', data);
   }, 'every');
-
 
   // Instant actions
 
   // Getting token from storage instantly
-  oSDK.utils.oauth.configure();
+  oauth.configure();
 
   // Delayed actions
   document.addEventListener("DOMContentLoaded", function () {
     auth.tokenCheck(false);
-    //oSDK.log('window.onload');
   });
 
   window.onbeforeunload = function (event) {
-    //oSDK.log('window.onbeforeunload');
     // TODO: handle gracefully auth redirection page unload.
     // trying to quit gracefully
 //       if(rtcSession && rtcSession.terminate) {
@@ -223,13 +338,26 @@
 
   };
 
-  // Direct bindings to namespace
-  //TODO: make this bindings automatic by registering module function
-  oSDK.auth = auth;
-  oSDK.connect = oSDK.auth.connect;
-  oSDK.disconnect = oSDK.auth.disconnect;
-  oSDK.isAuthorized = oSDK.auth.isAuthorized;
-  oSDK.logout = oSDK.auth.logout;
-  oSDK.clientInfo = oSDK.auth.clientInfo;
+  auth.registerMethods({
+    'connect': auth.connect,
+    'disconnect': auth.disconnect,
+    'isAuthorized': auth.isAuthorized
+  });
+
+  auth.registerNamespaces({
+    'auth': auth, // Needed for main window-popup message passing
+    'client': auth.client
+  });
+
+  auth.registerEvents({
+    'initialized': true,
+    'loaded': true,
+    'gotTempCreds': ['auth.gotTempCreds', 'core.gotTempCreds'],
+    'connected': ['auth.connected', 'core.connected'],
+    'disconnected': ['auth.disconnected', 'core.disconnected'],
+    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
+  });
+
+  auth.registerConfig(defaultConfig);
 
 })(oSDK);

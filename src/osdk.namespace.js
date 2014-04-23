@@ -10,15 +10,8 @@
 var oSDK = function (config) {
   "use strict";
 
-  // Translate default config to working config
-  oSDK.config = oSDK.defaultConfig;
-
   // Merge default config with initialization config
-  oSDK.utils.mergeConfig(config);
-
-  oSDK.trigger('initialized');
-
-  // TODO: oSDK cumulative methods, namespaces and events
+  oSDK.Module.mergeConfig(config);
 
   return oSDK;
 };
