@@ -183,7 +183,7 @@
     // TODO: fix ajax
     oauth.ajax({
 
-      url: auth.config().apiServerURL+auth.config().credsURI,
+      url: auth.config('apiServerURL')+auth.config('credsURI'),
       type: 'post',
       oauthType: 'both',
       data: {
@@ -249,18 +249,18 @@
   auth.tokenCheck = function (agressive) {
 
     oauth.configure({
-      client_id: auth.config().appID,
+      client_id: auth.config('appID'),
       redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
-      authorization_uri: auth.config().apiServerURL+auth.config().authURI,
-      bearer: auth.config().appToken,
-      popup: auth.config().popup
+      authorization_uri: auth.config('apiServerURL')+auth.config('authURI'),
+      bearer: auth.config('appToken'),
+      popup: auth.config('popup')
     });
 
     // If we need to connect after redirect (no errors returned from oauth server)
     if(oauth.checkUrl()) {
       oauth.clearUrl();
 
-      if(!auth.config().popup && auth.utils.storage.getItem('connectAfterRedirect')) {
+      if(!auth.config('popup') && auth.utils.storage.getItem('connectAfterRedirect')) {
         auth.utils.storage.removeItem('connectAfterRedirect');
         // Wait for user app event handlers to autoconnect
         auth.connectOnGotListener();
@@ -274,7 +274,7 @@
           return true;
         }
 
-        if(!auth.config().popup) {
+        if(!auth.config('popup')) {
           auth.utils.storage.setItem('connectAfterRedirect', true);
         }
 

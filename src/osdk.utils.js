@@ -820,6 +820,15 @@
     self.utils = utils;
 
     self.config = function () {
+      // If we got parameter string like 'app.key' - returning this subpath.
+      if (arguments[0] && utils.isString(arguments[0])) {
+        var parameter = mainConfig[nameInt];
+        var subParameter = arguments[0].split('.');
+        for (var i = 0; i < subParameter.length; i++) {
+          parameter = parameter[subParameter[i]];
+        }
+        return parameter;
+      }
       return mainConfig[nameInt];
     };
 

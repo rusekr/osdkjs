@@ -69,12 +69,12 @@
     sip.log('Got temp creds', arguments);
     try {
       sip.init({
-        'ws_servers': sip.config().serverURL,
+        'ws_servers': sip.config('serverURL'),
             'ws_server_max_reconnection': 0,
             'uri': 'sip:' + e.data.username.split(':')[1],
             'password': e.data.password,
             'stun_servers': [],
-            'registrar_server': 'sip:'+sip.config().serverURL.replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
+            'registrar_server': 'sip:'+sip.config('serverURL').replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
             'trace_sip': true,
             'register': true,
             'authorization_user': e.data.username.split(':')[1],
