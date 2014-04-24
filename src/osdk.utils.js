@@ -10,6 +10,7 @@
   var methods = {};
   var events = {};
   var mainConfig = {};
+  var browserMethods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
 
   utils.debug = true;
 
@@ -18,18 +19,18 @@
    * If it'll can't work in ie9 try http://stackoverflow.com/questions/5538972/console-log-apply-not-working-in-ie9
    */
   (function () {
-    var methods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
 
     var lf = function (method) {
       return function () {
-        if(!utils.debug || !this.debug) {
+        // Function respects global and module-specific debug
+        if (!utils.debug || !this.debug) {
           return;
         }
           console[method].apply(console, ['oSDK:'].concat(Array.prototype.slice.call(arguments, 0)));
       };
     };
 
-    methods.forEach( function (method) {
+    browserMethods.forEach( function (method) {
       utils[method] = lf(method);
     });
   })();
@@ -144,14 +145,26 @@
   // JQuery equivalent by interface function for deep merging of objects (recursion)
   utils.extend = function () {
     var args = Array.prototype.slice.call(arguments, 0);
+    //utils.error('running extend with arguments', args, arguments);
     var inObj = args.shift();
     args.forEach(function (obj) {
-      for(var key in obj) {
-        if(utils.isObject(inObj[key]) && utils.isObject(obj[key])) {
-          utils.extend(inObj[key], obj[key]);
-        } else {
-          inObj[key] = obj[key];
+      // utils.log('extend preparing to merge', obj, 'in', inObj);
+      for (var key in obj) {
+
+        // Translating only object's own properties
+        if (inObj[key] && !inObj.hasOwnProperty(key) || obj[key] && !obj.hasOwnProperty(key)) {
+          continue;
         }
+
+        // utils.log('extending ' + key + ' in ', inObj , ' with ' + obj[key]);
+
+        if (utils.isObject(inObj[key]) && utils.isObject(obj[key])) {
+          inObj[key] = utils.extend({}, inObj[key], obj[key]);
+        } else /*if (utils.isString(obj[key]) || utils.isArray(obj[key]) || utils.isNumber(obj[key]) || utils.isBoolean(obj[key]))*/ {
+          inObj[key] = obj[key];
+        } /*else {
+          utils.error('extend not merging key', key, obj, inObj);
+        }*/
       }
     });
     return inObj;
@@ -178,9 +191,9 @@
 
     // Request data forming
     // String data goes as is.
-    if(typeof(config.data) != 'string') {
+    if (typeof(config.data) != 'string') {
       // Data encoding for requests
-      if(typeof(config.data) == 'object') {
+      if (typeof(config.data) == 'object') {
         var tempData = [];
         utils.each(config.data, function (d, i) {
           tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
@@ -189,9 +202,9 @@
       }
     }
     // For 'get' in url, for other - in body
-    if(config.type.toLowerCase() == 'get') {
+    if (config.type.toLowerCase() == 'get') {
       var delim = '?';
-      if(config.url.match(/\?/)) {
+      if (config.url.match(/\?/)) {
         delim = '&';
       }
       config.url += delim+config.data;
@@ -203,13 +216,13 @@
     var headersNotSet = false;
     var setHeaders = function () {
       // Headers stuff
-      if(!config.headers['Content-Type']) {
+      if (!config.headers['Content-Type']) {
         r.setRequestHeader("Content-Type","application/json; charset=UTF-8");
       }
-      if(!config.headers.Accept) {
+      if (!config.headers.Accept) {
         r.setRequestHeader("Accept","*/*");
       }
-      for(var h in config.headers) {
+      for (var h in config.headers) {
         r.setRequestHeader(h, config.headers[h]);
       }
     };
@@ -226,7 +239,7 @@
     r.open(config.type, config.url, config.async,config.username, config.password);
 
     // For chrome // FIXME more universal chrome and firefox handlers
-//     if(headersNotSet) {
+//     if (headersNotSet) {
 //       utils.log('Chrome..setRequestHeader');
       setHeaders();
 //     }
@@ -271,7 +284,7 @@
       var tmpData = {};
       h.forEach(function (data) {
         data = data.split('=');
-        if(data[0] && data[1]) {
+        if (data[0] && data[1]) {
           tmpData[dec(data[0])] = dec(data[1]);
         }
       });
@@ -279,8 +292,8 @@
     };
     var buildHash = function () {
       var tmpHash = [];
-      for(var id in hashData) {
-        if(hashData[id] !== null) {
+      for (var id in hashData) {
+        if (hashData[id] !== null) {
           tmpHash.push(enc(id)+'='+enc(hashData[id]));
         }
       }
@@ -307,7 +320,7 @@
 
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
-    if(window.location.href.match(/(\?|&)error=(.*?)(&|$)/))
+    if (window.location.href.match(/(\?|&)error=(.*?)(&|$)/))
     {
       return decodeURIComponent(window.location.href.replace(/.*(\?|&)error=(.*?)(&|$).*/, '$2'));
     }
@@ -328,7 +341,7 @@
     };
 
     // Inserting empty object if absent
-    if(!localStorage.getItem(storeName)) {
+    if (!localStorage.getItem(storeName)) {
       localStorage.setItem(storeName, JSON.stringify({}));
     }
 
@@ -399,9 +412,9 @@
           utils.log('Registering namespaces for module: ' + moduleName + '. Namespace "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + '. Combining.');
         }
         namespaces[i][moduleName] = [];
-        for(j in object.namespaces[i]) {
-          if(object.namespaces[i].hasOwnProperty(j)) {
-            if(!oSDK[i][j]) {
+        for (j in object.namespaces[i]) {
+          if (object.namespaces[i].hasOwnProperty(j)) {
+            if (!oSDK[i][j]) {
               oSDK[i][j] = object.namespaces[i][j];
               namespaces[i][moduleName].push(j);
             } else {
@@ -433,7 +446,7 @@
 
       events[eventType].emitters.push({ module: moduleName, fired: false /* Or data if fired */ });
 
-      utils.info('event registered', events);
+      // utils.info('event registered', events);
     };
 
     // NOTICE: Each event may be boolean, string or array of strings. If boolean - event registered in oSDK by it's eventType. If string - by it's alias named in this string. Array of strings works like string but registers event as each alias. If same event registered by several modules - fires only last triggered event with combined by module eventType data.
@@ -473,7 +486,7 @@
     eventTypes = [].concat(eventTypes);
 
     utils.each(eventTypes, function (eventType) {
-      if(!events[eventType]) {
+      if (!events[eventType]) {
         events[eventType] = utils.eventSkel();
       }
       var id  = utils.uuid();
@@ -498,15 +511,16 @@
   utils.resetTriggerCounters = function (eventName) {
     // utils.log('starting clearing triggers for', eventName);
     var eventNames = [];
-    if(!utils.isNull(eventName)) {
+    if (!utils.isNull(eventName)) {
       eventNames.concat(eventName);
     }
     utils.each(events, function (event, name) {
-      if(eventNames.length && eventNames.indexOf(name) == -1) {
+      if (eventNames.length && eventNames.indexOf(name) == -1) {
         return;
       }
       utils.each(event.listeners, function (listener) {
         listener.fireCounter = 0;
+        listener.fireData = {};
         utils.log('cleared counter', listener, eventName);
       });
     });
@@ -522,7 +536,7 @@
     // Module name or Client
     var moduleName = this.name?this.name().toUpperCase():'Client';
 
-    if(events[eventTypeOrID]) {
+    if (events[eventTypeOrID]) {
       // Removing all listeners for eventType
       events[eventTypeOrID].listeners = [];
       utils.log('Removed all listeners for event', eventTypeOrID);
@@ -530,7 +544,7 @@
       // Searching and removing
       var foundById = false;
       var removeListener = function (id, i) {
-        if(events[eventType].listeners[i].id == eventTypeOrID) {
+        if (events[eventType].listeners[i].id == eventTypeOrID) {
           events[eventType].listeners.splice(i,1);
           foundById = true;
           return false;
@@ -539,7 +553,7 @@
       for (var eventType in events) {
         events[eventType].listeners.forEach(removeListener);
       }
-      if(!foundById) {
+      if (!foundById) {
         // Non fatal
         throw new Error('Can\'t remove event listener(s) - this event type or ID is not registered.');
       }
@@ -558,10 +572,10 @@
       eventTypes = null,
       eventData = null;
 
-    if(utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
+    if (utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
       // Non fatal
       throw new Error('Insufficient arguments to trigger event.');
-    } else if(utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
+    } else if (utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
       context = this;
       eventTypes = [].concat(arguments[0]);
       eventData = arguments[1] || {};
@@ -578,7 +592,7 @@
       // Appending/rewriting of eventType in data with last event type
 
       // Normalizing eventData to object
-      if(!utils.isObject(eventData)) {
+      if (!utils.isObject(eventData)) {
         //utils.log('trigger event data is not object, wrapping', eventData);
         eventData = {
           data: eventData
@@ -588,7 +602,7 @@
       eventData.type = eventType;
       //utils.log('final eventdata' , eventData);
 
-      if(!events[eventType]) {
+      if (!events[eventType]) {
         // Non fatal
         throw new Error('Event' + eventType + 'not registered therefore can\'t trigger!');
       }
@@ -720,7 +734,7 @@
                 var c = string.charCodeAt(n);
                 if (c < 128) {
                   utftext += String.fromCharCode(c);
-                } else if((c > 127) && (c < 2048)) {
+                } else if ((c > 127) && (c < 2048)) {
                   utftext += String.fromCharCode((c >> 6) | 192);
                   utftext += String.fromCharCode((c & 63) | 128);
                 } else {
@@ -831,10 +845,9 @@
     self.off = utils.off;
     self.trigger = utils.trigger;
 
-    self.log = utils.log;
-    self.info = utils.info;
-    self.warn = utils.warn;
-    self.err = utils.err;
+    browserMethods.forEach( function (method) {
+      self[method] = utils[method];
+    });
 
     self.utils = utils;
 
