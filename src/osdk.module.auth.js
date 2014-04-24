@@ -17,7 +17,7 @@
 
   var defaultConfig = {
     apiServerURL: 'https://osdp-teligent-dev-apigw.virt.teligent.ru:8243', //TODO: replace this and following with sdk build parameter
-    credsURI: '/osdp/1.0.0/ephemerals',
+    credsURI: '/osdp/sm/common/1.0.1/user/ephemerals',
     authURI: '/authorize/',
       //debug
     testScope: 'gold wood uranium', // FIXME: may be for us(wso2) its not needed?
