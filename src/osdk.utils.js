@@ -129,7 +129,7 @@
     //utils.error('running extend with arguments', args, arguments);
     var inObj = args.shift();
     args.forEach(function (obj) {
-      utils.log('extend preparing to merge', obj, 'in', inObj);
+      // utils.log('extend preparing to merge', obj, 'in', inObj);
       for (var key in obj) {
 
         // Translating only object's own properties
@@ -137,7 +137,7 @@
           continue;
         }
 
-        utils.log('extending ' + key + ' in ', inObj , ' with ' + obj[key]);
+        // utils.log('extending ' + key + ' in ', inObj , ' with ' + obj[key]);
 
         if (utils.isObject(inObj[key]) && utils.isObject(obj[key])) {
           inObj[key] = utils.extend({}, inObj[key], obj[key]);
