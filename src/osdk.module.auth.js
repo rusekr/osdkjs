@@ -42,6 +42,7 @@
     return {
       // Configure oauth object
       configure: function (cfgObject) {
+        auth.log('oauth configure with config', cfgObject);
         cfgObject = auth.utils.isObject(cfgObject)?cfgObject:{};
 
         config.access_token = auth.utils.storage.getItem('access_token') || null;
