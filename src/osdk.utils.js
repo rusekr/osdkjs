@@ -106,14 +106,14 @@
     try {
       return JSON.stringify(data);
     } catch(eJsonEncode) {
-      return null;
+      return data;
     }
   };
   utils.jsonDecode = function(data) {
     try {
       return JSON.parse(data);
     } catch(eJsonDecode) {
-      return null;
+      return data;
     }
   };
 
