@@ -1,6 +1,6 @@
 /**
- * oSDK base interface module
- * Extended by other modules
+ * oSDK base interface for oSDK users
+ * This module extended by other modules
  */
 
 (function(oSDK) {

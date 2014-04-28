@@ -10,12 +10,12 @@
   var sessions = [];
 
   var attachableEvents = {
-    'connected': 'sip.connected',
+    // 'connected': 'sip.connected', // not needed now
     'disconnected': ['sip.disconnected', 'core.disconnected'],
     'registered': ['sip.registered', 'core.connected'],
-    'unregistered': 'sip.unregistered',
-    'registrationFailed': ['sip.registrationFailed', 'core.connectionFailed', 'core.error'], // TODO: test
-    'newRTCSession': ['sip.newMediaSession', 'core.newMediaSession']
+    // 'unregistered': 'sip.unregistered', // not needed now
+    'registrationFailed': ['sip.registrationFailed'], // TODO: test
+    'newRTCSession': ['sip.newMediaSession']
   };
 
   var client = {
@@ -65,7 +65,7 @@
     attachTriggers(attachableEvents, sip.JsSIPUA.on, sip.JsSIPUA);
   };
 
-  sip.on('auth.gotTempCreds', function (e) {
+  sip.on('core.gotTempCreds', function (e) {
     sip.log('Got temp creds', arguments);
     try {
       sip.init({
@@ -85,7 +85,7 @@
       sip.JsSIPUA.start();
 
     } catch (data) {
-      sip.trigger(['sip.connectionFailed', 'core.connectionFailed'], {
+      sip.trigger(['sip.connectionFailed'], {
         message: "SIP configuration error.",
         ecode: 397496,
         data: data
@@ -94,25 +94,27 @@
 
   });
 
-  sip.on('auth.disconnected', function (data) {
+  sip.on('core.disconnected', function (data) {
     // We may have connection error and therefore not initialized sip module without stop method.
     if(sip.JsSIPUA) {
       sip.JsSIPUA.stop();
     }
   });
 
+  sip.on('sip.registrationFailed', function (data) {
+    sip.trigger('core.connectionFailed', data);
+  });
+
   sip.on('sip.disconnected', function (data) {
     // Stopping jssip autoreconnect after first connection failure
+    // TODO: in a failed state no need to trigger code.disconnected because of core.connectionFailed event
     sip.JsSIPUA.stop();
     sip.trigger('core.disconnected', data);
   });
 
   sip.on('sip.newMediaSession', function (data) {
-    sip.log(data);
+    // sip.log(data);
     sessions.push(data.data.session);
-  });
-
-  sip.on('core.newMediaSession', function (data) {
     sip.trigger('newMediaSession', data);
   });
 
@@ -120,14 +122,14 @@
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
-  window.onbeforeunload = function (event) {
+  sip.on('core.beforeunload', function (event) {
     sessions.forEach(function (session) {
       // TODO: make sure session is opened
       if(session) {
         session.terminate();
       }
     });
-  };
+  });
 
   sip.registerMethods({
     'call': sip.call

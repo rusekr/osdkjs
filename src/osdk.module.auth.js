@@ -197,9 +197,9 @@
           client.id = data.username.split(':')[1];
           client.domain = client.id.split('@')[1];
 
-          auth.trigger(['auth.gotTempCreds', 'core.gotTempCreds'], { 'data': data });
+          auth.trigger(['core.gotTempCreds'], { 'data': data });
 
-          auth.trigger(['auth.connected', 'core.connected']);
+          auth.trigger(['core.connected']);
         }
       },
       error: function(jqxhr, status, string) {
@@ -302,18 +302,18 @@
     auth.utils.resetTriggerCounters('core.disconnected');
     auth.status = 'connected';
     auth.trigger('connected', data);
-  });
+  }, 'last');
   // Disconnected event
   auth.on('core.disconnected', function (data) {
     auth.status = 'disconnected';
     auth.trigger('disconnected', data);
-  });
+  }, 'last');
   // Proxy for every connectionFailed message
   auth.on('core.connectionFailed', function (data) {
     auth.utils.resetTriggerCounters('core.connected');
     auth.disconnect();
     auth.trigger('connectionFailed', data);
-  }, 'every');
+  });
 
   // Instant actions
 
@@ -348,9 +348,7 @@
   });
 
   auth.registerEvents({
-    'initialized': true,
-    'loaded': true,
-    'gotTempCreds': ['auth.gotTempCreds', 'core.gotTempCreds'],
+    'gotTempCreds': 'core.gotTempCreds',
     'connected': ['auth.connected', 'core.connected'],
     'disconnected': ['auth.disconnected', 'core.disconnected'],
     'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']

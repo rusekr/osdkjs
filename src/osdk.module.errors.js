@@ -1,5 +1,6 @@
 /*
  * oSDK Errors module (http://jira.teligent.ru/browse/OSDKJS-27)
+ * TODO: Merge with utils
  */
 (function (oSDK) {
   "use strict";

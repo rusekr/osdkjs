@@ -5,14 +5,15 @@
 (function (oSDK) {
   "use strict";
 
-  var utils = {};
+  var utils = {
+    debug: true // NOTICE: DEBUG is ON
+  };
   var namespaces = {};
   var methods = {};
   var events = {};
   var mainConfig = {};
   var browserMethods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
 
-  utils.debug = true;
 
   /*
    * Console.log/warn/err/.. oSDK wrappers
@@ -49,10 +50,7 @@
     return (!isNaN(parseFloat(value)) && isFinite(value));
   };
   utils.isArray = function(value) {
-    function fnIsNull(value) {
-      return ((value === undefined) || (value === null));
-    }
-    return (!fnIsNull(value) && (Object.prototype.toString.call(value) === '[object Array]'));
+    return Array.isArray(value);
   };
   utils.isObject = function(value) {
     function fnIsNull(value) {
@@ -62,6 +60,12 @@
       return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
     }
     return (!fnIsEmpty(value) && (typeof value == 'object'));
+  };
+  utils.isFunction = function (obj) {
+    if ( obj === null || Object.prototype.toString.call(obj) !== '[object Function]' ) {
+      return false;
+    }
+    return true;
   };
   utils.isBoolean = function(value) {
     return (typeof value == 'boolean');
@@ -142,29 +146,63 @@
     }
   };
 
-  // JQuery equivalent by interface function for deep merging of objects (recursion)
+  // JQuery equivalent by interface function for deep merging of plain objects with data (recursion maximum defined by itNumMax variable)
   utils.extend = function () {
     var args = Array.prototype.slice.call(arguments, 0);
-    //utils.error('running extend with arguments', args, arguments);
     var inObj = args.shift();
+    var itNum = 1; // Iteration number
+    var itNumMax = 5; // Maximum recursion deepness
+
+    if (utils.isNumber(inObj)) {
+      itNum = inObj;
+      utils.log('extend', arguments);
+
+      inObj = args.shift();
+      utils.log('extend got ++itNum', itNum, 'and inObj', inObj);
+    }
+
+    if(!utils.isObject(inObj)) {
+      throw new Error('utils.extend: can\'t find object to extend.');
+    }
+
     args.forEach(function (obj) {
       // utils.log('extend preparing to merge', obj, 'in', inObj);
+
+      if(!utils.isObject(obj)) {
+        // Continue
+        return;
+      }
+
       for (var key in obj) {
 
         // Translating only object's own properties
-        if (inObj[key] && !inObj.hasOwnProperty(key) || obj[key] && !obj.hasOwnProperty(key)) {
+        if (!obj.hasOwnProperty(key)) {
+          utils.log('Not copying non self property', key, 'from obj', obj);
           continue;
         }
 
         // utils.log('extending ' + key + ' in ', inObj , ' with ' + obj[key]);
 
-        if (utils.isObject(inObj[key]) && utils.isObject(obj[key])) {
-          inObj[key] = utils.extend({}, inObj[key], obj[key]);
-        } else /*if (utils.isString(obj[key]) || utils.isArray(obj[key]) || utils.isNumber(obj[key]) || utils.isBoolean(obj[key]))*/ {
+        if (utils.isObject(obj[key])) {
+          //utils.log('extend deep copying object ', key, obj[key]);
+          if (!utils.isObject(inObj[key])) {
+            // Just replacing all other with object in priority
+            inObj[key] = {};
+          }
+          if(++itNum < itNumMax) {
+            // More recursion allowed
+            inObj[key] = utils.extend(itNum, {}, inObj[key], obj[key]);
+          } else {
+            utils.warn('Extend got more than', itNumMax, 'recursion deepness for object', obj);
+            // Just replacing
+            inObj[key] = obj[key];
+          }
+        } else {
+          //utils.error('extend not copying ', key, obj[key]);
+          // Just copying anything else
           inObj[key] = obj[key];
-        } /*else {
-          utils.error('extend not merging key', key, obj, inObj);
-        }*/
+          continue;
+        }
       }
     });
     return inObj;
@@ -466,10 +504,10 @@
 
   };
 
-  /*
+  /**
    * Adds custom callback for specified event type.
    * Returns id of added listener for removing through {@link utils.off}.
-   * @param fireType may be 'last' (default, fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (fires every time emitter emits)
+   * @param fireType may be 'last' (fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (default, fires every time emitter emits)
    */
   utils.on = function (eventTypes, eventHandler, fireType) {
 
@@ -490,7 +528,7 @@
         events[eventType] = utils.eventSkel();
       }
       var id  = utils.uuid();
-      fireType = fireTypes[fireType]?fireType:'last';
+      fireType = fireTypes[fireType]?fireType:'every';
       var listener = {
         id: id,
         handler: eventHandler,
@@ -510,6 +548,7 @@
    */
   utils.resetTriggerCounters = function (eventName) {
     // utils.log('starting clearing triggers for', eventName);
+    utils.log('clearing counters for ', eventName || 'all events');
     var eventNames = [];
     if (!utils.isNull(eventName)) {
       eventNames.concat(eventName);
@@ -521,7 +560,6 @@
       utils.each(event.listeners, function (listener) {
         listener.fireCounter = 0;
         listener.fireData = {};
-        utils.log('cleared counter', listener, eventName);
       });
     });
   };
@@ -562,7 +600,7 @@
 
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
-  utils.trigger = function (/*context, eventType, eventData*/) {
+  utils.trigger = function () {
 
     // Module name or Core
     var moduleName = this.name?this.name().toUpperCase():'Core';
@@ -573,18 +611,19 @@
       eventData = null;
 
     if (utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
-      // Non fatal
+      // Not enough arguments
       throw new Error('Insufficient arguments to trigger event.');
     } else if (utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
+      // Without context
       context = this;
       eventTypes = [].concat(arguments[0]);
-      eventData = arguments[1] || {};
+      eventData = utils.isObject(arguments[1])?arguments[1]:{};
       //utils.log('trigger first arg is array or string, eventData is', eventData);
     } else {
-
+      // With context
       context = arguments[0];
       eventTypes = [].concat(arguments[1]);
-      eventData = arguments[2] || {};
+      eventData = utils.isObject(arguments[2])?arguments[2]:{};
       //utils.log('trigger first arg is context object, eventData is', eventData);
     }
 
@@ -604,19 +643,16 @@
 
       if (!events[eventType]) {
         // Non fatal
-        throw new Error('Event' + eventType + 'not registered therefore can\'t trigger!');
+        utils.warn('Event' + eventType + 'not registered by emitter or listener, therefore can\'t trigger!');
       }
 
       // Regstered emitters may be zero (e.g. in case of oauth popup)
 
       // Fire every listener for event type
       var fireToListener = function (listener) {
-        // Extending data
-        listener.fireData = utils.extend({}, listener.fireData, eventData);
-        //utils.log('extended data', listener.fireData, 'with', eventData);
-
         if (listener.fireType === 'last') {
-
+          // Extending data FIXME: large recursive object do not handled properly
+          listener.fireData = utils.extend({}, listener.fireData, eventData);
           // utils.log('listener.fireData', listener.fireData);
           // Checking if we can fire
           if (++listener.fireCounter >= events[eventType].emitters.length) {
@@ -630,23 +666,21 @@
             utils.log(moduleName, 'NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
           }
         } else if (listener.fireType === 'first') {
+          // How and when we need to clear this counter or delete listener after firing
           if (++listener.fireCounter === 1) {
-            utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+            utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
             // Firing with current data
-            listener.handler.call(context, listener.fireData);
-            listener.fireData = {};
+            listener.handler.call(context, eventData);
           }
           else {
-            utils.log(moduleName, 'NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+            utils.log(moduleName, 'NOT firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
             // Not firing
             listener.fireCounter--; // No to overflow
-            listener.fireData = {};
           }
         } else if (listener.fireType === 'every') {
-          utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
+          utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
           // Just firing
-          listener.handler.call(context, listener.fireData);
-          listener.fireData = {};
+          listener.handler.call(context, eventData);
         }
       };
       events[eventType].listeners.forEach(fireToListener);
@@ -864,6 +898,7 @@
       return mainConfig[nameInt];
     };
 
+    // TODO: inter-modules events, to-client events
     self.registerEvents = function (eventsObject) {
       utils.attach(name, { events: eventsObject });
     };
@@ -889,4 +924,15 @@
 
   // Some direct bindings to namespace
   oSDK.Module = Module;
+
+  // Dedicated window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
+  window.addEventListener('beforeunload', function () {
+    utils.trigger('window.beforeunload');
+  });
+
+
+  // For debug
+  if(utils.debug === true) {
+    oSDK.utils = utils;
+  }
 })(oSDK);
