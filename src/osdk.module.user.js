@@ -19,9 +19,9 @@
    * Constructor to User object
    */
 
-  function User(jid, params) {
-    jid = jid.toLowerCase();
-    this.account = jid;
+  function User(id, params) {
+    id = id.toLowerCase();
+    this.account = id;
     this.login = this.account.split('@')[0];
     this.domain = this.account.split('@')[1];
     this.group = null;
@@ -42,9 +42,9 @@
    */
 
   user.registerMethods({
-    user: function(jid, params) {
-      if (jid && user.utils.isString(jid) && user.utils.isValidAccount(jid)) {
-        return new User(jid, (params) ? params : {});
+    user: function(id, params) {
+      if (id && user.utils.isString(id) && user.utils.isValidAccount(id)) {
+        return new User(id, (params) ? params : {});
       }
       return false;
     }
