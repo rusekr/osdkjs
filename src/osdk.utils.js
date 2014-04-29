@@ -8,6 +8,8 @@
   var utils = {
     debug: true // NOTICE: DEBUG is ON
   };
+
+  var modules = {};
   var namespaces = {};
   var methods = {};
   var events = {};
@@ -151,7 +153,7 @@
     var args = Array.prototype.slice.call(arguments, 0);
     var inObj = args.shift();
     var itNum = 1; // Iteration number
-    var itNumMax = 5; // Maximum recursion deepness
+    var itNumMax = 10; // Maximum recursion deepness
 
     if (utils.isNumber(inObj)) {
       itNum = inObj;
@@ -166,7 +168,6 @@
     }
 
     args.forEach(function (obj) {
-      // utils.log('extend preparing to merge', obj, 'in', inObj);
 
       if(!utils.isObject(obj)) {
         // Continue
@@ -181,10 +182,7 @@
           continue;
         }
 
-        // utils.log('extending ' + key + ' in ', inObj , ' with ' + obj[key]);
-
         if (utils.isObject(obj[key])) {
-          //utils.log('extend deep copying object ', key, obj[key]);
           if (!utils.isObject(inObj[key])) {
             // Just replacing all other with object in priority
             inObj[key] = {};
@@ -198,7 +196,6 @@
             inObj[key] = obj[key];
           }
         } else {
-          //utils.error('extend not copying ', key, obj[key]);
           // Just copying anything else
           inObj[key] = obj[key];
           continue;
@@ -416,24 +413,29 @@
     };
   };
 
-  // Returns attached namespaces
+  // Returns registered namespaces
+  utils.modules = function () {
+    return modules;
+  };
+
+  // Returns registered namespaces
   utils.namespaces = function () {
     return namespaces;
   };
 
-  // Returns attached methods
+  // Returns registered methods
   utils.methods = function () {
     return methods;
   };
 
-  // Returns attached event emitters and listeners grouped by event name
+  // Returns registered event emitters and listeners grouped by event name
   utils.events = function () {
     return events;
   };
 
   // FOR MODULE. Needed to register namespace, method or event in oSDK by its module.
   // attachableEvents - map internal events to same named oSDK events, aliases or array of aliases
-  utils.attach = function (module, object) {
+  utils.register = function (module, object) {
 
     // Module name or Core
     var moduleName = this.name?this.name().toUpperCase():module;
@@ -605,7 +607,6 @@
     // Module name or Core
     var moduleName = this.name?this.name().toUpperCase():'Core';
 
-    //utils.log('trigger started with parameters', arguments);
     var context = null,
       eventTypes = null,
       eventData = null;
@@ -618,13 +619,11 @@
       context = this;
       eventTypes = [].concat(arguments[0]);
       eventData = utils.isObject(arguments[1])?arguments[1]:{};
-      //utils.log('trigger first arg is array or string, eventData is', eventData);
     } else {
       // With context
       context = arguments[0];
       eventTypes = [].concat(arguments[1]);
       eventData = utils.isObject(arguments[2])?arguments[2]:{};
-      //utils.log('trigger first arg is context object, eventData is', eventData);
     }
 
     eventTypes.forEach(function (eventType) {
@@ -632,14 +631,12 @@
 
       // Normalizing eventData to object
       if (!utils.isObject(eventData)) {
-        //utils.log('trigger event data is not object, wrapping', eventData);
         eventData = {
           data: eventData
         };
-        //utils.log('trigger event data wrapped as', eventData);
       }
       eventData.type = eventType;
-      //utils.log('final eventdata' , eventData);
+      eventData.module = moduleName;
 
       if (!events[eventType]) {
         // Non fatal
@@ -651,8 +648,8 @@
       // Fire every listener for event type
       var fireToListener = function (listener) {
         if (listener.fireType === 'last') {
-          // Extending data FIXME: large recursive object do not handled properly
-          listener.fireData = utils.extend({}, listener.fireData, eventData);
+          // Extending data
+          listener.fireData.module = eventData;
           // utils.log('listener.fireData', listener.fireData);
           // Checking if we can fire
           if (++listener.fireCounter >= events[eventType].emitters.length) {
@@ -900,22 +897,23 @@
 
     // TODO: inter-modules events, to-client events
     self.registerEvents = function (eventsObject) {
-      utils.attach(name, { events: eventsObject });
+      utils.register(name, { events: eventsObject });
     };
 
     self.registerMethods = function (methodsObject) {
-      utils.attach(name, { methods: methodsObject });
+      utils.register(name, { methods: methodsObject });
     };
 
     self.registerNamespaces = function (namespacesObject) {
-      utils.attach(name, { namespaces: namespacesObject });
+      utils.register(name, { namespaces: namespacesObject });
     };
 
     self.registerConfig = function (configObject) {
       mainConfig[name] = utils.extend({}, mainConfig[name], configObject);
     };
 
-
+    // Adding module to registered modules object
+    modules[nameInt] = self;
   }
 
   Module.mergeConfig = function (config) {
