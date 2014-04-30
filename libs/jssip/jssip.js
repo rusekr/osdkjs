@@ -1,6 +1,6 @@
 /*
  * JsSIP version 0.3.7
- * Copyright (c) 2012-2013 José Luis Millán - Versatica <http://www.versatica.com>
+ * Copyright (c) 2012-2014 José Luis Millán - Versatica <http://www.versatica.com>
  * Homepage: http://jssip.net
  * License: http://jssip.net/license
  */
@@ -28,6 +28,23 @@ var JsSIP = (function() {
     }
   });
 
+  (function () {
+    var LOG_PREFIX = JsSIP.name;
+    var browserMethods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
+    var lf = function (method) {
+      return function () {
+        if (!JSON.parse('false')) {
+          return;
+        }
+        console[method].apply(console, [LOG_PREFIX].concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    };
+
+    browserMethods.forEach( function (method) {
+      JsSIP[method] = lf(method);
+    });
+  })();
+
   return JsSIP;
 }());
 
@@ -45,7 +62,7 @@ var JsSIP = (function() {
 var
   EventEmitter,
   Event,
-  LOG_PREFIX = JsSIP.name +' | '+ 'EVENT EMITTER' +' | ';
+  LOG_PREFIX = ' | '+ 'EVENT EMITTER' +' | ';
 
 EventEmitter = function(){};
 EventEmitter.prototype = {
@@ -60,11 +77,11 @@ EventEmitter.prototype = {
     this.onceNotFired = []; // Array containing events with _once_ defined tat didn't fire yet.
     this.maxListeners = 10;
     this.events.newListener = function(event) { // Default newListener callback
-      console.log(LOG_PREFIX +'new listener added to event '+ event);
+      JsSIP.log(LOG_PREFIX +'new listener added to event '+ event);
     };
 
     while (i--) {
-      console.log(LOG_PREFIX +'adding event '+ events[i]);
+      JsSIP.log(LOG_PREFIX +'adding event '+ events[i]);
       this.events[events[i]] = [];
     }
   },
@@ -76,7 +93,7 @@ EventEmitter.prototype = {
   */
   checkEvent: function(event) {
     if (!this.events[event]) {
-      console.error(LOG_PREFIX +'no event named '+ event);
+      JsSIP.error(LOG_PREFIX +'no event named '+ event);
       return false;
     } else {
       return true;
@@ -94,7 +111,7 @@ EventEmitter.prototype = {
     }
 
     if (this.events[event].length >= this.maxListeners) {
-      console.warn(LOG_PREFIX +'max listeners exceeded for event '+ event);
+      JsSIP.warn(LOG_PREFIX +'max listeners exceeded for event '+ event);
     }
 
     this.events[event].push(listener);
@@ -177,14 +194,14 @@ EventEmitter.prototype = {
   * @param {Array} args
   */
   emit: function(event, sender, data) {
-    var listeners, length, 
+    var listeners, length,
       emitter = this;
 
     if (!this.checkEvent(event)) {
       return;
     }
 
-    console.log(LOG_PREFIX +'emitting event '+event);
+    JsSIP.log(LOG_PREFIX +'emitting event '+event);
 
     listeners = this.events[event];
     length = listeners.length;
@@ -194,7 +211,7 @@ EventEmitter.prototype = {
     window.setTimeout(
       function(){
         var idx=0;
-        
+
         for (idx; idx<length; idx++) {
           listeners[idx].call(null, e);
         }
@@ -481,7 +498,7 @@ JsSIP.Timers = Timers;
  */
 (function(JsSIP) {
 var Transport,
-  LOG_PREFIX = JsSIP.name +' | '+ 'TRANSPORT' +' | ',
+  LOG_PREFIX = ' | '+ 'TRANSPORT' +' | ',
   C = {
     // Transport status codes
     STATUS_READY:        0,
@@ -516,12 +533,12 @@ Transport.prototype = {
 
     if(this.ws && this.ws.readyState === WebSocket.OPEN) {
       if (this.ua.configuration.trace_sip === true) {
-        console.log(LOG_PREFIX +'sending WebSocket message:\n\n' + message + '\n');
+        JsSIP.log(LOG_PREFIX +'sending WebSocket message:\n\n' + message + '\n');
       }
       this.ws.send(message);
       return true;
     } else {
-      console.warn(LOG_PREFIX +'unable to send message, WebSocket is not open');
+      JsSIP.warn(LOG_PREFIX +'unable to send message, WebSocket is not open');
       return false;
     }
   },
@@ -533,9 +550,9 @@ Transport.prototype = {
     if(this.ws) {
       // Clear reconnectTimer
       window.clearTimeout(this.reconnectTimer);
-      
+
       this.closed = true;
-      console.log(LOG_PREFIX +'closing WebSocket ' + this.server.ws_uri);
+      JsSIP.log(LOG_PREFIX +'closing WebSocket ' + this.server.ws_uri);
       this.ws.close();
     }
 
@@ -557,7 +574,7 @@ Transport.prototype = {
     var transport = this;
 
     if(this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      console.log(LOG_PREFIX +'WebSocket ' + this.server.ws_uri + ' is already connected');
+      JsSIP.log(LOG_PREFIX +'WebSocket ' + this.server.ws_uri + ' is already connected');
       return false;
     }
 
@@ -565,12 +582,12 @@ Transport.prototype = {
       this.ws.close();
     }
 
-    console.log(LOG_PREFIX +'connecting to WebSocket ' + this.server.ws_uri);
+    JsSIP.log(LOG_PREFIX +'connecting to WebSocket ' + this.server.ws_uri);
 
     try {
       this.ws = new WebSocket(this.server.ws_uri, 'sip');
     } catch(e) {
-      console.warn(LOG_PREFIX +'error connecting to WebSocket ' + this.server.ws_uri + ': ' + e);
+      JsSIP.warn(LOG_PREFIX +'error connecting to WebSocket ' + this.server.ws_uri + ': ' + e);
     }
 
     this.ws.binaryType = 'arraybuffer';
@@ -601,7 +618,7 @@ Transport.prototype = {
   onOpen: function() {
     this.connected = true;
 
-    console.log(LOG_PREFIX +'WebSocket ' + this.server.ws_uri + ' connected');
+    JsSIP.log(LOG_PREFIX +'WebSocket ' + this.server.ws_uri + ' connected');
     // Clear reconnectTimer since we are not disconnected
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
@@ -625,10 +642,10 @@ Transport.prototype = {
     this.connected = false;
     this.lastTransportError.code = e.code;
     this.lastTransportError.reason = e.reason;
-    console.log(LOG_PREFIX +'WebSocket disconnected (code: ' + e.code + (e.reason? '| reason: ' + e.reason : '') +')');
+    JsSIP.log(LOG_PREFIX +'WebSocket disconnected (code: ' + e.code + (e.reason? '| reason: ' + e.reason : '') +')');
 
     if(e.wasClean === false) {
-      console.warn(LOG_PREFIX +'WebSocket abrupt disconnection');
+      JsSIP.warn(LOG_PREFIX +'WebSocket abrupt disconnection');
     }
     // Transport was connected
     if(connected_before === true) {
@@ -661,7 +678,7 @@ Transport.prototype = {
     // CRLF Keep Alive response from server. Ignore it.
     if(data === '\r\n') {
       if (this.ua.configuration.trace_sip === true) {
-        console.log(LOG_PREFIX +'received WebSocket message with CRLF Keep Alive response');
+        JsSIP.log(LOG_PREFIX +'received WebSocket message with CRLF Keep Alive response');
       }
       return;
     }
@@ -671,19 +688,19 @@ Transport.prototype = {
       try {
         data = String.fromCharCode.apply(null, new Uint8Array(data));
       } catch(evt) {
-        console.warn(LOG_PREFIX +'received WebSocket binary message failed to be converted into string, message discarded');
+        JsSIP.warn(LOG_PREFIX +'received WebSocket binary message failed to be converted into string, message discarded');
         return;
       }
 
       if (this.ua.configuration.trace_sip === true) {
-        console.log(LOG_PREFIX +'received WebSocket binary message:\n\n' + data + '\n');
+        JsSIP.log(LOG_PREFIX +'received WebSocket binary message:\n\n' + data + '\n');
       }
     }
 
     // WebSocket text message.
     else {
       if (this.ua.configuration.trace_sip === true) {
-        console.log(LOG_PREFIX +'received WebSocket text message:\n\n' + data + '\n');
+        JsSIP.log(LOG_PREFIX +'received WebSocket text message:\n\n' + data + '\n');
       }
     }
 
@@ -729,7 +746,7 @@ Transport.prototype = {
   * @param {event} e
   */
   onError: function(e) {
-    console.warn(LOG_PREFIX +'WebSocket connection error: ' + e);
+    JsSIP.warn(LOG_PREFIX +'WebSocket connection error: ' + e);
   },
 
   /**
@@ -742,10 +759,10 @@ Transport.prototype = {
     this.reconnection_attempts += 1;
 
     if(this.reconnection_attempts > this.ua.configuration.ws_server_max_reconnection) {
-      console.warn(LOG_PREFIX +'maximum reconnection attempts for WebSocket ' + this.server.ws_uri);
+      JsSIP.warn(LOG_PREFIX +'maximum reconnection attempts for WebSocket ' + this.server.ws_uri);
       this.ua.onTransportError(this);
     } else {
-      console.log(LOG_PREFIX +'trying to reconnect to WebSocket ' + this.server.ws_uri + ' (reconnection attempt ' + this.reconnection_attempts + ')');
+      JsSIP.log(LOG_PREFIX +'trying to reconnect to WebSocket ' + this.server.ws_uri + ' (reconnection attempt ' + this.reconnection_attempts + ')');
 
       this.reconnectTimer = window.setTimeout(function() {
         transport.connect();
@@ -772,7 +789,7 @@ JsSIP.Transport = Transport;
  */
 (function(JsSIP) {
 var Parser,
-  LOG_PREFIX = JsSIP.name +' | '+ 'PARSER' +' | ';
+  LOG_PREFIX = ' | '+ 'PARSER' +' | ';
 
 function getHeader(data, headerStart) {
   var
@@ -941,7 +958,7 @@ Parser.parseMessage = function(data) {
     headerEnd = data.indexOf('\r\n');
 
   if(headerEnd === -1) {
-    console.warn(LOG_PREFIX +'no CRLF found, not a SIP message, discarded');
+    JsSIP.warn(LOG_PREFIX +'no CRLF found, not a SIP message, discarded');
     return;
   }
 
@@ -950,7 +967,7 @@ Parser.parseMessage = function(data) {
   parsed = JsSIP.Grammar.parse(firstLine, 'Request_Response');
 
   if(parsed === -1) {
-    console.warn(LOG_PREFIX +'error parsing first line of SIP message: "' + firstLine + '"');
+    JsSIP.warn(LOG_PREFIX +'error parsing first line of SIP message: "' + firstLine + '"');
     return;
   } else if(!parsed.status_code) {
     message = new JsSIP.IncomingRequest();
@@ -1019,7 +1036,7 @@ var
   IncomingMessage,
   IncomingRequest,
   IncomingResponse,
-  LOG_PREFIX = JsSIP.name +' | '+ 'SIP MESSAGE' +' | ';
+  LOG_PREFIX = ' | '+ 'SIP MESSAGE' +' | ';
 
 /**
  * @augments JsSIP
@@ -1259,10 +1276,10 @@ IncomingMessage.prototype = {
     idx = idx || 0;
 
     if(!this.headers[name]) {
-      console.log(LOG_PREFIX +'header "' + name + '" not present');
+      JsSIP.log(LOG_PREFIX +'header "' + name + '" not present');
       return;
     } else if(idx >= this.headers[name].length) {
-      console.log(LOG_PREFIX +'not so many "' + name + '" headers present');
+      JsSIP.log(LOG_PREFIX +'not so many "' + name + '" headers present');
       return;
     }
 
@@ -1278,7 +1295,7 @@ IncomingMessage.prototype = {
 
     if(parsed === -1) {
       this.headers[name].splice(idx, 1); //delete from headers
-      console.warn(LOG_PREFIX +'error parsing "' + name + '" header field with value "' + value + '"');
+      JsSIP.warn(LOG_PREFIX +'error parsing "' + name + '" header field with value "' + value + '"');
       return;
     } else {
       header.parsed = parsed;
@@ -1807,7 +1824,7 @@ JsSIP.NameAddrHeader = NameAddrHeader;
  */
 (function(JsSIP) {
 var Transactions,
-  LOG_PREFIX =  JsSIP.name +' | '+ 'TRANSACTION' +' | ',
+  LOG_PREFIX =  ' | '+ 'TRANSACTION' +' | ',
   C = {
     // Transaction states
     STATUS_TRYING:     1,
@@ -1858,7 +1875,7 @@ var NonInviteClientTransactionPrototype = function() {
   };
 
   this.onTransportError = function() {
-    console.log(LOG_PREFIX +'transport error occurred, deleting non-INVITE client transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'transport error occurred, deleting non-INVITE client transaction ' + this.id);
     window.clearTimeout(this.F);
     window.clearTimeout(this.K);
     delete this.request_sender.ua.transactions.nict[this.id];
@@ -1866,7 +1883,7 @@ var NonInviteClientTransactionPrototype = function() {
   };
 
   this.timer_F = function() {
-    console.log(LOG_PREFIX +'Timer F expired for non-INVITE client transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'Timer F expired for non-INVITE client transaction ' + this.id);
     this.state = C.STATUS_TERMINATED;
     this.request_sender.onRequestTimeout();
     delete this.request_sender.ua.transactions.nict[this.id];
@@ -1933,7 +1950,7 @@ var InviteClientTransactionPrototype = function() {
   };
 
   this.onTransportError = function() {
-    console.log(LOG_PREFIX +'transport error occurred, deleting INVITE client transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'transport error occurred, deleting INVITE client transaction ' + this.id);
     window.clearTimeout(this.B);
     window.clearTimeout(this.D);
     window.clearTimeout(this.M);
@@ -1946,7 +1963,7 @@ var InviteClientTransactionPrototype = function() {
 
   // RFC 6026 7.2
   this.timer_M = function() {
-  console.log(LOG_PREFIX +'Timer M expired for INVITE client transaction ' + this.id);
+  JsSIP.log(LOG_PREFIX +'Timer M expired for INVITE client transaction ' + this.id);
 
   if(this.state === C.STATUS_ACCEPTED) {
     this.state = C.STATUS_TERMINATED;
@@ -1957,7 +1974,7 @@ var InviteClientTransactionPrototype = function() {
 
   // RFC 3261 17.1.1
   this.timer_B = function() {
-  console.log(LOG_PREFIX +'Timer B expired for INVITE client transaction ' + this.id);
+  JsSIP.log(LOG_PREFIX +'Timer B expired for INVITE client transaction ' + this.id);
   if(this.state === C.STATUS_CALLING) {
     this.state = C.STATUS_TERMINATED;
     this.request_sender.onRequestTimeout();
@@ -1966,7 +1983,7 @@ var InviteClientTransactionPrototype = function() {
   };
 
   this.timer_D = function() {
-    console.log(LOG_PREFIX +'Timer D expired for INVITE client transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'Timer D expired for INVITE client transaction ' + this.id);
     this.state = C.STATUS_TERMINATED;
     window.clearTimeout(this.B);
     delete this.request_sender.ua.transactions.ict[this.id];
@@ -2091,7 +2108,7 @@ var ServerTransaction = function() {
  */
 var NonInviteServerTransactionPrototype = function() {
   this.timer_J = function() {
-    console.log(LOG_PREFIX +'Timer J expired for non-INVITE server transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'Timer J expired for non-INVITE server transaction ' + this.id);
     this.state = C.STATUS_TERMINATED;
     delete this.ua.transactions.nist[this.id];
   };
@@ -2100,7 +2117,7 @@ var NonInviteServerTransactionPrototype = function() {
     if (!this.transportError) {
       this.transportError = true;
 
-      console.log(LOG_PREFIX +'transport error occurred, deleting non-INVITE server transaction ' + this.id);
+      JsSIP.log(LOG_PREFIX +'transport error occurred, deleting non-INVITE server transaction ' + this.id);
 
       window.clearTimeout(this.J);
       delete this.ua.transactions.nist[this.id];
@@ -2167,10 +2184,10 @@ NonInviteServerTransactionPrototype.prototype = new ServerTransaction();
  */
 var InviteServerTransactionPrototype = function() {
   this.timer_H = function() {
-    console.log(LOG_PREFIX +'Timer H expired for INVITE server transaction ' + this.id);
+    JsSIP.log(LOG_PREFIX +'Timer H expired for INVITE server transaction ' + this.id);
 
     if(this.state === C.STATUS_COMPLETED) {
-      console.warn(LOG_PREFIX +'transactions', 'ACK for INVITE server transaction was never received, call will be terminated');
+      JsSIP.warn(LOG_PREFIX +'transactions', 'ACK for INVITE server transaction was never received, call will be terminated');
       this.state = C.STATUS_TERMINATED;
     }
 
@@ -2184,7 +2201,7 @@ var InviteServerTransactionPrototype = function() {
 
   // RFC 6026 7.1
   this.timer_L = function() {
-  console.log(LOG_PREFIX +'Timer L expired for INVITE server transaction ' + this.id);
+  JsSIP.log(LOG_PREFIX +'Timer L expired for INVITE server transaction ' + this.id);
 
   if(this.state === C.STATUS_ACCEPTED) {
     this.state = C.STATUS_TERMINATED;
@@ -2196,7 +2213,7 @@ var InviteServerTransactionPrototype = function() {
     if (!this.transportError) {
       this.transportError = true;
 
-      console.log(LOG_PREFIX +'transport error occurred, deleting INVITE server transaction ' + this.id);
+      JsSIP.log(LOG_PREFIX +'transport error occurred, deleting INVITE server transaction ' + this.id);
 
       if (this.resendProvisionalTimer !== null) {
         window.clearInterval(this.resendProvisionalTimer);
@@ -2481,7 +2498,7 @@ JsSIP.Transactions = Transactions;
  */
 (function(JsSIP) {
 var Dialog,
-  LOG_PREFIX = JsSIP.name +' | '+ 'DIALOG' +' | ',
+  LOG_PREFIX = ' | '+ 'DIALOG' +' | ',
   C = {
     // Dialog states
     STATUS_EARLY:       1,
@@ -2493,7 +2510,7 @@ Dialog = function(session, message, type, state) {
   var contact;
 
   if(!message.hasHeader('contact')) {
-    console.error(LOG_PREFIX +'unable to create a Dialog without Contact header field');
+    JsSIP.error(LOG_PREFIX +'unable to create a Dialog without Contact header field');
     return false;
   }
 
@@ -2543,7 +2560,7 @@ Dialog = function(session, message, type, state) {
 
   this.session = session;
   session.ua.dialogs[this.id.toString()] = this;
-  console.log(LOG_PREFIX +'new ' + type + ' dialog created with status ' + (this.state === C.STATUS_EARLY ? 'EARLY': 'CONFIRMED'));
+  JsSIP.log(LOG_PREFIX +'new ' + type + ' dialog created with status ' + (this.state === C.STATUS_EARLY ? 'EARLY': 'CONFIRMED'));
 };
 
 Dialog.prototype = {
@@ -2554,7 +2571,7 @@ Dialog.prototype = {
   update: function(message, type) {
     this.state = C.STATUS_CONFIRMED;
 
-    console.log(LOG_PREFIX +'dialog '+ this.id.toString() +'  changed to CONFIRMED state');
+    JsSIP.log(LOG_PREFIX +'dialog '+ this.id.toString() +'  changed to CONFIRMED state');
 
     if(type === 'UAC') {
       // RFC 3261 13.2.2.4
@@ -2563,7 +2580,7 @@ Dialog.prototype = {
   },
 
   terminate: function() {
-    console.log(LOG_PREFIX +'dialog ' + this.id.toString() + ' deleted');
+    JsSIP.log(LOG_PREFIX +'dialog ' + this.id.toString() + ' deleted');
     delete this.session.ua.dialogs[this.id.toString()];
   },
 
@@ -2684,7 +2701,7 @@ JsSIP.Dialog = Dialog;
  */
 (function(JsSIP) {
 var RequestSender,
-  LOG_PREFIX = JsSIP.name +' | '+ 'REQUEST SENDER' +' | ';
+  LOG_PREFIX = ' | '+ 'REQUEST SENDER' +' | ';
 
 RequestSender = function(applicant, ua) {
   this.ua = ua;
@@ -2763,7 +2780,7 @@ RequestSender.prototype = {
 
       // Verify it seems a valid challenge.
       if (! challenge) {
-        console.warn(LOG_PREFIX + response.status_code + ' with wrong or missing challenge, cannot authenticate');
+        JsSIP.warn(LOG_PREFIX + response.status_code + ' with wrong or missing challenge, cannot authenticate');
         this.applicant.receiveResponse(response);
         return;
       }
@@ -2807,6 +2824,7 @@ RequestSender.prototype = {
 
 JsSIP.RequestSender = RequestSender;
 }(JsSIP));
+
 
 
 
@@ -2873,7 +2891,7 @@ JsSIP.InDialogRequestSender = InDialogRequestSender;
  */
 (function(JsSIP) {
 var Registrator,
-  LOG_PREFIX = JsSIP.name +' | '+ 'REGISTRATOR' +' | ';
+  LOG_PREFIX = ' | '+ 'REGISTRATOR' +' | ';
 
 Registrator = function(ua, transport) {
   var reg_id=1; //Force reg_id to 1.
@@ -2958,7 +2976,7 @@ Registrator.prototype = {
 
           // Search the Contact pointing to us and update the expires value accordingly.
           if (!contacts) {
-            console.warn(LOG_PREFIX +'no Contact header in response to REGISTER, response ignored');
+            JsSIP.warn(LOG_PREFIX +'no Contact header in response to REGISTER, response ignored');
             break;
           }
 
@@ -2973,7 +2991,7 @@ Registrator.prototype = {
           }
 
           if (!contact) {
-            console.warn(LOG_PREFIX +'no Contact header pointing to us, response ignored');
+            JsSIP.warn(LOG_PREFIX +'no Contact header pointing to us, response ignored');
             break;
           }
 
@@ -3006,10 +3024,10 @@ Registrator.prototype = {
           if(response.hasHeader('min-expires')) {
             // Increase our registration interval to the suggested minimum
             this.expires = response.getHeader('min-expires');
-            // Attempt the registration again immediately 
+            // Attempt the registration again immediately
             this.register();
           } else { //This response MUST contain a Min-Expires header field
-            console.warn(LOG_PREFIX +'423 response received for REGISTER without Min-Expires');
+            JsSIP.warn(LOG_PREFIX +'423 response received for REGISTER without Min-Expires');
             this.registrationFailure(response, JsSIP.C.causes.SIP_FAILURE_CODE);
           }
           break;
@@ -3043,7 +3061,7 @@ Registrator.prototype = {
     var extraHeaders;
 
     if(!this.registered) {
-      console.warn(LOG_PREFIX +'already unregistered');
+      JsSIP.warn(LOG_PREFIX +'already unregistered');
       return;
     }
 
@@ -3180,6 +3198,7 @@ JsSIP.Registrator = Registrator;
 }(JsSIP));
 
 
+
 /**
  * @fileoverview Session
  */
@@ -3305,8 +3324,8 @@ RTCMediaHandler.prototype = {
         );
       },
       function(e) {
-        console.error(LOG_PREFIX +'unable to create offer');
-        console.error(e);
+        JsSIP.error(LOG_PREFIX +'unable to create offer');
+        JsSIP.error(e);
         onFailure();
       }
     );
@@ -3332,8 +3351,8 @@ RTCMediaHandler.prototype = {
         );
       },
       function(e) {
-        console.error(LOG_PREFIX +'unable to create answer');
-        console.error(e);
+        JsSIP.error(LOG_PREFIX +'unable to create answer');
+        JsSIP.error(e);
         onFailure();
       }
     );
@@ -3344,8 +3363,8 @@ RTCMediaHandler.prototype = {
       sessionDescription,
       function(){},
       function(e) {
-        console.error(LOG_PREFIX +'unable to set local description');
-        console.error(e);
+        JsSIP.error(LOG_PREFIX +'unable to set local description');
+        JsSIP.error(e);
         onFailure();
       }
     );
@@ -3355,8 +3374,8 @@ RTCMediaHandler.prototype = {
     try {
       this.peerConnection.addStream(stream, constraints);
     } catch(e) {
-      console.error(LOG_PREFIX +'error adding stream');
-      console.error(e);
+      JsSIP.error(LOG_PREFIX +'error adding stream');
+      JsSIP.error(e);
       onFailure();
       return;
     }
@@ -3369,24 +3388,19 @@ RTCMediaHandler.prototype = {
   * @param {Function} onSuccess Fired when there are no more ICE candidates
   */
   init: function(constraints) {
-    var idx, length, server, scheme, url,
+    var idx, length, server,
       self = this,
       servers = [],
       config = this.session.ua.configuration;
 
-    length = config.stun_servers.length;
-    for (idx = 0; idx < length; idx++) {
-      server = config.stun_servers[idx];
-      servers.push({'url': server});
-    }
+    servers.push({'url': config.stun_servers});
 
     length = config.turn_servers.length;
     for (idx = 0; idx < length; idx++) {
       server = config.turn_servers[idx];
-      url = server.server;
-      scheme = url.substr(0, url.indexOf(':'));
       servers.push({
-        'url': scheme + ':' + server.username + '@' + url.substr(scheme.length+1),
+        'url': server.urls,
+        'username': server.username,
         'credential': server.password
       });
     }
@@ -3394,16 +3408,16 @@ RTCMediaHandler.prototype = {
     this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({'iceServers': servers}, constraints);
 
     this.peerConnection.onaddstream = function(e) {
-      console.log(LOG_PREFIX +'stream added: '+ e.stream.id);
+      JsSIP.log(LOG_PREFIX +'stream added: '+ e.stream.id);
     };
 
     this.peerConnection.onremovestream = function(e) {
-      console.log(LOG_PREFIX +'stream removed: '+ e.stream.id);
+      JsSIP.log(LOG_PREFIX +'stream removed: '+ e.stream.id);
     };
 
     this.peerConnection.onicecandidate = function(e) {
       if (e.candidate) {
-        console.log(LOG_PREFIX +'ICE candidate received: '+ e.candidate.candidate);
+        JsSIP.log(LOG_PREFIX +'ICE candidate received: '+ e.candidate.candidate);
       } else if (self.onIceCompleted !== undefined) {
         self.onIceCompleted();
       }
@@ -3417,16 +3431,16 @@ RTCMediaHandler.prototype = {
     };
 
     this.peerConnection.onicechange = function() {
-      console.log(LOG_PREFIX +'ICE connection state changed to "'+ this.iceConnectionState +'"');
+      JsSIP.log(LOG_PREFIX +'ICE connection state changed to "'+ this.iceConnectionState +'"');
     };
 
     this.peerConnection.onstatechange = function() {
-      console.log(LOG_PREFIX +'PeerConnection state changed to "'+ this.readyState +'"');
+      JsSIP.log(LOG_PREFIX +'PeerConnection state changed to "'+ this.readyState +'"');
     };
   },
 
   close: function() {
-    console.log(LOG_PREFIX + 'closing PeerConnection');
+    JsSIP.log(LOG_PREFIX + 'closing PeerConnection');
     if(this.peerConnection) {
       this.peerConnection.close();
 
@@ -3444,17 +3458,17 @@ RTCMediaHandler.prototype = {
   getUserMedia: function(onSuccess, onFailure, constraints) {
     var self = this;
 
-    console.log(LOG_PREFIX + 'requesting access to local media');
+    JsSIP.log(LOG_PREFIX + 'requesting access to local media');
 
     JsSIP.WebRTC.getUserMedia(constraints,
       function(stream) {
-        console.log(LOG_PREFIX + 'got local media stream');
+        JsSIP.log(LOG_PREFIX + 'got local media stream');
         self.localMedia = stream;
         onSuccess(stream);
       },
       function(e) {
-        console.error(LOG_PREFIX +'unable to get user media');
-        console.error(e);
+        JsSIP.error(LOG_PREFIX +'unable to get user media');
+        JsSIP.error(e);
         onFailure();
       }
     );
@@ -3651,7 +3665,7 @@ DTMF.prototype.init_incoming = function(request) {
   }
 
   if (!this.tone || !this.duration) {
-    console.warn(LOG_PREFIX +'invalid INFO DTMF received, discarded');
+    JsSIP.warn(LOG_PREFIX +'invalid INFO DTMF received, discarded');
   } else {
     this.session.emit('newDTMF', this.session, {
       originator: 'remote',
@@ -3667,7 +3681,7 @@ return DTMF;
 
 
 var RTCSession,
-  LOG_PREFIX = JsSIP.name +' | '+ 'RTC SESSION' +' | ',
+  LOG_PREFIX = ' | '+ 'RTC SESSION' +' | ',
   C = {
     // RTCSession states
     STATUS_NULL:               0,
@@ -3749,7 +3763,7 @@ RTCSession.prototype.terminate = function(options) {
     case C.STATUS_NULL:
     case C.STATUS_INVITE_SENT:
     case C.STATUS_1XX_RECEIVED:
-      console.log(LOG_PREFIX +'canceling RTCSession');
+      JsSIP.log(LOG_PREFIX +'canceling RTCSession');
 
       if (status_code && (status_code < 200 || status_code >= 700)) {
         throw new TypeError('Invalid status_code: '+ status_code);
@@ -3779,7 +3793,7 @@ RTCSession.prototype.terminate = function(options) {
       // - UAS -
     case C.STATUS_WAITING_FOR_ANSWER:
     case C.STATUS_ANSWERED:
-      console.log(LOG_PREFIX +'rejecting RTCSession');
+      JsSIP.log(LOG_PREFIX +'rejecting RTCSession');
 
       status_code = status_code || 480;
 
@@ -3792,7 +3806,7 @@ RTCSession.prototype.terminate = function(options) {
       break;
     case C.STATUS_WAITING_FOR_ACK:
     case C.STATUS_CONFIRMED:
-      console.log(LOG_PREFIX +'terminating RTCSession');
+      JsSIP.log(LOG_PREFIX +'terminating RTCSession');
 
       // Send Bye
       this.sendBye(options);
@@ -3889,7 +3903,7 @@ RTCSession.prototype.answer = function(options) {
            */
           self.timers.ackTimer = window.setTimeout(function() {
               if(self.status === C.STATUS_WAITING_FOR_ACK) {
-                console.log(LOG_PREFIX + 'no ACK received, terminating the call');
+                JsSIP.log(LOG_PREFIX + 'no ACK received, terminating the call');
                 window.clearTimeout(self.timers.invite2xxTimer);
                 self.sendBye();
                 self.ended('remote', null, JsSIP.C.causes.NO_ACK);
@@ -3931,7 +3945,7 @@ RTCSession.prototype.answer = function(options) {
   } else if (this.status !== C.STATUS_WAITING_FOR_ANSWER) {
     throw new JsSIP.Exceptions.InvalidStateError(this.status);
   }
-  
+
   this.status = C.STATUS_ANSWERED;
 
   // An error on dialog creation will fire 'failed' event
@@ -3986,10 +4000,10 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
   } else if (!duration) {
     duration = DTMF.C.DEFAULT_DURATION;
   } else if (duration < DTMF.C.MIN_DURATION) {
-    console.warn(LOG_PREFIX +'"duration" value is lower than the minimum allowed, setting it to '+ DTMF.C.MIN_DURATION+ ' milliseconds');
+    JsSIP.warn(LOG_PREFIX +'"duration" value is lower than the minimum allowed, setting it to '+ DTMF.C.MIN_DURATION+ ' milliseconds');
     duration = DTMF.C.MIN_DURATION;
   } else if (duration > DTMF.C.MAX_DURATION) {
-    console.warn(LOG_PREFIX +'"duration" value is greater than the maximum allowed, setting it to '+ DTMF.C.MAX_DURATION +' milliseconds');
+    JsSIP.warn(LOG_PREFIX +'"duration" value is greater than the maximum allowed, setting it to '+ DTMF.C.MAX_DURATION +' milliseconds');
     duration = DTMF.C.MAX_DURATION;
   } else {
     duration = Math.abs(duration);
@@ -4002,7 +4016,7 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
   } else if (!interToneGap) {
     interToneGap = DTMF.C.DEFAULT_INTER_TONE_GAP;
   } else if (interToneGap < DTMF.C.MIN_INTER_TONE_GAP) {
-    console.warn(LOG_PREFIX +'"interToneGap" value is lower than the minimum allowed, setting it to '+ DTMF.C.MIN_INTER_TONE_GAP +' milliseconds');
+    JsSIP.warn(LOG_PREFIX +'"interToneGap" value is lower than the minimum allowed, setting it to '+ DTMF.C.MIN_INTER_TONE_GAP +' milliseconds');
     interToneGap = DTMF.C.MIN_INTER_TONE_GAP;
   } else {
     interToneGap = Math.abs(interToneGap);
@@ -4150,8 +4164,8 @@ RTCSession.prototype.init_incoming = function(request) {
      * Bad media description
      */
     function(e) {
-      console.warn(LOG_PREFIX +'invalid SDP');
-      console.warn(e);
+      JsSIP.warn(LOG_PREFIX +'invalid SDP');
+      JsSIP.warn(e);
       request.reply(488);
     }
   );
@@ -4250,7 +4264,7 @@ RTCSession.prototype.close = function() {
     return;
   }
 
-  console.log(LOG_PREFIX +'closing INVITE session ' + this.id);
+  JsSIP.log(LOG_PREFIX +'closing INVITE session ' + this.id);
 
   // 1st Step. Terminate media.
   if (this.rtcMediaHandler){
@@ -4384,7 +4398,7 @@ RTCSession.prototype.receiveRequest = function(request) {
         break;
       case JsSIP.C.INVITE:
         if(this.status === C.STATUS_CONFIRMED) {
-          console.log(LOG_PREFIX +'re-INVITE received');
+          JsSIP.log(LOG_PREFIX +'re-INVITE received');
         }
         break;
       case JsSIP.C.INFO:
@@ -4499,7 +4513,7 @@ RTCSession.prototype.receiveResponse = function(response) {
     case /^1[0-9]{2}$/.test(response.status_code):
       // Do nothing with 1xx responses without To tag.
       if(!response.to_tag) {
-        console.warn(LOG_PREFIX +'1xx response received without to tag');
+        JsSIP.warn(LOG_PREFIX +'1xx response received without to tag');
         break;
       }
 
@@ -4546,7 +4560,7 @@ RTCSession.prototype.receiveResponse = function(response) {
          * SDP Answer does not fit the Offer. Accept the call and Terminate.
          */
         function(e) {
-          console.warn(e);
+          JsSIP.warn(e);
           session.acceptAndTerminate(response, 488, 'Not Acceptable Here');
           session.failed('remote', response, JsSIP.C.causes.BAD_MEDIA_DESCRIPTION);
         }
@@ -5006,7 +5020,7 @@ JsSIP.Message = Message;
  */
 (function(JsSIP) {
 var UA,
-  LOG_PREFIX = JsSIP.name +' | '+ 'UA' +' | ',
+  LOG_PREFIX = ' | '+ 'UA' +' | ',
   C = {
     // UA status codes
     STATUS_INIT :                0,
@@ -5103,7 +5117,7 @@ UA = function(configuration) {
     this.error = C.CONFIGURATION_ERROR;
     throw e;
   }
-  
+
   // Initialize registrator
   this.registrator = new JsSIP.Registrator(this);
 };
@@ -5200,23 +5214,23 @@ UA.prototype.stop = function() {
   var session, applicant,
     ua = this;
 
-  console.log(LOG_PREFIX +'user requested closure...');
+  JsSIP.log(LOG_PREFIX +'user requested closure...');
 
   if(this.status === C.STATUS_USER_CLOSED) {
-    console.warn('UA already closed');
+    JsSIP.warn('UA already closed');
     return;
   }
-  
+
   // Clear transportRecoveryTimer
   window.clearTimeout(this.transportRecoveryTimer);
 
   // Close registrator
-  console.log(LOG_PREFIX +'closing registrator');
+  JsSIP.log(LOG_PREFIX +'closing registrator');
   this.registrator.close();
 
   // Run  _terminate_ on every Session
   for(session in this.sessions) {
-    console.log(LOG_PREFIX +'closing session ' + session);
+    JsSIP.log(LOG_PREFIX +'closing session ' + session);
     this.sessions[session].terminate();
   }
 
@@ -5240,19 +5254,19 @@ UA.prototype.stop = function() {
 UA.prototype.start = function() {
   var server;
 
-  console.log(LOG_PREFIX +'user requested startup...');
+  JsSIP.log(LOG_PREFIX +'user requested startup...');
 
   if (this.status === C.STATUS_INIT) {
     server = this.getNextWsServer();
     new JsSIP.Transport(this, server);
   } else if(this.status === C.STATUS_USER_CLOSED) {
-    console.log(LOG_PREFIX +'resuming');
+    JsSIP.log(LOG_PREFIX +'resuming');
     this.status = C.STATUS_READY;
     this.transport.connect();
   } else if (this.status === C.STATUS_READY) {
-    console.log(LOG_PREFIX +'UA is in READY status, not resuming');
+    JsSIP.log(LOG_PREFIX +'UA is in READY status, not resuming');
   } else {
-    console.error('Connection is down. Auto-Recovery system is trying to connect');
+    JsSIP.error('Connection is down. Auto-Recovery system is trying to connect');
   }
 };
 
@@ -5296,7 +5310,7 @@ UA.prototype.onTransportClosed = function(transport) {
     client_transactions = ['nict', 'ict', 'nist', 'ist'];
 
   transport.server.status = JsSIP.Transport.C.STATUS_DISCONNECTED;
-  console.log(LOG_PREFIX +'connection state set to '+ JsSIP.Transport.C.STATUS_DISCONNECTED);
+  JsSIP.log(LOG_PREFIX +'connection state set to '+ JsSIP.Transport.C.STATUS_DISCONNECTED);
 
   length = client_transactions.length;
   for (type = 0; type < length; type++) {
@@ -5322,7 +5336,7 @@ UA.prototype.onTransportClosed = function(transport) {
 UA.prototype.onTransportError = function(transport) {
   var server;
 
-  console.log(LOG_PREFIX +'transport ' + transport.server.ws_uri + ' failed | connection state set to '+ JsSIP.Transport.C.STATUS_ERROR);
+  JsSIP.log(LOG_PREFIX +'transport ' + transport.server.ws_uri + ' failed | connection state set to '+ JsSIP.Transport.C.STATUS_ERROR);
 
   // Close sessions.
   //Mark this transport as 'down' and try the next one
@@ -5362,7 +5376,7 @@ UA.prototype.onTransportConnected = function(transport) {
   this.transportRecoverAttempts = 0;
 
   transport.server.status = JsSIP.Transport.C.STATUS_READY;
-  console.log(LOG_PREFIX +'connection state set to '+ JsSIP.Transport.C.STATUS_READY);
+  JsSIP.log(LOG_PREFIX +'connection state set to '+ JsSIP.Transport.C.STATUS_READY);
 
   if(this.status === C.STATUS_USER_CLOSED) {
     return;
@@ -5394,7 +5408,7 @@ UA.prototype.receiveRequest = function(request) {
 
   // Check that Ruri points to us
   if(request.ruri.user !== this.configuration.uri.user && request.ruri.user !== this.contact.uri.user) {
-    console.warn(LOG_PREFIX +'Request-URI does not point to us');
+    JsSIP.warn(LOG_PREFIX +'Request-URI does not point to us');
     if (request.method !== JsSIP.C.ACK) {
       request.reply_sl(404);
     }
@@ -5446,7 +5460,7 @@ UA.prototype.receiveRequest = function(request) {
           session = new JsSIP.RTCSession(this);
           session.init_incoming(request);
         } else {
-          console.warn(LOG_PREFIX +'INVITE received but WebRTC is not supported');
+          JsSIP.warn(LOG_PREFIX +'INVITE received but WebRTC is not supported');
           request.reply(488);
         }
         break;
@@ -5459,7 +5473,7 @@ UA.prototype.receiveRequest = function(request) {
         if(session) {
           session.receiveRequest(request);
         } else {
-          console.warn(LOG_PREFIX +'received CANCEL request for a non existent session');
+          JsSIP.warn(LOG_PREFIX +'received CANCEL request for a non existent session');
         }
         break;
       case JsSIP.C.ACK:
@@ -5484,7 +5498,7 @@ UA.prototype.receiveRequest = function(request) {
       if(session) {
         session.receiveRequest(request);
       } else {
-        console.warn(LOG_PREFIX +'received NOTIFY request for a non existent session');
+        JsSIP.warn(LOG_PREFIX +'received NOTIFY request for a non existent session');
         request.reply(481, 'Subscription does not exist');
       }
     }
@@ -5613,12 +5627,12 @@ UA.prototype.recoverTransport = function(ua) {
   nextRetry = k * ua.configuration.connection_recovery_min_interval;
 
   if (nextRetry > ua.configuration.connection_recovery_max_interval) {
-    console.log(LOG_PREFIX + 'time for next connection attempt exceeds connection_recovery_max_interval, resetting counter');
+    JsSIP.log(LOG_PREFIX + 'time for next connection attempt exceeds connection_recovery_max_interval, resetting counter');
     nextRetry = ua.configuration.connection_recovery_min_interval;
     count = 0;
   }
 
-  console.log(LOG_PREFIX + 'next connection attempt in '+ nextRetry +' seconds');
+  JsSIP.log(LOG_PREFIX + 'next connection attempt in '+ nextRetry +' seconds');
 
   this.transportRecoveryTimer = window.setTimeout(
     function(){
@@ -5785,18 +5799,18 @@ UA.prototype.loadConfig = function(configuration) {
   };
 
   // Fill the value of the configuration_skeleton
-  console.log(LOG_PREFIX + 'configuration parameters after validation:');
+  JsSIP.log(LOG_PREFIX + 'configuration parameters after validation:');
   for(parameter in settings) {
     switch(parameter) {
       case 'uri':
       case 'registrar_server':
-        console.log('· ' + parameter + ': ' + settings[parameter]);
+        JsSIP.log('· ' + parameter + ': ' + settings[parameter]);
         break;
       case 'password':
-        console.log('· ' + parameter + ': ' + 'NOT SHOWN');
+        JsSIP.log('· ' + parameter + ': ' + 'NOT SHOWN');
         break;
       default:
-        console.log('· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
+        JsSIP.log('· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
     }
     UA.configuration_skeleton[parameter].value = settings[parameter];
   }
@@ -5925,21 +5939,21 @@ UA.configuration_check = {
       length = ws_servers.length;
       for (idx = 0; idx < length; idx++) {
         if (!ws_servers[idx].ws_uri) {
-          console.error(LOG_PREFIX +'missing "ws_uri" attribute in ws_servers parameter');
+          JsSIP.error(LOG_PREFIX +'missing "ws_uri" attribute in ws_servers parameter');
           return;
         }
         if (ws_servers[idx].weight && !Number(ws_servers[idx].weight)) {
-          console.error(LOG_PREFIX +'"weight" attribute in ws_servers parameter must be a Number');
+          JsSIP.error(LOG_PREFIX +'"weight" attribute in ws_servers parameter must be a Number');
           return;
         }
 
         url = JsSIP.Grammar.parse(ws_servers[idx].ws_uri, 'absoluteURI');
 
         if(url === -1) {
-          console.error(LOG_PREFIX +'invalid "ws_uri" attribute in ws_servers parameter: ' + ws_servers[idx].ws_uri);
+          JsSIP.error(LOG_PREFIX +'invalid "ws_uri" attribute in ws_servers parameter: ' + ws_servers[idx].ws_uri);
           return;
         } else if(url.scheme !== 'wss' && url.scheme !== 'ws') {
-          console.error(LOG_PREFIX +'invalid URI scheme in ws_servers parameter: ' + url.scheme);
+          JsSIP.error(LOG_PREFIX +'invalid URI scheme in ws_servers parameter: ' + url.scheme);
           return;
         } else {
           ws_servers[idx].sip_uri = '<sip:' + url.host + (url.port ? ':' + url.port : '') + ';transport=ws;lr>';
@@ -6085,7 +6099,7 @@ UA.configuration_check = {
     },
 
     turn_servers: function(turn_servers) {
-      var idx, length, turn_server;
+      var idx, length, turn_server, url;
 
       if (turn_servers instanceof Array) {
         // Do nothing
@@ -6096,14 +6110,32 @@ UA.configuration_check = {
       length = turn_servers.length;
       for (idx = 0; idx < length; idx++) {
         turn_server = turn_servers[idx];
-        if (!turn_server.server || !turn_server.username || !turn_server.password) {
-          return;
-        } else if (!(/^turns?:/.test(turn_server.server))) {
-          turn_server.server = 'turn:' + turn_server.server;
+
+        // Backward compatibility:
+        //Allow defining the turn_server url with the 'server' property.
+        if (turn_server.server) {
+          turn_server.urls = [turn_server.server];
         }
 
-        if(JsSIP.Grammar.parse(turn_server.server, 'turn_URI') === -1) {
+        if (!turn_server.urls || !turn_server.username || !turn_server.password) {
           return;
+        }
+
+        if (!turn_server.urls instanceof Array) {
+          turn_server.urls = [turn_server.urls];
+        }
+
+        length = turn_server.urls.length;
+        for (idx = 0; idx < length; idx++) {
+          url = turn_server.urls[idx];
+
+          if (!(/^turns?:/.test(url))) {
+            url = 'turn:' + url;
+          }
+
+          if(JsSIP.Grammar.parse(url, 'turn_URI') === -1) {
+            return;
+          }
         }
       }
       return turn_servers;
@@ -6555,7 +6587,7 @@ JsSIP.Utils = Utils;
  */
 (function(JsSIP) {
 var sanityCheck,
- LOG_PREFIX = JsSIP.name +' | '+ 'SANITY CHECK' +' | ',
+ LOG_PREFIX = ' | '+ 'SANITY CHECK' +' | ',
 
  message, ua, transport,
  requests = [],
@@ -6649,7 +6681,7 @@ function rfc3261_8_2_2_2() {
 // Sanity Check functions for responses
 function rfc3261_8_1_3_3() {
   if(message.countHeader('via') > 1) {
-    console.warn(LOG_PREFIX +'More than one Via header field present in the response. Dropping the response');
+    JsSIP.warn(LOG_PREFIX +'More than one Via header field present in the response. Dropping the response');
     return false;
   }
 }
@@ -6657,7 +6689,7 @@ function rfc3261_8_1_3_3() {
 function rfc3261_18_1_2() {
   var via_host = ua.configuration.via_host;
   if(message.via.host !== via_host) {
-    console.warn(LOG_PREFIX +'Via host in the response does not match UA Via host value. Dropping the response');
+    JsSIP.warn(LOG_PREFIX +'Via host in the response does not match UA Via host value. Dropping the response');
     return false;
   }
 }
@@ -6668,7 +6700,7 @@ function rfc3261_18_3_response() {
     contentLength = message.getHeader('content-length');
 
     if(len < contentLength) {
-      console.warn(LOG_PREFIX +'Message body length is lower than the value in Content-Length header field. Dropping the response');
+      JsSIP.warn(LOG_PREFIX +'Message body length is lower than the value in Content-Length header field. Dropping the response');
       return false;
     }
 }
@@ -6681,7 +6713,7 @@ function minimumHeaders() {
 
   while(idx--) {
     if(!message.hasHeader(mandatoryHeaders[idx])) {
-      console.warn(LOG_PREFIX +'Missing mandatory header field : '+ mandatoryHeaders[idx] +'. Dropping the response');
+      JsSIP.warn(LOG_PREFIX +'Missing mandatory header field : '+ mandatoryHeaders[idx] +'. Dropping the response');
       return false;
     }
   }
@@ -6781,7 +6813,7 @@ JsSIP.sanityCheck = sanityCheck;
  */
 (function(JsSIP) {
 var DigestAuthentication,
-  LOG_PREFIX = JsSIP.name +' | '+ 'DIGEST AUTHENTICATION' +' | ';
+  LOG_PREFIX = ' | '+ 'DIGEST AUTHENTICATION' +' | ';
 
 DigestAuthentication = function(ua) {
   this.username = ua.configuration.authorization_user;
@@ -6797,7 +6829,7 @@ DigestAuthentication = function(ua) {
 * Performs Digest authentication given a SIP request and the challenge
 * received in a response to that request.
 * Returns true if credentials were successfully generated, false otherwise.
-* 
+*
 * @param {JsSIP.OutgoingRequest} request
 * @param {Object} challenge
 */
@@ -6812,7 +6844,7 @@ DigestAuthentication.prototype.authenticate = function(request, challenge) {
 
   if (this.algorithm) {
     if (this.algorithm !== 'MD5') {
-      console.warn(LOG_PREFIX + 'challenge with Digest algorithm different than "MD5", authentication aborted');
+      JsSIP.warn(LOG_PREFIX + 'challenge with Digest algorithm different than "MD5", authentication aborted');
       return false;
     }
   } else {
@@ -6820,12 +6852,12 @@ DigestAuthentication.prototype.authenticate = function(request, challenge) {
   }
 
   if (! this.realm) {
-    console.warn(LOG_PREFIX + 'challenge without Digest realm, authentication aborted');
+    JsSIP.warn(LOG_PREFIX + 'challenge without Digest realm, authentication aborted');
     return false;
   }
 
   if (! this.nonce) {
-    console.warn(LOG_PREFIX + 'challenge without Digest nonce, authentication aborted');
+    JsSIP.warn(LOG_PREFIX + 'challenge without Digest nonce, authentication aborted');
     return false;
   }
 
@@ -6837,7 +6869,7 @@ DigestAuthentication.prototype.authenticate = function(request, challenge) {
       this.qop = 'auth-int';
     } else {
       // Otherwise 'qop' is present but does not contain 'auth' or 'auth-int', so abort here.
-      console.warn(LOG_PREFIX + 'challenge without Digest qop different than "auth" or "auth-int", authentication aborted');
+      JsSIP.warn(LOG_PREFIX + 'challenge without Digest qop different than "auth" or "auth-int", authentication aborted');
       return false;
     }
   } else {
@@ -6936,6 +6968,7 @@ DigestAuthentication.prototype.updateNcHex = function() {
 
 JsSIP.DigestAuthentication = DigestAuthentication;
 }(JsSIP));
+
 
 
 /**
