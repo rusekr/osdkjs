@@ -155,6 +155,10 @@
     var itNum = 1; // Iteration number
     var itNumMax = 10; // Maximum recursion deepness
 
+    function hasProperty(obj, prop) {
+      return Object.prototype.hasOwnProperty.call(obj, prop);
+    }
+
     if (utils.isNumber(inObj)) {
       itNum = inObj;
       utils.log('extend', arguments);
@@ -177,7 +181,7 @@
       for (var key in obj) {
 
         // Translating only object's own properties
-        if (!obj.hasOwnProperty(key)) {
+        if (!hasProperty(obj, key)) {
           utils.log('Not copying non self property', key, 'from obj', obj);
           continue;
         }
