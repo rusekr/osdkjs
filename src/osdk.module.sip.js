@@ -15,6 +15,7 @@
     'registered': ['sip.registered', 'core.connected'],
     // 'unregistered': 'sip.unregistered', // not needed now
     'registrationFailed': ['sip.registrationFailed'], // TODO: test
+    'connectionFailed': ['sip.connectionFailed'],
     'newRTCSession': ['sip.newMediaSession']
   };
 
@@ -70,16 +71,16 @@
     try {
       sip.init({
         'ws_servers': sip.config('serverURL'),
-            'ws_server_max_reconnection': 0,
-            'uri': 'sip:' + e.data.username.split(':')[1],
-            'password': e.data.password,
-            'stun_servers': [],
-            'registrar_server': 'sip:'+sip.config('serverURL').replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
-            'trace_sip': true,
-            'register': true,
-            'authorization_user': e.data.username.split(':')[1],
-            'use_preloaded_route': false
-            //,hack_via_tcp: true
+        'connection_recovery': false,
+        'uri': 'sip:' + e.data.username.split(':')[1],
+        'password': e.data.password,
+        'stun_servers': [],
+        'registrar_server': 'sip:'+sip.config('serverURL').replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
+        'trace_sip': true,
+        'register': true,
+        'authorization_user': e.data.username.split(':')[1],
+        'use_preloaded_route': false
+        //,hack_via_tcp: true
       });
 
       sip.JsSIPUA.start();
@@ -101,14 +102,15 @@
     }
   });
 
-  sip.on('sip.registrationFailed', function (data) {
+  sip.on(['sip.registrationFailed'], function (data) {
     sip.trigger('core.connectionFailed', data);
+
+    if(sip.JsSIPUA) {
+      sip.JsSIPUA.stop();
+    }
   });
 
   sip.on('sip.disconnected', function (data) {
-    // Stopping jssip autoreconnect after first connection failure
-    // TODO: in a failed state no need to trigger code.disconnected because of core.connectionFailed event
-    sip.JsSIPUA.stop();
     sip.trigger('core.disconnected', data);
   });
 

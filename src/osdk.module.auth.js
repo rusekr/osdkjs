@@ -310,8 +310,9 @@
   }, 'last');
   // Proxy for every connectionFailed message
   auth.on('core.connectionFailed', function (data) {
-    auth.utils.resetTriggerCounters('core.connected');
     auth.disconnect();
+
+    auth.utils.resetTriggerCounters(['core.connected', 'connected', 'core.disconnected', 'disconnected', 'core.connectionFailed', 'connectionFailed']);
     auth.trigger('connectionFailed', data);
   });
 
