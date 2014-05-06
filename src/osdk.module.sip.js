@@ -59,6 +59,9 @@
   // Init method
   sip.init = function (config) {
 
+    // Setting JsSIP internal logger
+    JsSIP.loggerFactory.level = 0;
+
     // JsSIP initialization
     sip.JsSIPUA = new JsSIP.UA(config);
 
