@@ -17,7 +17,7 @@
   oSDKI.registerMethods({
     "on": oSDKI.on,
     "off": oSDKI.off,
-    "md5": oSDKI.utils.md5
+    "md5": oSDKI.utils.md5 // TODO: need to be removed , client must use it's own hash functions
   });
 
 })(oSDK);

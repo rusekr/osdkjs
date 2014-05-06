@@ -1,5 +1,5 @@
 /*
- * Functions for oSDK users
+ * oSDK user module (TODO: merge into other modules which providing parts of it)
  */
 (function (oSDK) {
 
