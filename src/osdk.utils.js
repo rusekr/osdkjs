@@ -916,7 +916,7 @@
     self.utils = utils;
 
     self.config = function () {
-      // If we got parameter string like 'app.key' - returning this subpath.
+      // If we got parameter string like 'app.key' - returning <moduleName>.<this subpath> or <this subpath> if first was not found or throwing error.
       if (arguments[0] && utils.isString(arguments[0])) {
         var parameter = mainConfig[nameInt];
         var subParameter = arguments[0].split('.');
