@@ -16,9 +16,13 @@
   };
 
   var defaultConfig = {
-    apiServerURL: 'https://osdp-teligent-dev-apigw.virt.teligent.ru:8243', //TODO: replace this and following with sdk build parameter
-    credsURI: '/osdp/sm/common/1.0.1/user/ephemerals',
-    authURI: '/authorize/'
+    auth: {
+      apiServerURL: 'https://osdp-teligent-dev-apigw.virt.teligent.ru:8243', //TODO: replace this and following with sdk build parameter
+      credsURI: '/osdp/sm/common/1.0.1/user/ephemerals',
+      authURI: '/authorize/'
+    },
+    appID: null,
+    popup: false
   };
     // Oauth handling object
   var oauth = (function () {
@@ -250,7 +254,6 @@
       client_id: auth.config('appID'),
       redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
       authorization_uri: auth.config('apiServerURL')+auth.config('authURI'),
-      bearer: auth.config('appToken'),
       popup: auth.config('popup')
     });
 

@@ -30,7 +30,9 @@
   };
 
   var defaultConfig = {
-    'serverURL': 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
+    sip: {
+      'serverURL': 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
+    }
   };
 
   // Attach triggers for registered events through initialized module object
@@ -60,7 +62,9 @@
   sip.init = function (config) {
 
     // Setting JsSIP internal logger
-    JsSIP.loggerFactory.level = 0;
+    if(!sip.utils.debug) {
+      JsSIP.loggerFactory.level = 0;
+    }
 
     // JsSIP initialization
     sip.JsSIPUA = new JsSIP.UA(config);

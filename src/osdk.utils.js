@@ -29,7 +29,12 @@
         if (!utils.debug || !this.debug) {
           return;
         }
-          console[method].apply(console, ['oSDK:'].concat(Array.prototype.slice.call(arguments, 0)));
+
+        var arr = ['oSDK:'];
+        if(this.name) {
+          arr.push(this.name);
+        }
+        console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
       };
     };
 
@@ -439,10 +444,10 @@
 
   // FOR MODULE. Needed to register namespace, method or event in oSDK by its module.
   // attachableEvents - map internal events to same named oSDK events, aliases or array of aliases
-  utils.register = function (module, object) {
+  utils.register = function (object) {
 
     // Module name or Core
-    var moduleName = this.name?this.name().toUpperCase():module;
+    var moduleName = this.name;
 
     // TODO: merge similar conditions
     var i, j;
@@ -518,7 +523,7 @@
   utils.on = function (eventTypes, eventHandler, fireType) {
 
     // Module name or Client
-    var moduleName = this.name?this.name().toUpperCase():'Client';
+    var moduleName = this.name?this.name:'Client';
 
     var fireTypes = {
       'last': !0,
@@ -540,7 +545,8 @@
         handler: eventHandler,
         fireType: fireType,
         fireCounter: 0,
-        fireData: {}
+        fireData: {},
+        module: this
       };
 
       events[eventType].listeners.push(listener);
@@ -578,7 +584,7 @@
   utils.off = function (eventTypeOrID) {
 
     // Module name or Client
-    var moduleName = this.name?this.name().toUpperCase():'Client';
+    var moduleName = this.name?this.name:'Client';
 
     if (events[eventTypeOrID]) {
       // Removing all listeners for eventType
@@ -606,10 +612,19 @@
 
   // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
   // Fires custom callbacks
-  utils.trigger = function () {
+  utils.trigger = function (configObject) {
+
+    var configObjectSkel = {
+      self: false, // Trigger event(s) only to this module
+      other: false, // Trigger event(s) only to other modules
+      client: false, // Trigger event(s) to oSDK user
+      type: [], // Event type(s) to trigger
+      paramenter: [], // Parameter(s) to pass with event(s)
+      context: this // Context in which trigger event(s)
+    };
 
     // Module name or Core
-    var moduleName = this.name?this.name().toUpperCase():'Core';
+    var moduleName = this.name;
 
     var context = null,
       eventTypes = null,
@@ -869,20 +884,34 @@
    */
   function Module(name) {
     var self = this;
+    var debugInt = true;
     var nameInt = name;
     var debug = false; // Per-module debug
 
-    self.name = function () {
-      return nameInt;
-    };
-
-    self.on = utils.on;
-    self.off = utils.off;
-    self.trigger = utils.trigger;
+    Object.defineProperties(self, {
+      debug: {
+        get: function () {
+          return debugInt;
+        },
+        set: function (flag)  {
+          debugInt = !!flag;
+          return debugInt;
+        }
+      },
+      name: {
+        get: function () {
+          return nameInt;
+        }
+      }
+    });
 
     browserMethods.forEach( function (method) {
       self[method] = utils[method];
     });
+
+    self.on = utils.on;
+    self.off = utils.off;
+    self.trigger = utils.trigger;
 
     self.utils = utils;
 
@@ -891,29 +920,45 @@
       if (arguments[0] && utils.isString(arguments[0])) {
         var parameter = mainConfig[nameInt];
         var subParameter = arguments[0].split('.');
-        for (var i = 0; i < subParameter.length; i++) {
+        var i = 0;
+        for (; i < subParameter.length; i++) {
+          if(!Object.prototype.hasOwnProperty.call(parameter, subParameter[i])) {
+            parameter = undefined;
+            break;
+          }
           parameter = parameter[subParameter[i]];
         }
+        if(parameter === undefined) {
+          parameter = mainConfig;
+          subParameter = arguments[0].split('.');
+          for (i = 0; i < subParameter.length; i++) {
+            if(!Object.prototype.hasOwnProperty.call(parameter, subParameter[i])) {
+              throw new Error('Module.config: can\'t find config parameter:' + arguments[0]);
+            }
+            parameter = parameter[subParameter[i]];
+          }
+        }
         return parameter;
+      } else {
+        throw new Error('Module.config: can\'t find config parameter:' + arguments[0]);
       }
-      return mainConfig[nameInt];
     };
 
     // TODO: inter-modules events, to-client events
     self.registerEvents = function (eventsObject) {
-      utils.register(name, { events: eventsObject });
+      utils.register({ events: eventsObject });
     };
 
     self.registerMethods = function (methodsObject) {
-      utils.register(name, { methods: methodsObject });
+      utils.register({ methods: methodsObject });
     };
 
     self.registerNamespaces = function (namespacesObject) {
-      utils.register(name, { namespaces: namespacesObject });
+      utils.register({ namespaces: namespacesObject });
     };
 
     self.registerConfig = function (configObject) {
-      mainConfig[name] = utils.extend({}, mainConfig[name], configObject);
+      mainConfig = utils.extend({}, mainConfig, configObject);
     };
 
     // Adding module to registered modules object
