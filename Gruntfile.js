@@ -47,9 +47,9 @@ module.exports = function(grunt) {
 
           'src/osdk.module.errors.js',
           'src/osdk.module.auth.js',
-          'src/osdk.module.sip.js',
-//          'src/osdk.module.xmpp.js',
           'src/osdk.module.user.js',
+          'src/osdk.module.sip.js',
+          'src/osdk.module.xmpp.js',
           'src/osdk.module.interface.js'
         ],
         dest: 'build/<%= pkg.name %>.js'

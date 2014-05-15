@@ -3,50 +3,73 @@
  */
 (function (oSDK) {
 
-  /**
+  /*
    * Use strict mode
    */
 
   "use strict";
 
-  /**
+  /*
    * User on oSDK
    */
 
-  var user = new oSDK.Module('user');
+  var module = new oSDK.Module('user');
 
   /**
    * Constructor to User object
    */
 
-  function User(id, params) {
-    id = id.toLowerCase();
-    this.account = id;
-    this.login = this.account.split('@')[0];
-    this.domain = this.account.split('@')[1];
-    this.group = null;
-    this.status = 'unavailable';
-    this.subscription = 'none';
-    this.ask = null;
-    this.history = [];
-    this.can = {
-      chat: false,
-      audio: false,
-      video: false
-    };
-    user.info('Create client: ' + this.account);
+  function User(params) {
+
+    // Report
+    module.info('Create client: ' + this.account);
+
   }
 
-  /**
+  /*
    * Module user
    */
 
-  user.registerMethods({
-    user: function(id, params) {
-      if (id && user.utils.isString(id) && user.utils.isValidAccount(id)) {
-        return new User(id, (params) ? params : {});
+  module.registerNamespaces({
+    user: {
+      // Create new exemplar of {Object} User
+      create: function(a, params) {
+        if (a && module.utils.isString(a) && module.utils.isValidAccount(a)) {
+          var account = a.toLowerCase();
+          var user = new User(params);
+          Object.defineProperties(user, {
+            "account": {
+              value: account,
+              writable: false,
+              configurable: false,
+              enumerable: false
+            },
+            "login": {
+              value: account.split('@')[0],
+              writable: false,
+              configurable: false,
+              enumerable: false
+            },
+            "domain": {
+              value: account.split('@')[1],
+              writable: false,
+              configurable: false,
+              enumerable: false
+            }
+          });
+          return user;
+        }
+        return false;
+      },
+      // Add properties and methods to {Object} User
+      extend: function(proto) {
+        for (var i in proto) {
+          Object.defineProperty(User, i, { "value": proto[i] });
+          if (proto[i] instanceof Function) {
+            proto[i].bind(User);
+          }
+        }
       }
-      return false;
     }
   });
 

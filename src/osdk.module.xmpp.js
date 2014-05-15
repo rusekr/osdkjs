@@ -18,15 +18,20 @@
     var self = this;
 
     // Logged user
-    this.client = oSDK.user(params.login + '@' + params.domain);
+    this.client = oSDK.user.create(params.login + '@' + params.domain);
+    // Roster
+    this.roster = [];
     // Contacts list (and links)
     this.contacts = [];
     this.linksToContactsByAccount = {};
     this.linksToContactsByLogin = {};
     // Requests list (and links)
-    this.requests = [];
-    this.linksToRequestsByAccount = {};
-    this.linksToRequestsByLogin = {};
+    this.acceptedRequests = [];
+    this.linksToAcceptedRequestsByAccount = {};
+    this.linksToAcceptedRequestsByLogin = {};
+    this.sendedRequests = [];
+    this.linksToSendedRequestsByAccount = {};
+    this.linksToSendedRequestsByLogin = {};
     // State flag's
     this.flags = {
       // I am logged now
@@ -44,8 +49,6 @@
   var xmpp;
 
   function XMPP(module) {
-
-    window.jopa = module;
 
     // Self,  utils, JSJaC connection & inner storage
 
@@ -81,7 +84,7 @@
     // Default config
 
     this.config = function() {
-      return {
+      return { xmpp: {
         // Settings
         settings: {
           subscriptionsMethod: self.OSDK_XMPP_SUBSCRIPTIONS_METHOD_CLASSIC,
@@ -107,7 +110,7 @@
             url: 'http-bind'
           }
         }
-      };
+      } };
     };
 
     // Register config
@@ -120,7 +123,10 @@
       return {
         'connected': ['xmpp.connected', 'core.connected'],
         'disconnected': ['xmpp.disconnected', 'core.disconnected'],
-        'connectionFailed': ['xmpp.connectionFailed', 'core.connectionFailed']
+        'connectionFailed': ['xmpp.connectionFailed', 'core.connectionFailed'],
+        // Client
+        'contactCapabilitiesChanged': true,
+        'contactStatusChanged': true
       };
     };
 
@@ -132,36 +138,49 @@
 
     this.registerMethods = module.registerMethods;
 
+    // Extend {Object} User
+
+    oSDK.user.extend({
+      // Properties
+      group: 'General',
+      subscription: this.OSDK_SUBSCRIPTION_NONE,
+      ask: false,
+      status: 'unavailable',
+      canChat: false,
+      // Temp
+      picture: false
+    });
+
     // Inner commands
 
     this.commands = {
       iAmLogged: function(data) {
-        if (storage.flags.iAmLoggedNow) {
-          /* TODO */
-        } else {
-          xmpp.sendPresence({
-            to: data.from,
-            show: 'chat',
-            data: utils.jsonEncode({
-              command: 'thatICan',
-              data: {
-                iCan: {
-                  chat: true,
-                  audio: true,
-                  video: true
-                }
+        xmpp.sendPresence({
+          to: data.info.from,
+          show: 'chat',
+          data: utils.jsonEncode({
+            command: 'thatICan',
+            data: {
+              iCan: {
+                chat: true,
+                audio: true,
+                video: true
               }
-            })
-          });
-          var contact = xmpp.getContactByAccount(data.from);
-          contact.can.chat = data.iCan.chat;
-          contact.can.audio = data.iCan.audio;
-          contact.can.video = data.iCan.video;
-          module.trigger('contactCapabilitiesChanged', {contact: contact});
-        }
+            }
+          })
+        });
+        var contact = xmpp.getContactByAccount(data.info.from);
+        contact.canChat = true;
+        contact.canAudio = true;
+        contact.canVideo = true;
+        xmpp.thatICan(data.info.from);
       },
       thatICan: function(data) {
-        console.log(data);
+        var contact = xmpp.getContactByAccount(data.info.from);
+        contact.canChat = true;
+        contact.canAudio = true;
+        contact.canVideo = true;
+        module.trigger('contactCapabilitiesChanged', {contact: contact});
       }
     };
 
@@ -211,16 +230,51 @@
           if (data.from == data.to) {
             /* TODO */
           } else {
-            console.log(data);
+            if (data.type && data.type == xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE) {
+              xmpp.getContactByAccount(data.from).status = 'unavailable';
+              xmpp.getContactByAccount(data.from).canChat = false;
+              xmpp.getContactByAccount(data.from).canAudio = false;
+              xmpp.getContactByAccount(data.from).canVideo = false;
+              module.trigger('contactIsUnavailable', {contact: xmpp.getContactByAccount(data.from)});
+              return true;
+            }
             if (data.status && utils.isObject(data.status) && data.status.command) {
               if (typeof xmpp.commands[data.status.command] == 'function') {
-                data.status.data.command = data.status.command;
-                data.status.data.from = data.from;
-                data.status.data.to = data.to;
-                xmpp.commands[data.status.command](data.status.data);
+                var params = {
+                  info: {
+                    command: data.status.command,
+                    from: data.from,
+                    to: data.to
+                  },
+                  data: data.status.data
+                };
+                delete params.data.command;
+                delete params.data.from;
+                delete params.data.to;
+                xmpp.commands[data.status.command](params);
+                return true;
               }
             }
-            var contact = xmpp.getContactByAccount(data.from);
+            if (data.show) {
+              switch(data.show) {
+                case xmpp.OSDK_PRESENCE_SHOW_CHAT :
+                  xmpp.getContactByAccount(data.from).status = 'ready';
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_AWAY :
+                  xmpp.getContactByAccount(data.from).status = 'away';
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_DND :
+                  xmpp.getContactByAccount(data.from).status = 'dnd';
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_XA :
+                  xmpp.getContactByAccount(data.from).status = 'unavailable';
+                  break;
+                default :
+                  break;
+              }
+              module.trigger('contactStatusChanged', {contact: xmpp.getContactByAccount(data.from)});
+            }
+            // var contact = xmpp.getContactByAccount(data.from);
             /*
             if (!data.type && contact.status == xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE) data.type = OSDK_PRESENCE_TYPE_AVAILABLE;
             if (data.type == OSDK_PRESENCE_TYPE_UNAVAILABLE) {
@@ -271,17 +325,15 @@
       },
       fnIncomingPacket: function(packet) {
         module.info('XMPP HANDLER(incoming packet)');
-
       },
       fnOutcomingPacket: function(packet) {
         module.info('XMPP HANDLER(outcoming packet)');
-
       },
       fnOnConnect: function() {
         module.info('XMPP HANDLER(connect)');
         if (storage.flags.connect != 'connected') {
           storage.flags.connect = 'connected';
-          storage.client.can.chat = true;
+          storage.client.canChat = true;
           if (module.config('settings.autoGetRosterOnConnect')) {
             xmpp.getRoster({
               onError: function() {
@@ -378,8 +430,8 @@
      * @getRequestByAccount - return request by account from reqyests list
      */
 
-    this.generateLinkToItem = function(account) {
-      return '__' + utils.md5(account);
+    this.generateLinkToItem = function(data) {
+      return '__' + utils.md5(data);
     };
 
     this.getContactByAccount = function(account) {
@@ -387,19 +439,9 @@
       return (typeof storage.contacts[index] != 'undefined') ? storage.contacts[index] : false;
     };
 
-    this.getRequestByAccount = function(account) {
-      var index = storage.linksToRequestsByAccount[this.generateLinkToItem(account)];
-      return (typeof storage.requests[index] != 'undefined') ? storage.requests[index] : false;
-    };
-
     this.getContactByLogin = function(login) {
       var index = storage.linksToContactsByLogin[this.generateLinkToItem(login)];
       return (typeof storage.contacts[index] != 'undefined') ? storage.contacts[index] : false;
-    };
-
-    this.getRequestByLogin = function(login) {
-      var index = storage.linksToRequestsByLogin[this.generateLinkToItem(login)];
-      return (typeof storage.requests[index] != 'undefined') ? storage.requests[index] : false;
     };
 
     // Sort roster (by ascii codes)
@@ -473,7 +515,6 @@
 
     this.iAmLogged = function(handlers) {
       if (connection.connected()) {
-        storage.flags.iAmLoggedNow = true;
         var isHandlers = handlers || {};
         var handlerOnError = isHandlers.onError || function() {/* --- */};
         var handlerOnSuccess = isHandlers.onSuccess || function() {/* --- */};
@@ -497,12 +538,30 @@
       return false;
     };
 
-    this.thatICan = function(handlers) {
+    this.thatICan = function(to, handlers) {
       if (connection.connected()) {
         var isHandlers = handlers || {};
         var handlerOnError = isHandlers.onError || function() {/* --- */};
         var handlerOnSuccess = isHandlers.onSuccess || function() {/* --- */};
+        this.sendPresence({
+          to: to,
+          show: xmpp.OSDK_PRESENCE_SHOW_CHAT,
+          data: {
+            command: 'thatICan',
+            data: {
+              iCan: {
+                chat: true,
+                audio: true,
+                video: true
+              }
+            }
+          },
+          onError: handlerOnError,
+          onSuccess: handlerOnSuccess
+        });
+        return true;
       }
+      return false;
     };
 
     // Get roster
@@ -525,16 +584,27 @@
             var client = storage.client;
             var i, len = nodes.childNodes.length;
             var logic = module.config('settings.subscriptionsMethod');
+
+            storage.roster = [];
+
             storage.contacts = [];
-            storage.requests = [];
             storage.linksToContactsByAccount = {};
             storage.linksToContactsByLogin = {};
-            storage.linksToRequestsByAccount = {};
-            storage.linksToRequestsByLogin = {};
+
+            /* Accept on start from presence
+            storage.acceptedRequests = [];
+            storage.linksToAcceptedRequestsByAccount = {};
+            storage.linksToAcceptedRequestsByLogin = {};
+            */
+
+            storage.sendedRequests = [];
+            storage.linksToSendedRequestsByAccount = {};
+            storage.linksToSendedRequestsByLogin = {};
+
             for (i = 0; i != len; i ++) {
-              var jid = nodes.childNodes[i].getAttribute('jid');
+              var jid = nodes.childNodes[i].getAttribute('jid').toLowerCase();
               if (jid != client.account) {
-                var user = oSDK.user(jid);
+                var user = oSDK.user.create(jid);
                 var ask = nodes.childNodes[i].getAttribute('ask');
                 var subscription = nodes.childNodes[i].getAttribute('subscription');
                 // CLASSIC SUBSCRIPTION STYLE
@@ -551,40 +621,58 @@
                         /* TODO */
                         break;
                     }
-                    storage.requests.push(user);
-                    storage.linksToRequestsByAccount[xmpp.generateLinkToItem(user.account)] = storage.requests.length - 1;
-                    storage.linksToRequestsByLogin[xmpp.generateLinkToItem(user.login)] = storage.requests.length - 1;
                   } else {
-                    if (subscription && subscription != xmpp.OSDK_SUBSCRIPTION_NONE) {
-                      switch (subscription) {
-                        case xmpp.OSDK_SUBSCRIPTION_NONE :
-                          user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
-                          break;
-                        case xmpp.OSDK_SUBSCRIPTION_FROM :
-                          user.subscription = xmpp.OSDK_SUBSCRIPTION_FROM;
-                          break;
-                        case xmpp.OSDK_SUBSCRIPTION_TO :
-                          user.subscription = xmpp.OSDK_SUBSCRIPTION_TO;
-                          break;
-                        case xmpp.OSDK_SUBSCRIPTION_BOTH :
-                          user.subscription = xmpp.OSDK_SUBSCRIPTION_BOTH;
-                          break;
-                        default :
-                          /* TODO */
-                          break;
-                      }
-                      storage.contacts.push(user);
-                      storage.linksToContactsByAccount[xmpp.generateLinkToItem(user.account)] = storage.contacts.length - 1;
-                      storage.linksToContactsByLogin[xmpp.generateLinkToItem(user.login)] = storage.contacts.length - 1;
-                    }
+                    user.ask = false;
                   }
+                  if (subscription && subscription != xmpp.OSDK_SUBSCRIPTION_NONE) {
+                    switch (subscription) {
+                      case xmpp.OSDK_SUBSCRIPTION_NONE :
+                        user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+                        break;
+                      case xmpp.OSDK_SUBSCRIPTION_FROM :
+                        user.subscription = xmpp.OSDK_SUBSCRIPTION_FROM;
+                        break;
+                      case xmpp.OSDK_SUBSCRIPTION_TO :
+                        user.subscription = xmpp.OSDK_SUBSCRIPTION_TO;
+                        break;
+                      case xmpp.OSDK_SUBSCRIPTION_BOTH :
+                        user.subscription = xmpp.OSDK_SUBSCRIPTION_BOTH;
+                        break;
+                      default :
+                        /* TODO */
+                        break;
+                    }
+                  } else {
+                    user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+                  }
+                  if (jid == 'ruivio1@teligent.ru') user.picture = '00.jpg';
+                  if (jid == 'ruivio2@teligent.ru') user.picture = '01.jpg';
+                  if (jid == 'rusekr1@teligent.ru') user.picture = '02.jpg';
+                  if (jid == 'rusekr2@teligent.ru') user.picture = '03.jpg';
+                  storage.roster.push(user);
                 }
                 // BLIND SUBSCRIPTION STYLE
-                /* TODO */
+                if (logic == xmpp.OSDK_XMPP_SUBSCRIPTIONS_METHOD_BLIND) {
+                  /* TODO */
+                }
               }
             }
-            if (storage.contacts.length) storage.contacts = xmpp.sortRosterResult(storage.contacts);
-            if (storage.requests.length) storage.requests = xmpp.sortRosterResult(storage.requests);
+            if (storage.roster.length) storage.roster = xmpp.sortRosterResult(storage.roster);
+            for (i = 0; i != storage.roster.length; i ++) {
+              // CLASSIC SUBSCRIPTION STYLE
+              if (logic == xmpp.OSDK_XMPP_SUBSCRIPTIONS_METHOD_CLASSIC) {
+                var u = storage.roster[i];
+                if (u.subscription == xmpp.OSDK_SUBSCRIPTION_TO || u.subscription == xmpp.OSDK_SUBSCRIPTION_BOTH) {
+                  storage.contacts[storage.contacts.length] = u;
+                  storage.linksToContactsByAccount[xmpp.generateLinkToItem(u.account)] = storage.contacts.length - 1;
+                  storage.linksToContactsByLogin[xmpp.generateLinkToItem(u.login)] = storage.contacts.length - 1;
+                } else {
+                  if (u.ask && u.ask == xmpp.OSDK_ROSTER_ASK_SUBSCRIBE) {
+                    storage.sendedRequests[storage.sendedRequests.length] = u;
+                  }
+                }
+              }
+            }
             handlerOnSuccess(storage.contacts, storage.requests);
           }
         });
@@ -595,11 +683,10 @@
 
     this.getClient = function() { return storage.client; };
     this.getContacts = function() { return storage.contacts; };
-    this.getRequests = function() { return storage.requests; };
 
     // Initiation
 
-    module.on('auth.gotTempCreds', function() {
+    module.on('core.gotTempCreds', function() {
       // Check & define params
       var params = {
         debug: module.config('connection.debug'),
@@ -639,8 +726,8 @@
       connection.registerHandler('message_out', xmpp.handlers.fnOutcomingMessage);
       connection.registerHandler('presence_in', xmpp.handlers.fnIncomingPresence);
       connection.registerHandler('presence_out', xmpp.handlers.fnOutcomingPresence);
-      connection.registerHandler('packet_in', xmpp.handlers.fnIncomingPacket);
-      connection.registerHandler('packet_out', xmpp.handlers.fnOutcomingPacket);
+      // connection.registerHandler('packet_in', xmpp.handlers.fnIncomingPacket);
+      // connection.registerHandler('packet_out', xmpp.handlers.fnOutcomingPacket);
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
       // Connect and login
@@ -664,23 +751,10 @@
 
     xmpp.registerMethods({
 
-      setState: function(state, handlers) {
-
-      },
-
-      sendDataTo: function(to, data, handlers) {
-
-      },
-
-      sendDataAll: function(data, handlers) {
-
-      },
-
-      getRoster: xmpp.getRoster,
-
+      // Return info about current logged user
       getClient: xmpp.getClient,
-      getContacts: xmpp.getContacts,
-      getRequests: xmpp.getRequests
+      // Return contacts list for current logged user
+      getContacts: xmpp.getContacts
 
     });
 
