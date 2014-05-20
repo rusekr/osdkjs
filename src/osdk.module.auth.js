@@ -186,7 +186,7 @@
     oauth.ajax({
 
       url: auth.config('apiServerURL')+auth.config('credsURI'),
-      type: 'post',
+      type: 'get',
       oauthType: 'both',
       data: {
         //service: 'sip' // FIXME: needed?
