@@ -660,6 +660,7 @@
       if (!events[eventType]) {
         // Non fatal
         utils.warn('Event' + eventType + 'not registered by emitter or listener, therefore can\'t trigger!');
+        return;
       }
 
       // Regstered emitters may be zero (e.g. in case of oauth popup)

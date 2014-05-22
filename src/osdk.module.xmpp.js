@@ -19,6 +19,8 @@
 
     // Logged user
     this.client = oSDK.user.create(params.login + '@' + params.domain);
+    this.client.status = 'ready';
+    delete this.client.history;
     // Roster
     this.roster = [];
     // Contacts list (and links)
@@ -32,6 +34,10 @@
     this.sendedRequests = [];
     this.linksToSendedRequestsByAccount = {};
     this.linksToSendedRequestsByLogin = {};
+    // Rejected requests
+    this.rejectedRequests = [];
+    this.linksToRejectedRequestsByAccount = {};
+    this.linksToRejectedRequestsByLogin = {};
     // State flag's
     this.flags = {
       // I am logged now
@@ -230,12 +236,163 @@
           if (data.from == data.to) {
             /* TODO */
           } else {
-            if (data.type && data.type == xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE) {
-              xmpp.getContactByAccount(data.from).status = 'unavailable';
-              xmpp.getContactByAccount(data.from).canChat = false;
-              xmpp.getContactByAccount(data.from).canAudio = false;
-              xmpp.getContactByAccount(data.from).canVideo = false;
-              module.trigger('contactIsUnavailable', {contact: xmpp.getContactByAccount(data.from)});
+            // If is set system type of presence
+            if (data.type) {
+              switch(data.type) {
+                // AVAILABLE
+                case xmpp.OSDK_PRESENCE_TYPE_AVAILABLE :
+                  /* TODO */
+                  break;
+                // UNAVAILABLE
+                case xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE :
+                  // If is set in contacts list
+                  var unavailable_contact = xmpp.getContactByAccount(data.from);
+                  if (unavailable_contact) {
+                    unavailable_contact.status = 'unavailable';
+                    unavailable_contact.canChat = false;
+                    unavailable_contact.canAudio = false;
+                    unavailable_contact.canVideo = false;
+                    module.trigger('contactIsUnavailable', {contact: unavailable_contact});
+                    return true;
+                  }
+                  break;
+                // SUBSCRIBE
+                case xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE :
+                  if (!xmpp.getContactByAccount(data.from)) {
+                    if (false) {
+
+                    }
+                    if (!xmpp.getAcceptedRequestByAccount(data.from)) {
+                      storage.acceptedRequests.push(oSDK.user.create(data.from));
+                      storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(data.from)] = storage.acceptedRequests.length - 1;
+                      storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(data.from.split('@')[0])] = storage.acceptedRequests.length - 1;
+                    }
+                    module.trigger('newSubscriptionRequest', {account: data.from});
+                    return true;
+                  } else {
+                    if (xmpp.getContactByAccount(data.from) && xmpp.getContactByAccount(data.from).subscription == xmpp.OSDK_SUBSCRIPTION_TO) {
+                      xmpp.sendPresence({
+                        to: data.from,
+                        type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBED
+                      });
+                      xmpp.getRoster();
+                      setTimeout(function() { xmpp.thatICan(data.from); }, 1500);
+                    }
+                  }
+                  break;
+                // SUBSCRIBED
+                case xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBED :
+                  var contact_f_contacts = xmpp.getContactByAccount(data.from);
+                  var contact_f_requests = xmpp.getSendedRequestByAccount(data.from);
+                  if (!contact_f_contacts) {
+                    if (contact_f_requests && contact_f_requests.ask && contact_f_requests.ask == xmpp.OSDK_ROSTER_ASK_SUBSCRIBE) {
+                      var account = contact_f_requests.account;
+                      xmpp.getRoster({
+                        onError: function() {
+                          /* TODO */
+                        },
+                        onSuccess: function() {
+                          module.trigger('authRequestAccepted', {contact: xmpp.getContactByAccount(account)});
+                        }
+                      });
+                    } else {
+                      xmpp.getRoster();
+                    }
+                  }
+                  break;
+                // UNSUBSCRIBE
+                case xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBE :
+                  var contact_r_contacts = xmpp.getContactByAccount(data.from);
+                  if (contact_r_contacts) {
+                    xmpp.sendPresence({
+                      to: data.from,
+                      type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
+                    });
+                    xmpp.sendPresence({
+                      to: data.from,
+                      type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBE
+                    });
+                    xmpp.getRoster({
+                      onError: function() {
+                        /* TODO */
+                      },
+                      onSuccess: function() {
+                        /* TODO */
+                      }
+                    });
+                  } else {
+                    xmpp.sendPresence({
+                      to: data.from,
+                      type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
+                    });
+                    xmpp.deleteContact(data.from);
+                    xmpp.getRoster({
+                      onError: function() {
+                        /* TODO */
+                      },
+                      onSuccess: function() {
+                        /* TODO */
+                      }
+                    });
+                  }
+                  break;
+                // UNSUBSCRIBED
+                case xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED :
+                  var contact_from_contacts = xmpp.getContactByAccount(data.from);
+                  var contact_from_requests = xmpp.getSendedRequestByAccount(data.from);
+                  if (!contact_from_contacts) {
+                    if (contact_from_requests && contact_from_requests.ask && contact_from_requests.ask == xmpp.OSDK_ROSTER_ASK_SUBSCRIBE) {
+                      xmpp.deleteContact(data.from, {
+                        onError: function() {
+                          /* TODO */
+                        },
+                        onSuccess: function() {
+                          xmpp.getRoster({
+                            onError: function() {
+                              /* TODO */
+                            },
+                            onSuccess: function() {
+                              module.trigger('authRequestRejected', {contact: contact_from_requests});
+                            }
+                          });
+                        }
+                      });
+                    }
+                  } else {
+                    var a = contact_from_contacts.account;
+                    xmpp.deleteContact(a);
+                    xmpp.getRoster({
+                      onError: function() {
+                        /* TODO */
+                      },
+                      onSuccess: function() {
+                        module.trigger('contactRemoved', {contact: oSDK.user.create(a)});
+                      }
+                    });
+                  }
+                  break;
+              }
+            }
+            if (data.show && xmpp.getContactByAccount(data.from)) {
+              switch(data.show) {
+                case xmpp.OSDK_PRESENCE_SHOW_CHAT :
+                  xmpp.getContactByAccount(data.from).status = 'ready';
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_AWAY :
+                  xmpp.getContactByAccount(data.from).status = 'away';
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_DND :
+                  xmpp.getContactByAccount(data.from).status = 'dnd';
+                  xmpp.getContactByAccount(data.from).canAudio = false;
+                  xmpp.getContactByAccount(data.from).canVideo = false;
+                  break;
+                case xmpp.OSDK_PRESENCE_SHOW_XA :
+                  xmpp.getContactByAccount(data.from).status = 'unavailable';
+                  break;
+                default :
+                  break;
+              }
+              module.trigger('contactStatusChanged', {contact: xmpp.getContactByAccount(data.from)});
               return true;
             }
             if (data.status && utils.isObject(data.status) && data.status.command) {
@@ -254,25 +411,6 @@
                 xmpp.commands[data.status.command](params);
                 return true;
               }
-            }
-            if (data.show) {
-              switch(data.show) {
-                case xmpp.OSDK_PRESENCE_SHOW_CHAT :
-                  xmpp.getContactByAccount(data.from).status = 'ready';
-                  break;
-                case xmpp.OSDK_PRESENCE_SHOW_AWAY :
-                  xmpp.getContactByAccount(data.from).status = 'away';
-                  break;
-                case xmpp.OSDK_PRESENCE_SHOW_DND :
-                  xmpp.getContactByAccount(data.from).status = 'dnd';
-                  break;
-                case xmpp.OSDK_PRESENCE_SHOW_XA :
-                  xmpp.getContactByAccount(data.from).status = 'unavailable';
-                  break;
-                default :
-                  break;
-              }
-              module.trigger('contactStatusChanged', {contact: xmpp.getContactByAccount(data.from)});
             }
             // var contact = xmpp.getContactByAccount(data.from);
             /*
@@ -376,7 +514,6 @@
         module.info('XMPP HANDLER(disconnect)');
         if (storage.flags.connect != 'disconnected') {
           storage.flags.connect = 'disconnected';
-          storage.client.can.chat = false;
           module.trigger(['xmpp.disconnected', 'core.disconnected'], [].slice.call(arguments, 0));
           return true;
         }
@@ -435,13 +572,43 @@
     };
 
     this.getContactByAccount = function(account) {
-      var index = storage.linksToContactsByAccount[this.generateLinkToItem(account)];
+      var index = storage.linksToContactsByAccount[xmpp.generateLinkToItem(account)];
       return (typeof storage.contacts[index] != 'undefined') ? storage.contacts[index] : false;
     };
 
     this.getContactByLogin = function(login) {
-      var index = storage.linksToContactsByLogin[this.generateLinkToItem(login)];
+      var index = storage.linksToContactsByLogin[xmpp.generateLinkToItem(login)];
       return (typeof storage.contacts[index] != 'undefined') ? storage.contacts[index] : false;
+    };
+
+    this.getAcceptedRequestByAccount = function(account) {
+      var index = storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(account)];
+      return (typeof storage.acceptedRequests[index] != 'undefined') ? storage.acceptedRequests[index] : false;
+    };
+
+    this.getAcceptedRequestByLogin = function(login) {
+      var index = storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(login)];
+      return (typeof storage.acceptedRequests[index] != 'undefined') ? storage.acceptedRequests[index] : false;
+    };
+
+    this.getSendedRequestByAccount = function(account) {
+      var index = storage.linksToSendedRequestsByAccount[xmpp.generateLinkToItem(account)];
+      return (typeof storage.sendedRequests[index] != 'undefined') ? storage.sendedRequests[index] : false;
+    };
+
+    this.getSendedRequestByLogin = function(login) {
+      var index = storage.linksToSendedRequestsByLogin[xmpp.generateLinkToItem(login)];
+      return (typeof storage.sendedRequests[index] != 'undefined') ? storage.sendedRequests[index] : false;
+    };
+
+    this.getRejectedRequestByAccount = function(account) {
+      var index = storage.linksToRejectedRequestsByAccount[xmpp.generateLinkToItem(account)];
+      return (typeof storage.rejectedRequests[index] != 'undefined') ? storage.rejectedRequests[index] : false;
+    };
+
+    this.getRejectedRequestByLogin = function(login) {
+      var index = storage.linksToRejectedRequestsByLogin[xmpp.generateLinkToItem(login)];
+      return (typeof storage.rejectedRequests[index] != 'undefined') ? storage.rejectedRequests[index] : false;
     };
 
     // Sort roster (by ascii codes)
@@ -505,12 +672,24 @@
         try {
           connection.send(presence);
           if (params.onSuccess) params.onSuccess();
+          return true;
         } catch(eSendPresence) {
           if (params.onError) params.onError();
+          return false;
         }
-        return true;
       }
-      return false;
+    };
+
+    this.sendPresenceToAll = function(params) {
+      var contacts = this.getContacts(), i;
+      var data = params || {};
+      for (i = 0; i != contacts.length; i ++) {
+        data.to = contacts[i].account;
+        if (!this.sendPresence(data)) {
+          return false;
+        }
+      }
+      return true;
     };
 
     this.iAmLogged = function(handlers) {
@@ -581,6 +760,7 @@
           },
           result_handler: function(aiq, arg) {
             var nodes = aiq.getQuery();
+            console.warn(nodes);
             var client = storage.client;
             var i, len = nodes.childNodes.length;
             var logic = module.config('settings.subscriptionsMethod');
@@ -643,7 +823,12 @@
                         break;
                     }
                   } else {
-                    user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+                    if (!ask && subscription && subscription == xmpp.OSDK_SUBSCRIPTION_NONE) {
+                      /* TODO */
+                      user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+                    } else {
+                      user.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+                    }
                   }
                   if (jid == 'ruivio1@teligent.ru') user.picture = '00.jpg';
                   if (jid == 'ruivio2@teligent.ru') user.picture = '01.jpg';
@@ -669,10 +854,20 @@
                 } else {
                   if (u.ask && u.ask == xmpp.OSDK_ROSTER_ASK_SUBSCRIBE) {
                     storage.sendedRequests[storage.sendedRequests.length] = u;
+                    storage.linksToSendedRequestsByAccount[xmpp.generateLinkToItem(u.account)] = storage.sendedRequests.length - 1;
+                    storage.linksToSendedRequestsByLogin[xmpp.generateLinkToItem(u.login)] = storage.sendedRequests.length - 1;
+                  } else {
+                    if (!u.ask && u.subscription == xmpp.OSDK_SUBSCRIPTION_NONE) {
+                      storage.rejectedRequests[storage.rejectedRequests.length] = u;
+                      storage.linksToRejectedRequestsByAccount[xmpp.generateLinkToItem(u.account)] = storage.rejectedRequests.length - 1;
+                      storage.linksToRejectedRequestsByLogin[xmpp.generateLinkToItem(u.login)] = storage.rejectedRequests.length - 1;
+                    }
                   }
                 }
               }
             }
+            console.warn(storage);
+            module.trigger('newContactsList', {contacts: storage.contacts});
             handlerOnSuccess(storage.contacts, storage.requests);
           }
         });
@@ -681,8 +876,390 @@
       return false;
     };
 
+    // Add & Remove (|| delete) Contact
+
+    this.addContact = function(jid, cb) {
+      var contact;
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      if (oSDK.utils.isEmpty(jid)) {
+        callbacks.onError({
+          type: 'account is empty',
+          data: jid
+        });
+      } else {
+        if (!oSDK.utils.isString(jid)) {
+          callbacks.onError({
+            type: 'bad account',
+            data: jid
+          });
+        } else {
+          if (!oSDK.utils.isValidLogin(jid) && !oSDK.utils.isValidAccount(jid)) {
+            callbacks.onError({
+              type: 'invalid account',
+              data: jid
+            });
+          } else {
+            if (!connection.connected()) {
+              /* TODO */
+            } else {
+              if (!oSDK.utils.isValidAccount(jid)) jid = jid + '@' + oSDK.client.domain();
+              if (this.getContactByAccount(jid)) {
+                callbacks.onError({
+                  type: 'contact already exists',
+                  data: jid
+                });
+              } else {
+                if (jid == storage.client.account) {
+                  callbacks.onError({
+                    type: 'it\'s me',
+                    data: jid
+                  });
+                } else {
+                  if (xmpp.getSendedRequestByAccount(jid)) {
+                    callbacks.onSuccess();
+                    return true;
+                  }
+                  if (xmpp.getAcceptedRequestByAccount(jid)) {
+
+                    return true;
+                  }
+                  xmpp.sendPresence({
+                    to: jid,
+                    type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE
+                  });
+                  xmpp.getRoster({
+                    onError: callbacks.onError,
+                    onSuccess: callbacks.onSuccess
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    this.removeContact = function(jid, cb) {
+      var contact;
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      if (!connection.connected()) {
+        callbacks.onError();
+      } else {
+        if (module.utils.isObject(jid)) {
+          if (jid.account) {
+            contact = this.getContactByAccount(jid.account);
+          } else {
+            callbacks.onError();
+            return true;
+          }
+        } else {
+          contact = this.getContactByAccount(jid);
+        }
+        if (!contact) {
+          callbacks.onError();
+        } else {
+          if (contact.subscription != xmpp.OSDK_SUBSCRIPTION_TO && contact.subscription != xmpp.OSDK_SUBSCRIPTION_BOTH) {
+            callbacks.onError();
+          } else {
+            /*
+            var iq = new JSJaCIQ();
+            var itemNode = iq.buildNode('item', {
+              jid: contact.account,
+              subscription: 'remove'
+            });
+            iq.setType('set');
+            iq.setQuery(NS_ROSTER).appendChild(itemNode);
+            connection.send(iq, callbacks.onSuccess);
+            */
+            xmpp.sendPresence({
+              to: contact.account,
+              type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBE
+            });
+            callbacks.onSuccess();
+          }
+        }
+      }
+      return true;
+    };
+
+    this.deleteContact = function(jid, cb) {
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      if (!connection.connected()) {
+        callbacks.onError();
+      } else {
+        if (module.utils.isObject(jid)) {
+          jid = jid.account;
+        }
+        var iq = new JSJaCIQ();
+        var itemNode = iq.buildNode('item', {
+          jid: jid,
+          subscription: 'remove'
+        });
+        iq.setType('set');
+        iq.setQuery(NS_ROSTER).appendChild(itemNode);
+        connection.send(iq, callbacks.onSuccess);
+      }
+    };
+
+    this.deleteRejectedRequests = function(cb) {
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      $.each(storage.rejectedRequests, function(i, v) {
+        xmpp.deleteContact(v);
+      });
+      xmpp.getRoster({
+        onError: function() {
+          /* TODO */
+        },
+        onSuccess: function() {
+          callbacks.onSuccess();
+        }
+      });
+    };
+
+    this.acceptRequest = function(jid, cb) {
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      var request = xmpp.getAcceptedRequestByAccount(jid);
+      if (!request) {
+        callbacks.onError();
+      } else {
+        xmpp.sendPresence({
+          to: request.account,
+          type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBED
+        });
+        var index = storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(request.account)] || storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(request.login)];
+        var temp = [], i;
+        storage.linksToAcceptedRequestsByAccount = {};
+        storage.linksToAcceptedRequestsByLogin = {};
+        for (i = 0; i != storage.acceptedRequests.length; i ++) {
+          if (storage.acceptedRequests[i].account != request.account) {
+            temp.push(storage.acceptedRequests[i]);
+            storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(storage.acceptedRequests[i].account)] = temp.length - 1;
+            storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(storage.acceptedRequests[i].login)] = temp.length - 1;
+          }
+        }
+        storage.acceptedRequests = temp;
+        xmpp.getRoster({
+          onError: function() {
+            /* TODO */
+          },
+          onSuccess: function() {
+            xmpp.sendPresence({
+              to: jid,
+              type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE
+            });
+            callbacks.onSuccess();
+          }
+        });
+      }
+    };
+
+    this.rejectRequest = function(jid, cb) {
+      var callbacks = cb || {};
+      callbacks.onSuccess = callbacks.onSuccess || function() {};
+      callbacks.onError = callbacks.onError || function() {};
+      var request = xmpp.getAcceptedRequestByAccount(jid);
+      if (!request) {
+        callbacks.onError();
+      } else {
+        xmpp.sendPresence({
+          to: request.account,
+          type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
+        });
+        var index = storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(request.account)] || storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(request.login)];
+        var temp = [], i;
+        storage.linksToAcceptedRequestsByAccount = {};
+        storage.linksToAcceptedRequestsByLogin = {};
+        for (i = 0; i != storage.acceptedRequests.length; i ++) {
+          if (storage.acceptedRequests[i].account != request.account) {
+            temp.push(storage.acceptedRequests[i]);
+            storage.linksToAcceptedRequestsByAccount[xmpp.generateLinkToItem(storage.acceptedRequests[i].account)] = temp.length - 1;
+            storage.linksToAcceptedRequestsByLogin[xmpp.generateLinkToItem(storage.acceptedRequests[i].login)] = temp.length - 1;
+          }
+        }
+        storage.acceptedRequests = temp;
+        callbacks.onSuccess();
+      }
+    };
+
+    this.encodeStatus = function(status) {
+      var result = {
+        real: false,
+        unreal: false
+      };
+      if (utils.isString(status)) {
+        switch(status) {
+          case 'chat' :
+            result.real = 'chat';
+            break;
+          case 'available' :
+            result.real = 'chat';
+            break;
+          case 'away' :
+            result.real = 'away';
+            break;
+          case 'absence' :
+            result.real = 'away';
+            break;
+          case 'dnd' :
+            result.real = 'dnd';
+            break;
+          case 'do not disturb' :
+            result.real = 'dnd';
+            break;
+          case 'xa' :
+            result.real = 'xa';
+            break;
+          case 'x-available' :
+            result.real = 'xa';
+            break;
+          default :
+            result.unreal = status;
+            break;
+        }
+      }
+      return result;
+    };
+
+    this.decodeStatus = function(status) {
+      var result = {
+        real: false,
+        unreal: false
+      };
+      if (utils.isString(status)) {
+        switch(status) {
+          case 'chat' :
+            result.real = 'available';
+            break;
+          case 'away' :
+            result.real = 'away';
+            break;
+          case 'dnd' :
+            result.real = 'do not disturb';
+            break;
+          case 'xa' :
+            result.real = 'x-available';
+            break;
+          default :
+            result.unreal = status;
+            break;
+        }
+      }
+      return result;
+    };
+
+    this.setStatus = function() {
+      var onError = function() {/*---*/};
+      var onSuccess = function() {/*---*/};
+      var params = {}, argument;
+      switch(arguments.length) {
+        case 1 :
+          argument = arguments[0];
+          if (utils.isString(argument)) {
+            params.status = xmpp.encodeStatus(argument);
+          } else {
+            if (utils.isObject(argument)) {
+              if (typeof argument.status != 'undefined' && utils.isString(argument.status)) params.status = xmpp.encodeStatus(argument.status);
+              if (typeof argument.instantMessaging != 'undefined' && utils.isBoolean(argument.instantMessaging)) params.instantMessaging = argument.instantMessaging;
+              if (typeof argument.audioCall != 'undefined' && utils.isBoolean(argument.audioCall)) params.audioCall = argument.audioCall;
+              if (typeof argument.videoCall != 'undefined' && utils.isBoolean(argument.videoCall)) params.videoCall = argument.videoCall;
+              if (typeof argument.fileTransfer != 'undefined' && utils.isBoolean(argument.fileTransfer)) params.fileTransfer = argument.fileTransfer;
+              if (typeof argument.messaging != 'undefined' && utils.isBoolean(argument.messaging)) params.instantMessaging = argument.messaging;
+              if (typeof argument.audio != 'undefined' && utils.isBoolean(argument.audio)) params.audioCall = argument.audio;
+              if (typeof argument.video != 'undefined' && utils.isBoolean(argument.video)) params.videoCall = argument.video;
+              if (typeof argument.transfer != 'undefined' && utils.isBoolean(argument.transfer)) params.fileTransfer = argument.transfer;
+              if (typeof argument.onError == 'function') onError = argument.onError;
+              if (typeof argument.onSuccess == 'function') onSuccess = argument.onSuccess;
+            }
+          }
+          break;
+        case 2 :
+          if (utils.isString(arguments[0])) {
+            params.status = xmpp.encodeStatus(arguments[0]);
+          }
+          if (utils.isObject(arguments[1])) {
+            argument = arguments[1];
+            if (typeof argument.instantMessaging != 'undefined' && utils.isBoolean(argument.instantMessaging)) params.instantMessaging = argument.instantMessaging;
+            if (typeof argument.audioCall != 'undefined' && utils.isBoolean(argument.audioCall)) params.audioCall = argument.audioCall;
+            if (typeof argument.videoCall != 'undefined' && utils.isBoolean(argument.videoCall)) params.videoCall = argument.videoCall;
+            if (typeof argument.fileTransfer != 'undefined' && utils.isBoolean(argument.fileTransfer)) params.fileTransfer = argument.fileTransfer;
+            if (typeof argument.messaging != 'undefined' && utils.isBoolean(argument.messaging)) params.instantMessaging = argument.messaging;
+            if (typeof argument.audio != 'undefined' && utils.isBoolean(argument.audio)) params.audioCall = argument.audio;
+            if (typeof argument.video != 'undefined' && utils.isBoolean(argument.video)) params.videoCall = argument.video;
+            if (typeof argument.transfer != 'undefined' && utils.isBoolean(argument.transfer)) params.fileTransfer = argument.transfer;
+            if (typeof argument.onError == 'function') onError = argument.onError;
+            if (typeof argument.onSuccess == 'function') onSuccess = argument.onSuccess;
+          }
+          break;
+      }
+      if (!connection.connected()) {
+        return false;
+      } else {
+        var presence = {data: {}}, data = false;
+        if (typeof params.status != 'undefined') {
+          if (params.status.real) {
+            presence.show = params.status.real;
+          }
+          if (params.status.unreal) {
+            presence.data.show = params.status.unreal;
+            data = true;
+          }
+        }
+        if (typeof params.instantMessaging != 'undefined') {
+          data = true;
+          if (params.instantMessaging) {
+            presence.data.instantMessaging = 'on';
+          } else {
+            presence.data.instantMessaging = 'off';
+          }
+        }
+        if (typeof params.audioCall != 'undefined') {
+          data = true;
+          if (params.audioCall) {
+            presence.data.audioCall = 'on';
+          } else {
+            presence.data.audioCall = 'off';
+          }
+        }
+        if (typeof params.videoCall != 'undefined') {
+          data = true;
+          if (params.videoCall) {
+            presence.data.videoCall = 'on';
+          } else {
+            presence.data.videoCall = 'off';
+          }
+        }
+        if (typeof params.fileTransfer != 'undefined') {
+          data = true;
+          if (params.fileTransfer) {
+            presence.data.fileTransfer = 'on';
+          } else {
+            presence.data.fileTransfer = 'off';
+          }
+        }
+        if (data) presence.data = {
+          command: 'setMeStatus',
+          data: presence.data
+        };
+        xmpp.sendPresenceToAll(presence);
+      }
+      return true;
+    };
+
     this.getClient = function() { return storage.client; };
     this.getContacts = function() { return storage.contacts; };
+    this.getAcceptedRequests = function() { return storage.acceptedRequests; };
+    this.getSendedRequests = function() { return storage.sendedRequests; };
+    this.getRejectedRequests = function() { return storage.rejectedRequests; };
 
     // Initiation
 
@@ -730,6 +1307,8 @@
       // connection.registerHandler('packet_out', xmpp.handlers.fnOutcomingPacket);
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
+      // Disconnect
+      module.on('core.disconnected', function (data) {connection.disconnect();});
       // Connect and login
       connection.connect({
         domain: params.domain,
@@ -753,8 +1332,28 @@
 
       // Return info about current logged user
       getClient: xmpp.getClient,
+      // Return contact by account or login
+      getContactByAccount: xmpp.getContactByAccount,
+      getContactByLogin: xmpp.getContactByLogin,
       // Return contacts list for current logged user
-      getContacts: xmpp.getContacts
+      getContacts: xmpp.getContacts,
+      getAcceptedRequest: xmpp.getAcceptedRequests,
+      getSendedRequests: xmpp.getSendedRequests,
+      // Add & Remove contact
+      addContact: xmpp.addContact,
+      removeContact: xmpp.removeContact,
+      // Accept & reject request
+      acceptRequest: xmpp.acceptRequest,
+      rejectRequest: xmpp.rejectRequest,
+      // Rejected request
+      getRejectedRequests: xmpp.getRejectedRequests,
+      deleteRejectedRequests: xmpp.deleteRejectedRequests,
+
+      deleteContact: xmpp.deleteContact,
+
+      setStatus: xmpp.setStatus,
+
+      superPresence: xmpp.superPresence
 
     });
 
