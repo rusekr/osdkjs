@@ -6,12 +6,15 @@
  * Licensed under the TODO license.
  */
 
-/** @namespace */
+/** @namespace
+ * @alias oSDK
+ * @param {Object} config
+ */
 var oSDK = function (config) {
   "use strict";
 
   // Merge default config with initialization config
-  oSDK.Module.mergeConfig(config);
+  oSDK.utils.mergeConfig(config);
 
   return oSDK;
 };

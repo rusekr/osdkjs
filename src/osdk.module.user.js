@@ -15,7 +15,7 @@
 
   // User on oSDK
 
-  var module = new oSDK.Module('user');
+  var module = new oSDK.utils.Module('user');
 
   // Constructor to User object
 

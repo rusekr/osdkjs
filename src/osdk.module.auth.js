@@ -5,7 +5,7 @@
   "use strict";
 
   // Module namespace
-  var auth = new oSDK.Module('auth');
+  var auth = new oSDK.utils.Module('auth');
 
   // Status (disconnected, connecting, connected, disconnecting)
   auth.status = 'disconnected';
@@ -50,7 +50,7 @@
         config.expires_start = auth.utils.storage.getItem('expires_start') || null;
         config.expires_in = auth.utils.storage.getItem('expires_in') || null;
 
-        config = auth.utils.extend({}, config, cfgObject);
+        config = auth.utils.extend(true, {}, config, cfgObject);
 
         auth.utils.storage.setItem('access_token', config.access_token);
         auth.utils.storage.setItem('expires_start', config.expires_start);
@@ -62,8 +62,7 @@
         var error = auth.utils.getUrlParameter('error');
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
-          console.log(error, error_description);
-          auth.trigger('core.error', { message: error + ':' + error_description });
+          throw new auth.Error(error + ':' + error_description);
         }
 
         var token = auth.utils.hash.getItem('access_token');
@@ -75,8 +74,8 @@
               expires_start: new Date().getTime()
           });
 
-          if(window.opener) {
-            window.opener.oSDK.auth.trigger('oauth.gotTokenFromPopup', {
+          if(window.opener && window.opener.oSDK) {
+            window.opener.oSDK.auth.trigger('gotTokenFromPopup', {
               access_token: config.access_token,
               expires_in: config.expires_in,
               expires_start: config.expires_start
@@ -114,13 +113,13 @@
             options.url += delim + 'access_token=' + config.access_token;
           }
         } else {
-          throw new Error('Token not found or exosted');
+          throw new auth.Error('Token not found or exosted');
         }
-        return auth.utils.ajax.call(this, options);
+        return auth.ajax.call(auth, options);
       },
       isTokenAlive: function () {
         var nowTime = new Date().getTime();
-        if(!config.access_token) {
+        if (!config.access_token) {
           // auth.utils.log('User token not found');
           return false;
         } else if (config.expires_in + config.expires_start <= nowTime) {
@@ -181,6 +180,8 @@
       return;
     }
 
+    auth.trigger('connecting');
+
     // Perform a ephemerals request
     // TODO: fix ajax
     oauth.ajax({
@@ -194,16 +195,17 @@
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          auth.trigger(['core.connectionFailed'], { 'message': data.error, 'ecode': 'auth0002' });
+          auth.trigger(['connectionFailed'], { 'message': data.error, 'ecode': 'auth0002' });
         } else {
 
           // Filling user client sturcture
           client.id = data.username.split(':')[1];
           client.domain = client.id.split('@')[1];
 
-          auth.trigger(['core.gotTempCreds'], { 'data': data });
+          auth.trigger(['gotTempCreds'], { 'data': data });
 
-          auth.trigger(['core.connected']);
+          auth.status = 'connected';
+          auth.trigger('connected', {});
         }
       },
       error: function(jqxhr, status, string) {
@@ -212,8 +214,9 @@
           auth.tokenCheck(true);
         }
 
+        auth.status = 'disconnected';
         // If all is ok with token - throw connectionFailed event.
-        auth.trigger(['auth.connectionFailed', 'core.connectionFailed'], { 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' });
+        auth.trigger('connectionFailed', { 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' });
       }
     });
 
@@ -224,10 +227,14 @@
     if(auth.status == 'disconnected' || auth.status == 'disconnecting') {
       return false;
     }
+    auth.trigger('disconnecting');
+
     if(clearToken) {
       oauth.clearToken();
     }
-    auth.trigger(['auth.disconnected', 'core.disconnected']);
+
+    auth.status = 'disconnected';
+    auth.trigger('disconnected');
   };
 
   // Returns status of user access token to client.
@@ -293,30 +300,15 @@
     }
   };
 
-  auth.on('oauth.gotTokenFromPopup', function (data) {
+  auth.on('gotTokenFromPopup', function (data) {
     oauth.configure(data);
     oauth.popup().close();
     auth.connect();
   });
 
-  // Proxying main events for internal handling priorities and syncronious firing.
-  // Connected event
-  auth.on('core.connected', function (data) {
-    auth.utils.resetTriggerCounters('core.disconnected');
-    auth.status = 'connected';
-    auth.trigger('connected', data);
-  }, 'last');
-  // Disconnected event
-  auth.on('core.disconnected', function (data) {
-    auth.status = 'disconnected';
-    auth.trigger('disconnected', data);
-  }, 'last');
-  // Proxy for every connectionFailed message
-  auth.on('core.connectionFailed', function (data) {
+  // connectionFailed event by other plugin
+  auth.on('connectionFailed', function (data) {
     auth.disconnect();
-
-    auth.utils.resetTriggerCounters(['core.connected', 'connected', 'core.disconnected', 'disconnected', 'core.connectionFailed', 'connectionFailed']);
-    auth.trigger('connectionFailed', data);
   });
 
   // Instant actions
@@ -324,13 +316,16 @@
   // Getting token from storage instantly
   oauth.configure();
 
-  // Delayed actions
-  document.addEventListener("DOMContentLoaded", function () {
+  // DOMContentLoaded action
+  auth.on("DOMContentLoaded", function () {
     auth.tokenCheck(false);
   });
 
-  window.onbeforeunload = function (event) {
+  // Before browser page closed action
+  auth.on('beforeunload', function (event) {
     // TODO: handle gracefully auth redirection page unload.
+
+    // TODO: before closing the popup send event to main window about auth failure.
     // trying to quit gracefully
 //       if(rtcSession && rtcSession.terminate) {
 //         rtcSession.terminate();
@@ -338,12 +333,31 @@
 
 //       instance.stop();
 
-  };
+  });
 
   auth.registerMethods({
+    /**
+     * Initiates oSDK connection to all internal services.
+     *
+     * @method
+     * @alias oSDK.connect
+     */
     'connect': auth.connect,
+    /**
+     * Closes oSDK connection to all internal services.
+     *
+     * @method
+     * @alias oSDK.disconnect
+     */
     'disconnect': auth.disconnect,
-    'isAuthorized': auth.isAuthorized
+    /**
+     * Returns status of client's authorization on server. Thus client may want to know if it can connect to oSDP network without invoking user login form through popup or redirect.
+     *
+     * @method
+     * @alias oSDK.isAuthorized
+     * @returns {bool}
+     */
+    'isAuthorized': auth.isAuthorized // TODO: May be use oSDK's status 'Connected' instead.
   });
 
   auth.registerNamespaces({
@@ -351,11 +365,18 @@
     'client': auth.client
   });
 
+  auth.registerObjects({
+    'user': auth.client
+  });
+
   auth.registerEvents({
-    'gotTempCreds': 'core.gotTempCreds',
-    'connected': ['auth.connected', 'core.connected'],
-    'disconnected': ['auth.disconnected', 'core.disconnected'],
-    'connectionFailed': ['auth.connectionFailed', 'core.connectionFailed']
+    'gotTokenFromPopup': { self: true },
+    'gotTempCreds': { other: true },
+    'connecting': { other: true },
+    'connected': { client: true, other: true },
+    'disconnecting': { other: true },
+    'disconnected': { other: true, client: true },
+    'connectionFailed': { client: true, other: true, cancels: 'connected' }
   });
 
   auth.registerConfig(defaultConfig);

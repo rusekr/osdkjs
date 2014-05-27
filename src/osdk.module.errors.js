@@ -6,41 +6,14 @@
   "use strict";
 
   // Module namespace
-  var errors = new oSDK.Module('errors');
-
-  // errors.Error like window.Error;
-  var Error = function (eobj) {
-    // Defaults
-    this.ecode = 0;
-    this.name = "Error";
-    this.level = "Error";
-    this.message = "Unknown error detected";
-    this.htmlMessage = "Unknown error detected";
-    this.data = {};
-    this.toString = function(){return this.name + ": " + this.message;};
-
-    // Updating properties
-    var self = this;
-    oSDK.utils.each(eobj, function (prop, propname) {
-      self[propname] = prop;
-    });
-
-  };
-
-  errors.on('core.error', function (data) {
-    if(!(data instanceof Error)) {
-      data = new Error(data);
-    }
-    // Here after core.error must be data object
-    errors.trigger('error', data);
-  }, 'every');
+  var errors = new oSDK.utils.Module('errors');
 
   // Catching all unhandled exceptions and converting to core.error events
   window.onerror = function(message, url, line) {
     // TODO: Report this error via ajax so you can keep track
     //       of what pages have JS issues
 
-    errors.trigger('core.error', { message: message, data: Array.prototype.slice.call(arguments, 0) });
+    errors.trigger('error', { message: message, data: Array.prototype.slice.call(arguments, 0) });
 
     // NOTICE: Not suppressing errors propagation after this function
     var suppressErrorAlert = false;
@@ -49,7 +22,15 @@
   };
 
   errors.registerEvents({
-      'error': ['errors.error', 'core.error'] // Error event for listen
+      'error': { other: true, client: true } // Error event for listen
   });
+
+
+  // TODO: DEBUG ONLY LISTENER
+  if(errors.utils.debug) {
+    errors.on('gotTokenFromPopup', function (data) {
+      errors.log('ERRORS MODULE GOT TOKEN FROM POPUP AND THAT IS VERY BAD');
+    });
+  }
 
 })(oSDK);

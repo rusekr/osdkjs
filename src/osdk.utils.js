@@ -5,45 +5,19 @@
 (function (oSDK) {
   "use strict";
 
-  var utils = {
-    debug: true // NOTICE: DEBUG is ON
-  };
+  // Store objects
 
   var modules = {};
   var namespaces = {};
+  var factory = {}; // Internal cross-module object for Module factory
   var methods = {};
   var events = {};
+  var dependencies = {};
   var mainConfig = {};
-  var browserMethods = ["log","info","warn","error","assert","dir","clear","profile","profileEnd"];
 
+  // Generic functions
 
   /*
-   * Console.log/warn/err/.. oSDK wrappers
-   * If it'll can't work in ie9 try http://stackoverflow.com/questions/5538972/console-log-apply-not-working-in-ie9
-   */
-  (function () {
-
-    var lf = function (method) {
-      return function () {
-        // Function respects global and module-specific debug
-        if (!utils.debug || !this.debug) {
-          return;
-        }
-
-        var arr = ['oSDK:'];
-        if(this.name) {
-          arr.push(this.name);
-        }
-        console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
-      };
-    };
-
-    browserMethods.forEach( function (method) {
-      utils[method] = lf(method);
-    });
-  })();
-
-  /**
    * Test var types
    * @isNumber
    * @isArray
@@ -53,13 +27,15 @@
    * @isNull
    * @isEmpty
    */
-  utils.isNumber = function(value) {
+  var isNumber = function(value) {
     return (!isNaN(parseFloat(value)) && isFinite(value));
   };
-  utils.isArray = function(value) {
+
+  var isArray = function(value) {
     return Array.isArray(value);
   };
-  utils.isObject = function(value) {
+
+  var isObject = function(value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
     }
@@ -68,69 +44,37 @@
     }
     return (!fnIsEmpty(value) && (typeof value == 'object'));
   };
-  utils.isFunction = function (obj) {
+
+  var isFunction = function (obj) {
     if ( obj === null || Object.prototype.toString.call(obj) !== '[object Function]' ) {
       return false;
     }
     return true;
   };
-  utils.isBoolean = function(value) {
+
+  var isBoolean = function(value) {
     return (typeof value == 'boolean');
   };
-  utils.isString = function(value) {
+
+  var isString = function(value) {
     return (typeof value == 'string');
   };
-  utils.isNull = function(value) {
+
+  var isNull = function(value) {
     return ((value === undefined) || (value === null));
   };
-  utils.isEmpty = function(value) {
+
+  var isEmpty = function(value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
     }
     return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
   };
 
-  /**
-   * Test to other data
-   * @isValidLogin
-   * @isValidAccount
+  /*
+   * UUID generator
    */
-  utils.isValidLogin = function(login) {
-    if (login && utils.isString(login)) {
-      if (login.match(/^[-fa-z0-9_]+$/i)) return true;
-    }
-    return false;
-  };
-  utils.isValidAccount = function(account) {
-    if (account && utils.isString(account)) {
-      if (account.match(/^[-a-z0-9_]+@[a-z0-9_]+\.[a-z]{2,3}$/i)) return true;
-    }
-    return false;
-  };
-
-  /**
-   * Work with json objects
-   * @jsonEncode
-   * @jsonDecode
-   */
-  utils.jsonEncode = function(data) {
-    try {
-      return JSON.stringify(data);
-    } catch(eJsonEncode) {
-      return data;
-    }
-  };
-  utils.jsonDecode = function(data) {
-    try {
-      return JSON.parse(data);
-    } catch(eJsonDecode) {
-      return data;
-    }
-  };
-
-  // UUID generator
-  utils.uuid = function () {
-
+  var uuid = function () {
     var s4 = function () {
       return Math.floor((1 + Math.random()) * 0x10000)
         .toString(16)
@@ -141,44 +85,55 @@
           s4() + '-' + s4() + s4() + s4();
   };
 
-  // Each for arrays and objects
-  utils.each = function (obj, fn) {
+  /*
+   * Safe hasOwnProperty property replacement
+   */
+  var ownProperty = function (obj, prop) {
+    return Object.prototype.hasOwnProperty.call(obj, prop);
+  };
+
+  /*
+   * Iterator for arrays and objects
+   */
+  var each = function (obj, fn) {
     if (obj.length) {
       for (var i = 0, ol = obj.length, v = obj[0]; i < ol && fn(v, i) !== false; v = obj[++i]);
     } else {
       for (var p in obj) {
-        if (fn(obj[p], p) === false)
+        if (!ownProperty(obj,p)) {
+          continue;
+        }
+        if (fn(obj[p], p) === false) {
           break;
+        }
       }
     }
   };
 
-  // JQuery equivalent by interface function for deep merging of plain objects with data (recursion maximum defined by itNumMax variable)
-  utils.extend = function () {
+  /*
+   * JQuery-like object extender
+   */
+  var extend = function () {
+
+    var self = this;
+
     var args = Array.prototype.slice.call(arguments, 0);
     var inObj = args.shift();
-    var itNum = 1; // Iteration number
-    var itNumMax = 10; // Maximum recursion deepness
+    var deep = false;
 
-    function hasProperty(obj, prop) {
-      return Object.prototype.hasOwnProperty.call(obj, prop);
-    }
-
-    if (utils.isNumber(inObj)) {
-      itNum = inObj;
-      utils.log('extend', arguments);
-
+    // Checking for deep copy flag as first param
+    if ( inObj === true ) {
+      deep = inObj;
       inObj = args.shift();
-      utils.log('extend got ++itNum', itNum, 'and inObj', inObj);
     }
 
-    if(!utils.isObject(inObj)) {
-      throw new Error('utils.extend: can\'t find object to extend.');
+    if (!isObject(inObj)) {
+      return inObj;
     }
 
     args.forEach(function (obj) {
 
-      if(!utils.isObject(obj)) {
+      if (!isObject(obj)) {
         // Continue
         return;
       }
@@ -186,21 +141,19 @@
       for (var key in obj) {
 
         // Translating only object's own properties
-        if (!hasProperty(obj, key)) {
-          utils.log('Not copying non self property', key, 'from obj', obj);
+        if (!ownProperty(obj, key)) {
           continue;
         }
 
-        if (utils.isObject(obj[key])) {
-          if (!utils.isObject(inObj[key])) {
+        if (isObject(obj[key])) {
+          if (!isObject(inObj[key])) {
             // Just replacing all other with object in priority
             inObj[key] = {};
           }
-          if(++itNum < itNumMax) {
+          if (deep) {
             // More recursion allowed
-            inObj[key] = utils.extend(itNum, {}, inObj[key], obj[key]);
+            inObj[key] = extend(true, {}, inObj[key], obj[key]);
           } else {
-            utils.warn('Extend got more than', itNumMax, 'recursion deepness for object', obj);
             // Just replacing
             inObj[key] = obj[key];
           }
@@ -214,102 +167,589 @@
     return inObj;
   };
 
-  // JQuery like simple ajax wrapper
-  utils.ajax = function (config) {
-    utils.log('sending ajax with config', config);
-    var dConfig = {
-      url: '',
-      type: 'GET',
-      data: {},
-      success: function () {},
-      error: function () {},
-      async: true,
-      headers: {},
-      username: null,
-      password: null
+  /*
+   * oSDK module object prototype
+   */
+  var Module = function oSDKModule(name) {
+    var self = this;
+    var debugInt = true; // Per-module debug
+    var nameInt = name;
+
+    var eventSkel = function (initObject) {
+      return extend({
+        emittersObject: {},
+        emitters: [],
+        listeners: []
+      }, initObject);
     };
 
-    config = utils.extend({}, dConfig, config);
-
-    // encodeURIComponent
-
-    // Request data forming
-    // String data goes as is.
-    if (typeof(config.data) != 'string') {
-      // Data encoding for requests
-      if (typeof(config.data) == 'object') {
-        var tempData = [];
-        utils.each(config.data, function (d, i) {
-          tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
-        });
-        config.data = tempData.join('&');
-      }
-    }
-    // For 'get' in url, for other - in body
-    if (config.type.toLowerCase() == 'get') {
-      var delim = '?';
-      if (config.url.match(/\?/)) {
-        delim = '&';
-      }
-      config.url += delim+config.data;
-      config.data = null;
-    }
-
-    var r = new XMLHttpRequest();
-
-    var headersNotSet = false;
-    var setHeaders = function () {
-      // Headers stuff
-      if (!config.headers['Content-Type']) {
-        r.setRequestHeader("Content-Type","application/json; charset=UTF-8");
-      }
-      if (!config.headers.Accept) {
-        r.setRequestHeader("Accept","*/*");
-      }
-      for (var h in config.headers) {
-        r.setRequestHeader(h, config.headers[h]);
-      }
+    var listenerSkel = function (initObject) {
+      return extend({
+        id: null,
+        handler: null,
+        module: null
+      }, initObject);
     };
 
-    // For firefox // FIXME: more universal chrome and firefox handlers
-//     try {
-//       setHeaders();
-//     }
-//     catch (e) {
-//       utils.log('Chrome..not setRequestHeader, firefox set');
-//       headersNotSet = true;
-//     }
+    var emitterSkel = function (initObject) {
+      return extend({
+//        bind: null,
+        client: false,
+        other: false,
+        self: false,
+        fired: false,
+        cancels: null,
+        module: null,
+        data: {}
+      }, initObject);
+    };
 
-    r.open(config.type, config.url, config.async,config.username, config.password);
+    Object.defineProperties(self, {
+      debug: {
+        enumerable: true,
+        get: function () {
+          return debugInt;
+        },
+        set: function (flag)  {
+          debugInt = !!flag;
+          return debugInt;
+        }
+      },
+      oSDKModule: {
+        enumerable: true,
+        get: function () {
+          return true;
+        }
+      },
+      name: {
+        enumerable: true,
+        get: function () {
+          return nameInt;
+        }
+      }
+    });
 
-    // For chrome // FIXME more universal chrome and firefox handlers
-//     if (headersNotSet) {
-//       utils.log('Chrome..setRequestHeader');
+    /*
+    * Console.log/warn/err/.. oSDK wrappers
+    */
+    var lf = function (method) {
+      return function () {
+        // Function respects global and module-specific debug
+        if (!this.debug) {
+          return;
+        }
+
+        var arr = ['oSDK:'];
+        if (this.oSDKModule && this.name != 'utils') {
+          arr.push(this.name);
+        }
+        console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    };
+
+    ["log","info","warn","error","assert","dir","clear","profile","profileEnd"].forEach( function (method) {
+      self.constructor.prototype[method] = lf(method);
+      self[method] = self.constructor.prototype[method].bind(self);
+    });
+
+        /*
+    * oSDK error object prototype
+    *
+    */
+    self.Error = Error;
+
+    self.factory = factory;
+
+      // JQuery like simple ajax wrapper
+    self.constructor.prototype.ajax = function oSDKajax (config) {
+
+      var self = this;
+
+      self.log('sending ajax with config', config);
+      var dConfig = {
+        url: '',
+        type: 'GET',
+        data: {},
+        success: function () {},
+        error: function () {},
+        async: true,
+        headers: {},
+        username: null,
+        password: null
+      };
+
+      config = extend({}, dConfig, config);
+
+      // encodeURIComponent
+
+      // Request data forming
+      // String data goes as is.
+      if (typeof(config.data) != 'string') {
+        // Data encoding for requests
+        if (typeof(config.data) == 'object') {
+          var tempData = [];
+          each(config.data, function (d, i) {
+            tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
+          });
+          config.data = tempData.join('&');
+        }
+      }
+      // For 'get' in url, for other - in body
+      if (config.type.toLowerCase() == 'get') {
+        var delim = '?';
+        if (config.url.match(/\?/)) {
+          delim = '&';
+        }
+        config.url += delim+config.data;
+        config.data = null;
+      }
+
+      var r = new XMLHttpRequest();
+
+      var headersNotSet = false;
+      var setHeaders = function () {
+        // Headers stuff
+        if (!config.headers['Content-Type']) {
+          r.setRequestHeader("Content-Type","application/json; charset=UTF-8");
+        }
+        if (!config.headers.Accept) {
+          r.setRequestHeader("Accept","*/*");
+        }
+        for (var h in config.headers) {
+          r.setRequestHeader(h, config.headers[h]);
+        }
+      };
+
+      r.open(config.type, config.url, config.async,config.username, config.password);
+
       setHeaders();
-//     }
 
-    // ReadyStateChange handlers
-    r.onreadystatechange = function () {
-      if (r.readyState != 4) {
-        return;
-      }
-      if (r.status != 200) {
-        config.error.call(config.error, r);
-        return;
-      }
+      // ReadyStateChange handlers
+      r.onreadystatechange = function () {
+        if (r.readyState != 4) {
+          return;
+        }
+        if (r.status != 200) {
+          config.error.call(config.error, r);
+          return;
+        }
 
-      try {
-        r.responseText = JSON.parse(r.responseText);
-      } catch (e) {
-        // Whoops, not a json..
-        utils.log(e);
-      }
+        try {
+          r.responseText = JSON.parse(r.responseText);
+        } catch (e) {
+          // Whoops, not a json..
+          self.log(e);
+        }
 
-      config.success.call(config.success, r.responseText, r);
+        config.success.call(config.success, r.responseText, r);
+      };
+
+      r.send(config.data);
+      return r;
     };
+    self.ajax = self.constructor.prototype.ajax.bind(self);
 
-    r.send(config.data);
-    return r;
+    /**
+    * Adds custom callback for specified event type.
+    * Returns id of added listener for removing through {@link off}.
+    * @param fireType may be 'last' (fires only when last emitter sent event), 'every' (default, fires every time emitter emits)
+    */
+    self.constructor.prototype.on = function oSDKon (eventTypes, eventHandler) {
+
+      var ids = [];
+      eventTypes = [].concat(eventTypes);
+
+      each(eventTypes, function (eventType) {
+        if (!events[eventType]) {
+          events[eventType] = eventSkel();
+        }
+        var id  = uuid();
+        var listener = listenerSkel();
+
+        listener.id = id;
+        listener.handler = eventHandler;
+        listener.module = self.name;
+
+        events[eventType].listeners.push(listener);
+        ids.push(id);
+      });
+      return (ids.length == 1)?ids[0]:ids;
+    };
+    self.on = self.constructor.prototype.on.bind(self);
+
+    /*
+    * Removes custom callbacks for events by id or by eventType
+    * by event type or id generated through {@link on}
+    *
+    */
+    self.constructor.prototype.off = function oSDKoff (eventTypeOrID) {
+
+      if (events[eventTypeOrID]) {
+        // Removing all listeners for eventType
+        events[eventTypeOrID].listeners = [];
+        self.log('Removed all listeners for event', eventTypeOrID);
+      } else {
+        // Searching and removing
+        var foundById = false;
+        var removeListener = function (id, i) {
+          if (events[eventType].listeners[i].id == eventTypeOrID) {
+            events[eventType].listeners.splice(i,1);
+            foundById = true;
+            return false;
+          }
+        };
+        for (var eventType in events) {
+          events[eventType].listeners.forEach(removeListener);
+        }
+        if (!foundById) {
+          // Non fatal
+          throw new self.Error('Can\'t remove event listener(s) - this event type or ID is not registered.');
+        }
+      }
+    };
+    self.off = self.constructor.prototype.off.bind(self);
+
+    // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
+    // Fires custom callbacks
+    self.constructor.prototype.trigger = function oSDKtrigger () {
+
+      var configObject = {
+        type: [], // Event type(s) to trigger
+        data: {}, // Parameter(s) to pass with event(s)
+        context: self // Context in which trigger event(s)
+      };
+
+      if (!isArray(arguments[0]) && !isString(arguments[0]) && !isObject(arguments[0])) {
+        // Not enough arguments
+        throw new self.Error('Insufficient or wrong arguments to trigger event.');
+      } else if (isString(arguments[0]) || isArray(arguments[0])) {
+        // First argument is string or array
+        configObject.type = [].concat(arguments[0]);
+        configObject.data = isObject(arguments[1])?arguments[1]:{};
+        extend(configObject, arguments[2]);
+
+      } else {
+        // First argument is object
+        extend(configObject, arguments[0]);
+      }
+      // TODO: group data of bound events
+      configObject.type.forEach(function (eventType) {
+        if (!events[eventType]) {
+          // Non fatal
+          self.warn('Event', eventType, 'not registered by emitter or listener, therefore nothing to trigger!');
+          return;
+        }
+
+        // Normalizing configObject.data to object
+        if (!isObject(configObject.data)) {
+          configObject.data = {
+            data: configObject.data
+          };
+        }
+        // Addition of system properties to data
+        configObject.data.type = eventType;
+
+        configObject.data.module = self.name;
+
+        // Regstered emitters may be zero (e.g. in case of oauth popup)
+
+        // Fire every listener for event type
+        var fireToListener = function (listener) {
+          // Checking if we can fire by allowed module
+          if (!listener.module) {
+            throw new self.Error('Unknown listener!');
+          }
+
+          // Not firing to itself if not configured
+          if (listener.module == self.name && !events[eventType].emittersObject[self.name].self) {
+            return;
+          }
+
+          // Not firing to client if not configured
+          if (listener.module == 'client' && !events[eventType].emittersObject[self.name].client) {
+            return;
+          }
+
+          // Not firing to other modules if not configured
+          if (listener.module != 'client' && listener.module != self.name && !events[eventType].emittersObject[self.name].other) {
+            return;
+          }
+
+          // If ours event cancels some other
+          var cancelsEvents = events[eventType].emittersObject[self.name].cancels;
+          if(events[eventType].emittersObject[self.name].cancels) {
+            cancelsEvents.concat(events[eventType].emittersObject[self.name].cancels);
+
+            each(cancelsEvents, function cancelEvent (eventToCancel) {
+              eventToCancel.fired = false;
+            });
+          }
+
+          // Fired = true for ours emitter // TODO: if emitters > 1, emitters for client exist, exist other modules emitters which are not fired
+          events[eventType].emittersObject[self.name].fired = true;
+
+          // If we need to fire event by last emitter to client
+          var notFiredModuleExists = false;
+          if(listener.module == 'client' && events[eventType].emittersObject[self.name].client) {
+            each(events[eventType].emitters, function (emitter) {
+              if(emitter.fired === false) {
+                notFiredModuleExists = true;
+                return false;
+              }
+            });
+          }
+
+          if(notFiredModuleExists) {
+            self.log('NOT Firing', eventType, 'with event data', configObject.data, 'for client listener', listener);
+            return;
+          }
+
+          self.log('Firing', eventType, 'with event data', configObject.data, 'for listener', listener);
+          // Just firing
+          listener.handler.call(configObject.context, configObject.data);
+
+          // Cleaning self emitters
+          each(events[eventType].emitters, function (emitter) {
+            emitter.fired = false;
+          });
+
+
+        };
+        events[eventType].listeners.forEach(fireToListener);
+      });
+    };
+    self.trigger = self.constructor.prototype.trigger.bind(self);
+
+    self.constructor.prototype.config = function () {
+
+      // If we got parameter string like 'app.key' - returning <moduleName>.<this subpath> or <this subpath> if first was not found or throwing error.
+      if (arguments[0] && isString(arguments[0])) {
+        var parameter = mainConfig[nameInt];
+        var subParameter = arguments[0].split('.');
+        var i = 0;
+        for (; i < subParameter.length; i++) {
+          if (!ownProperty(parameter, subParameter[i])) {
+            parameter = undefined;
+            break;
+          }
+          parameter = parameter[subParameter[i]];
+        }
+        if (parameter === undefined) {
+          parameter = mainConfig;
+          subParameter = arguments[0].split('.');
+          for (i = 0; i < subParameter.length; i++) {
+            if (!ownProperty(parameter, subParameter[i])) {
+              throw new self.Error('Module.config: can\'t find config parameter:' + arguments[0]);
+            }
+            parameter = parameter[subParameter[i]];
+          }
+        }
+        return parameter;
+      } else {
+        throw new self.Error('Module.config: can\'t find config parameter:' + arguments[0]);
+      }
+    };
+    self.config = self.constructor.prototype.config.bind(self);
+
+    /**
+     * Method registerEvents.
+     * @alias <moduleName>.registerEvents.
+     * @param eventsObject Object.
+     * Configurated by eventsObject.
+     * Keys: events names.
+     * Every event configured by it's own configObject.
+     * configObject keys:
+     * self - fired only to listeners defined by module which registered that event.
+     * other - fired to listeners defined by other modules.
+     * client - fired to client listeners.
+     * cancels - firing of this event cancels other named event and its bound by "bind" directive relatives.
+     * bind - binds this event to other event, and when that other event needs to fire to client - it will fire only when last of bound event is successed.
+     */
+    self.constructor.prototype.registerEvents = function oSDKregisterEvents (eventsObject) {
+
+      // Registering event emitters
+      for (var i in eventsObject) {
+        // Each i must be an array
+        if (!isObject(eventsObject[i])) { // Assuming event emitter registration object
+          throw new self.Error('Register event ' + i + ' failed!');
+        }
+
+        self.log('Registering events for module: ' + self.name + '.', i, events[i]);
+
+        if (events[i]) {
+          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is already taken by module(s) ' + events[i].toString() + '. Combining.');
+        } else {
+          events[i] = eventSkel();
+        }
+
+        // Addition of module specific emitter
+        var emitterObject = emitterSkel({ module: self.name });
+
+        extend(emitterObject, eventsObject[i]);
+
+        if (events[i].emittersObject[self.name]) {
+          throw new self.Error('Register event emitter for ' + i + ' failed! Already registered!');
+        }
+
+        events[i].emittersObject[self.name] = emitterObject;
+        events[i].emitters.push(emitterObject);
+      }
+    };
+    self.registerEvents = self.constructor.prototype.registerEvents.bind(self);
+
+    self.constructor.prototype.registerMethods = function oSDKregisterMethods (methodsObject) {
+      for (var i in methodsObject) {
+        if (methods[i]) {
+          throw new self.Error('Registering module: ' + self.name + '. Method "' + i + '" is already taken by module ' + methods[i]);
+        }
+        methods[i] = self.name;
+        oSDK[i] = methodsObject[i];
+      }
+    };
+    self.registerMethods = self.constructor.prototype.registerMethods.bind(self);
+
+    self.constructor.prototype.registerNamespaces = function oSDKregisterNamespaces (namespacesObject) {
+
+      for (var i in namespacesObject) {
+        if (!namespaces[i]) {
+          namespaces[i] = {};
+          oSDK[i] = {};
+        } else {
+          self.log('Registering namespaces for module: ' + self.name + '. Namespace "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + '. Combining.');
+        }
+        namespaces[i][self.name] = []; // Array of property names by module
+        for (var j in namespacesObject[i]) {
+          if ( ownProperty(namespacesObject[i], j) ) {
+            if ( !oSDK[i][j] ) {
+              oSDK[i][j] = namespacesObject[i][j];
+              namespaces[i][self.name].push(j);
+            } else {
+              throw new self.Error('Registering module: ' + self.name + '. Namespace "' + i + '" is already has property ' + j);
+            }
+          }
+        }
+      }
+    };
+    self.registerNamespaces = self.constructor.prototype.registerNamespaces.bind(self);
+
+    self.constructor.prototype.registerObjects = function oSDKregisterObjects (objectsObject) {
+
+      var functionFactory = function () { return function () {}; };
+      for (var i in objectsObject) {
+        if (!factory[i]) {
+          factory[i] = functionFactory();
+        } else {
+          self.log('Registering objects for module: ' + self.name + '. Object "' + i + '" is already filled by module(s) ' + factory[i].toString() + '. Combining.');
+        }
+
+        for (var j in objectsObject[i]) {
+          if (ownProperty(objectsObject[i], j)) {
+            if (!ownProperty(factory[i].prototype, j)) {
+              factory[i].prototype[j] = objectsObject[i][j];
+              if (objectsObject[i][j] instanceof Function) {
+                factory[i].prototype[j].bind(factory[i]);
+              }
+            } else {
+              throw new self.Error('Registering module: ' + self.name + '. Object "' + i + '" is already has prototype property ' + j);
+            }
+          }
+        }
+      }
+    };
+    self.registerObjects = self.constructor.prototype.registerObjects.bind(self);
+
+    // Registers other modules event(s) name(s) needed for this module to work
+    self.constructor.prototype.registerDeps = function oSDKregisterDeps (eventsList) {
+
+      eventsList  = [].concat(eventsList);
+      dependencies[self.name] = eventsList;
+
+    };
+    self.registerDeps = self.constructor.prototype.registerDeps.bind(self);
+
+    self.constructor.prototype.registerConfig = function oSDKregisterConfig (configObject) {
+      mainConfig = extend(true, {}, mainConfig, configObject);
+    };
+    self.registerConfig = self.constructor.prototype.registerConfig.bind(self);
+
+    // Adding module to registered modules object
+    modules[nameInt] = self;
+  };
+
+  var utils = new Module('utils');
+
+  Object.defineProperties(Module.prototype, {
+    utils: {
+      get: function () {
+        return utils;
+      }
+    }
+  });
+
+  // Generic functions bindings
+
+  utils.ownProperty = ownProperty;
+
+  utils.isNumber = isNumber;
+
+  utils.isArray = isArray;
+
+  utils.isObject = isObject;
+
+  utils.isFunction = isFunction;
+
+  utils.isBoolean = isBoolean;
+
+  utils.isString = isString;
+
+  utils.isNull = isNull;
+
+  utils.isEmpty = isEmpty;
+
+  utils.uuid = uuid;
+
+  utils.each = each;
+
+  utils.extend = extend;
+
+  /**
+   * Test to other data
+   * @isValidLogin
+   * @isValidAccount
+   */
+  utils.isValidLogin = function(login) {
+    if (login && utils.isString(login)) {
+      if (login.match(/^[-fa-z0-9_]+$/i)) return true;
+    }
+    return false;
+  };
+
+  utils.isValidAccount = function(account) {
+    if (account && utils.isString(account)) {
+      if (account.match(/^[-a-z0-9_]+@[a-z0-9_]+\.[a-z]{2,3}$/i)) return true;
+    }
+    return false;
+  };
+
+  /*
+   * Work with json objects TODO: throw utils.Error on bad data
+   * @jsonEncode
+   * @jsonDecode
+   */
+  utils.jsonEncode = function(data) {
+    try {
+      return JSON.stringify(data);
+    } catch(eJsonEncode) {
+      return data;
+    }
+  };
+
+  utils.jsonDecode = function(data) {
+    try {
+      return JSON.parse(data);
+    } catch(eJsonDecode) {
+      return data;
+    }
   };
 
   // window.location.hash getting and setting
@@ -413,296 +853,51 @@
 
   })();
 
-  // Modules/events registration stuff
-
-  utils.eventSkel = function () {
-    return {
-          emitters: [],
-          listeners: []
-    };
-  };
-
   // Returns registered namespaces
-  utils.modules = function () {
-    return modules;
-  };
-
-  // Returns registered namespaces
-  utils.namespaces = function () {
-    return namespaces;
-  };
-
-  // Returns registered methods
-  utils.methods = function () {
-    return methods;
-  };
-
-  // Returns registered event emitters and listeners grouped by event name
-  utils.events = function () {
-    return events;
-  };
-
-  // FOR MODULE. Needed to register namespace, method or event in oSDK by its module.
-  // attachableEvents - map internal events to same named oSDK events, aliases or array of aliases
-  utils.register = function (object) {
-
-    // Module name or Core
-    var moduleName = this.name;
-
-    // TODO: merge similar conditions
-    var i, j;
-
-    if (object.namespaces) {
-      for (i in object.namespaces) {
-        if (!namespaces[i]) {
-          namespaces[i] = {};
-          oSDK[i] = {};
-        } else {
-          utils.log('Registering namespaces for module: ' + moduleName + '. Namespace "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + '. Combining.');
-        }
-        namespaces[i][moduleName] = [];
-        for (j in object.namespaces[i]) {
-          if (object.namespaces[i].hasOwnProperty(j)) {
-            if (!oSDK[i][j]) {
-              oSDK[i][j] = object.namespaces[i][j];
-              namespaces[i][moduleName].push(j);
-            } else {
-              throw new Error('Registering module: ' + moduleName + '. Namespace "' + i + '" is already has property ' + j);
-            }
-          }
-        }
+  Object.defineProperties(utils, {
+    // Returns registered modules
+    modules: {
+      enumerable: true,
+      get: function () {
+        return modules;
+      }
+    },
+    // Returns registered namespaces
+    namespaces: {
+      enumerable: true,
+      get: function () {
+        return namespaces;
+      }
+    },
+    // Returns registered crossmodule-objects
+    factory: {
+      enumerable: true,
+      get: function () {
+        return factory;
+      }
+    },
+    // Returns registered methods
+    methods: {
+      enumerable: true,
+      get: function () {
+        return methods;
+      }
+    },
+    // Returns registered event emitters and listeners grouped by event name
+    events: {
+      enumerable: true,
+      get: function () {
+        return events;
+      }
+    },
+    // Returns registered event dependencies grouped by dependent module name
+    deps: {
+      enumerable: true,
+      get: function () {
+        return dependencies;
       }
     }
-
-    if (object.methods) {
-      for (i in object.methods) {
-        if (methods[i]) {
-          throw new Error('Registering module: ' + moduleName + '. Method "' + i + '" is already taken by module ' + methods[i]);
-        }
-        methods[i] = moduleName;
-        oSDK[i] = object.methods[i];
-      }
-    }
-
-    var registerEvents = function (eventType) {
-      utils.log('Registering events for module: ' + moduleName + '.', eventType, events[eventType]);
-
-      if (events[eventType]) {
-        utils.log('Registering events for module: ' + moduleName + '. Event "' + eventType + '" is already taken by module(s) ' + events[eventType].toString() + '. Combining.');
-      } else {
-        events[eventType] = utils.eventSkel();
-      }
-
-      events[eventType].emitters.push({ module: moduleName, fired: false /* Or data if fired */ });
-
-      // utils.info('event registered', events);
-    };
-
-    // NOTICE: Each event may be boolean, string or array of strings. If boolean - event registered in oSDK by it's eventType. If string - by it's alias named in this string. Array of strings works like string but registers event as each alias. If same event registered by several modules - fires only last triggered event with combined by module eventType data.
-    if (object.events) {
-      for (i in object.events) {
-        // Each i must be an array
-        if (typeof(object.events[i]) === 'string') { // Assuming event alias
-          i = [object.events[i]];
-        } else if (object.events[i] instanceof Array){ // Assuming array of event aliases
-          i = [].concat(object.events[i]);
-        } else {
-          i = [i]; // Assuming boolean
-        }
-        i.map(registerEvents);
-      }
-    }
-
-  };
-
-  /**
-   * Adds custom callback for specified event type.
-   * Returns id of added listener for removing through {@link utils.off}.
-   * @param fireType may be 'last' (fires only when last emitter sent event), 'first' (fires only when first emitter sent event, fatal error case), 'every' (default, fires every time emitter emits)
-   */
-  utils.on = function (eventTypes, eventHandler, fireType) {
-
-    // Module name or Client
-    var moduleName = this.name?this.name:'Client';
-
-    var fireTypes = {
-      'last': !0,
-      'first': !0,
-      'every': !0
-    };
-
-    var ids = [];
-    eventTypes = [].concat(eventTypes);
-
-    utils.each(eventTypes, function (eventType) {
-      if (!events[eventType]) {
-        events[eventType] = utils.eventSkel();
-      }
-      var id  = utils.uuid();
-      fireType = fireTypes[fireType]?fireType:'every';
-      var listener = {
-        id: id,
-        handler: eventHandler,
-        fireType: fireType,
-        fireCounter: 0,
-        fireData: {},
-        module: this
-      };
-
-      events[eventType].listeners.push(listener);
-      ids.push(id);
-    });
-    return (ids.length == 1)?ids[0]:ids;
-  };
-
-  /*
-   * Resets firecounters for eventName or globally for all registered event listeners
-   */
-  utils.resetTriggerCounters = function (eventName) {
-    // utils.log('starting clearing triggers for', eventName);
-    utils.log('clearing counters for ', eventName || 'all events');
-    var eventNames = [];
-    if (!utils.isNull(eventName)) {
-      eventNames.concat(eventName);
-    }
-    utils.each(events, function (event, name) {
-      if (eventNames.length && eventNames.indexOf(name) == -1) {
-        return;
-      }
-      utils.each(event.listeners, function (listener) {
-        listener.fireCounter = 0;
-        listener.fireData = {};
-      });
-    });
-  };
-
-  /*
-   * Removes custom callbacks for events by id or by eventType
-   * by event type or id generated through {@link utils.on}
-   *
-   */
-  utils.off = function (eventTypeOrID) {
-
-    // Module name or Client
-    var moduleName = this.name?this.name:'Client';
-
-    if (events[eventTypeOrID]) {
-      // Removing all listeners for eventType
-      events[eventTypeOrID].listeners = [];
-      utils.log('Removed all listeners for event', eventTypeOrID);
-    } else {
-      // Searching and removing
-      var foundById = false;
-      var removeListener = function (id, i) {
-        if (events[eventType].listeners[i].id == eventTypeOrID) {
-          events[eventType].listeners.splice(i,1);
-          foundById = true;
-          return false;
-        }
-      };
-      for (var eventType in events) {
-        events[eventType].listeners.forEach(removeListener);
-      }
-      if (!foundById) {
-        // Non fatal
-        throw new Error('Can\'t remove event listener(s) - this event type or ID is not registered.');
-      }
-    }
-  };
-
-  // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
-  // Fires custom callbacks
-  utils.trigger = function (configObject) {
-
-    var configObjectSkel = {
-      self: false, // Trigger event(s) only to this module
-      other: false, // Trigger event(s) only to other modules
-      client: false, // Trigger event(s) to oSDK user
-      type: [], // Event type(s) to trigger
-      paramenter: [], // Parameter(s) to pass with event(s)
-      context: this // Context in which trigger event(s)
-    };
-
-    // Module name or Core
-    var moduleName = this.name;
-
-    var context = null,
-      eventTypes = null,
-      eventData = null;
-
-    if (utils.isEmpty(arguments[0]) || !utils.isArray(arguments[0]) && !utils.isString(arguments[0]) && utils.isEmpty(arguments[1])) {
-      // Not enough arguments
-      throw new Error('Insufficient arguments to trigger event.');
-    } else if (utils.isString(arguments[0]) || utils.isArray(arguments[0])) {
-      // Without context
-      context = this;
-      eventTypes = [].concat(arguments[0]);
-      eventData = utils.isObject(arguments[1])?arguments[1]:{};
-    } else {
-      // With context
-      context = arguments[0];
-      eventTypes = [].concat(arguments[1]);
-      eventData = utils.isObject(arguments[2])?arguments[2]:{};
-    }
-
-    eventTypes.forEach(function (eventType) {
-      // Appending/rewriting of eventType in data with last event type
-
-      // Normalizing eventData to object
-      if (!utils.isObject(eventData)) {
-        eventData = {
-          data: eventData
-        };
-      }
-      eventData.type = eventType;
-      eventData.module = moduleName;
-
-      if (!events[eventType]) {
-        // Non fatal
-        utils.warn('Event' + eventType + 'not registered by emitter or listener, therefore can\'t trigger!');
-        return;
-      }
-
-      // Regstered emitters may be zero (e.g. in case of oauth popup)
-
-      // Fire every listener for event type
-      var fireToListener = function (listener) {
-        if (listener.fireType === 'last') {
-          // Extending data
-          listener.fireData.module = eventData;
-          // utils.log('listener.fireData', listener.fireData);
-          // Checking if we can fire
-          if (++listener.fireCounter >= events[eventType].emitters.length) {
-            utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-            // Firing with cumulative data
-            listener.handler.call(context, listener.fireData);
-            // Cleaning cumulative data
-            listener.fireCounter = 0;
-            listener.fireData = {};
-          } else {
-            utils.log(moduleName, 'NOT firing', listener.fireType, eventType, 'with event data', listener.fireData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-          }
-        } else if (listener.fireType === 'first') {
-          // How and when we need to clear this counter or delete listener after firing
-          if (++listener.fireCounter === 1) {
-            utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-            // Firing with current data
-            listener.handler.call(context, eventData);
-          }
-          else {
-            utils.log(moduleName, 'NOT firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-            // Not firing
-            listener.fireCounter--; // No to overflow
-          }
-        } else if (listener.fireType === 'every') {
-          utils.log(moduleName, 'Firing', listener.fireType, eventType, 'with event data', eventData, 'for listener', listener, listener.fireCounter, events[eventType].emitters.length);
-          // Just firing
-          listener.handler.call(context, eventData);
-        }
-      };
-      events[eventType].listeners.forEach(fireToListener);
-    });
-  };
+  });
 
   /**
    * MD5 Hasher
@@ -880,107 +1075,31 @@
     return temp.toLowerCase();
   };
 
-  /*
-   * oSDK module object factory
-   */
-  function Module(name) {
-    var self = this;
-    var debugInt = true;
-    var nameInt = name;
-    var debug = false; // Per-module debug
-
-    Object.defineProperties(self, {
-      debug: {
-        get: function () {
-          return debugInt;
-        },
-        set: function (flag)  {
-          debugInt = !!flag;
-          return debugInt;
-        }
-      },
-      name: {
-        get: function () {
-          return nameInt;
-        }
-      }
-    });
-
-    browserMethods.forEach( function (method) {
-      self[method] = utils[method];
-    });
-
-    self.on = utils.on;
-    self.off = utils.off;
-    self.trigger = utils.trigger;
-
-    self.utils = utils;
-
-    self.config = function () {
-      // If we got parameter string like 'app.key' - returning <moduleName>.<this subpath> or <this subpath> if first was not found or throwing error.
-      if (arguments[0] && utils.isString(arguments[0])) {
-        var parameter = mainConfig[nameInt];
-        var subParameter = arguments[0].split('.');
-        var i = 0;
-        for (; i < subParameter.length; i++) {
-          if(!Object.prototype.hasOwnProperty.call(parameter, subParameter[i])) {
-            parameter = undefined;
-            break;
-          }
-          parameter = parameter[subParameter[i]];
-        }
-        if(parameter === undefined) {
-          parameter = mainConfig;
-          subParameter = arguments[0].split('.');
-          for (i = 0; i < subParameter.length; i++) {
-            if(!Object.prototype.hasOwnProperty.call(parameter, subParameter[i])) {
-              throw new Error('Module.config: can\'t find config parameter:' + arguments[0]);
-            }
-            parameter = parameter[subParameter[i]];
-          }
-        }
-        return parameter;
-      } else {
-        throw new Error('Module.config: can\'t find config parameter:' + arguments[0]);
-      }
-    };
-
-    // TODO: inter-modules events, to-client events
-    self.registerEvents = function (eventsObject) {
-      utils.register({ events: eventsObject });
-    };
-
-    self.registerMethods = function (methodsObject) {
-      utils.register({ methods: methodsObject });
-    };
-
-    self.registerNamespaces = function (namespacesObject) {
-      utils.register({ namespaces: namespacesObject });
-    };
-
-    self.registerConfig = function (configObject) {
-      mainConfig = utils.extend({}, mainConfig, configObject);
-    };
-
-    // Adding module to registered modules object
-    modules[nameInt] = self;
-  }
-
-  Module.mergeConfig = function (config) {
-    mainConfig = utils.extend({}, mainConfig, config);
+  utils.mergeConfig = function (config) {
+    mainConfig = extend(true, {}, mainConfig, config);
   };
 
-  // Some direct bindings to namespace
-  oSDK.Module = Module;
+  utils.Module = Module;
 
-  // Dedicated window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
+  // Dedicated for osdk window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
   window.addEventListener('beforeunload', function () {
-    utils.trigger('window.beforeunload');
+    utils.trigger('beforeunload', {});
   });
 
+  // Dedicated for osdk DOMContentLoaded event
+  document.addEventListener("DOMContentLoaded", function () {
+    utils.trigger('DOMContentLoaded', {});
+  });
 
-  // For debug
-  if(utils.debug === true) {
-    oSDK.utils = utils;
-  }
+  // For creation of module objects
+  utils.registerNamespaces({
+    utils: utils
+  });
+
+  // TODO: note this events in module developers guide
+  utils.registerEvents({
+    'beforeunload': { self: true, other: true },
+    'DOMContentLoaded': { self: true, other: true }
+  });
+
 })(oSDK);

@@ -50,7 +50,8 @@ module.exports = function(grunt) {
           'src/osdk.module.user.js',
           'src/osdk.module.sip.js',
           'src/osdk.module.xmpp.js',
-          'src/osdk.module.interface.js'
+
+          'src/osdk.module.client.js'
         ],
         dest: 'build/<%= pkg.name %>.js'
       },

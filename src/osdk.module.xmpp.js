@@ -1324,7 +1324,7 @@
 
     // Inner exemplar of inner XMPP module
 
-    xmpp = new XMPP(new oSDK.Module('xmpp'));
+    xmpp = new XMPP(new oSDK.utils.Module('xmpp'));
 
     // Register public methods
 
