@@ -196,6 +196,7 @@
         data = JSON.parse(data);
         if(data.error) {
           auth.trigger(['connectionFailed'], { 'message': data.error, 'ecode': 'auth0002' });
+          auth.disconnect();
         } else {
 
           // Filling user client sturcture
@@ -217,6 +218,7 @@
         auth.status = 'disconnected';
         // If all is ok with token - throw connectionFailed event.
         auth.trigger('connectionFailed', { 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' });
+        auth.disconnect();
       }
     });
 
@@ -373,9 +375,9 @@
     'gotTokenFromPopup': { self: true },
     'gotTempCreds': { other: true },
     'connecting': { other: true },
-    'connected': { client: true, other: true },
+    'connected': { other: true, client: 'last' },
     'disconnecting': { other: true },
-    'disconnected': { other: true, client: true },
+    'disconnected': { other: true, client: 'last' },
     'connectionFailed': { client: true, other: true, cancels: 'connected' }
   });
 

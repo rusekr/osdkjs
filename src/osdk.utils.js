@@ -256,7 +256,35 @@
     * oSDK error object prototype
     *
     */
-    self.Error = Error;
+    self.constructor.prototype.Error = function oSDKError (eobj) {
+      // Defaults
+      var module = module || self.name;
+      this.oSDKError = true; // Identificator because "instanceof oSDKError" is not working out of this scope
+      this.ecode = 0;
+      this.module = module;
+      this.message = "Unknown error detected";
+      this.htmlMessage = null;
+      this.data = {};
+      this.toString = function(){return 'oSDKError: module ' + this.module + ': code ' + this.ecode + ': ' + this.message;};
+
+      // Updating properties
+      var selfError = this;
+
+      if (isString(eobj)) {
+        this.message = eobj;
+      } else {
+        each(eobj, function (prop, propname) {
+          selfError[propname] = prop;
+        });
+      }
+
+      // Html message => plain message if not defined
+      if(this.htmlMessage === null) {
+        this.htmlMessage = this.message;
+      }
+      self.log('Throwing error with data', this);
+    };
+    self.Error = self.constructor.prototype.Error.bind(self);
 
     self.factory = factory;
 
@@ -440,6 +468,10 @@
           return;
         }
 
+        if(!events[eventType].emittersObject[self.name]) {
+          throw new self.Error('Emitter for ' + eventType + ' event type is not registered.');
+        }
+
         // Normalizing configObject.data to object
         if (!isObject(configObject.data)) {
           configObject.data = {
@@ -447,9 +479,12 @@
           };
         }
         // Addition of system properties to data
-        configObject.data.type = eventType;
-
-        configObject.data.module = self.name;
+        if(!configObject.data.type) {
+          configObject.data.type = eventType;
+        }
+        if(!configObject.data.module) {
+          configObject.data.module = self.name;
+        }
 
         // Regstered emitters may be zero (e.g. in case of oauth popup)
 
@@ -563,7 +598,6 @@
      * other - fired to listeners defined by other modules.
      * client - fired to client listeners.
      * cancels - firing of this event cancels other named event and its bound by "bind" directive relatives.
-     * bind - binds this event to other event, and when that other event needs to fire to client - it will fire only when last of bound event is successed.
      */
     self.constructor.prototype.registerEvents = function oSDKregisterEvents (eventsObject) {
 

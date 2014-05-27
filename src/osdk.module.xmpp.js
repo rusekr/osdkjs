@@ -129,9 +129,9 @@
       return {
         // Inner
         // 'xmpp.connected': {self: true},
-        'connected': {other: true, client: true},
+        'connected': {other: true, client: 'last'},
         // 'xmpp.disconnected': {self: true},
-        'disconnected': {other: true, client: true},
+        'disconnected': {other: true, client: 'last'},
         // 'xmpp.connectionFailed': {self: true},
         'connectionFailed': {other: true, client: true, cancels: 'connected'},
         // Client
@@ -1316,7 +1316,6 @@
       if (connection.connected()) {
         connection.disconnect();
       }
-      module.trigger('connectionFailed', {data: 'Some other modules failed to connect'});
       return true;
     });
 
@@ -1365,7 +1364,9 @@
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
       // Disconnect
-      module.on('core.disconnected', function (data) {connection.disconnect();});
+      module.on('disconnecting', function (data) {
+        module.log('Started disconnect process.');
+        connection.disconnect();});
       // Connect and login
       connection.connect({
         domain: params.domain,

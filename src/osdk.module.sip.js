@@ -291,10 +291,10 @@
     'sip.disconnected': { self: true },
     'sip.newMediaSession': { self: true },
     'newMediaSession': { client: true },
-    'disconnected': { other: true, client: true /* bind: 'auth.disconnected'*/ },
-    'connected': { other: true, client: true /* bind: 'auth.connected'*/ },
-    'connectionFailed': { client: true, other: true },
-    'gotMediaCapabilities': { client: true, other: true, self: true }
+    'disconnected': { other: true, client: 'last' },
+    'connected': { other: true, client: 'last' },
+    'connectionFailed': { client: true, other: true, cancels: 'connected' },
+    'gotMediaCapabilities': { client: true, other: true }
   });
 
   // SIP module needs this event registered by some other module
