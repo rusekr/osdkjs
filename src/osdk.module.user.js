@@ -119,6 +119,52 @@
               enumerable: false
             }
           });
+          user.capabilities = {
+
+            orientation: 'common',
+
+            tech: {
+              instantMessaging: false,
+              audioCall: false,
+              videoCall: false,
+              fileTransfer: false
+            },
+            user: {
+              instantMessaging: false,
+              audioCall: false,
+              videoCall: false,
+              fileTransfer: false
+            },
+            common: {
+              instantMessaging: false,
+              audioCall: false,
+              videoCall: false,
+              fileTransfer: false
+            },
+            getTechParams: function() {
+              return user.capabilities.tech;
+            },
+            setTechParams: function(params) {
+              if (typeof params.instantMessaging != 'undefined') user.capabilities.tech.instantMessaging = !!params.instantMessaging;
+              if (typeof params.audioCall != 'undefined') user.capabilities.tech.audioCall = !!params.audioCall;
+              if (typeof params.videoCall != 'undefined') user.capabilities.tech.videoCall = !!params.videoCall;
+              if (typeof params.fileTransfer != 'undefined') user.capabilities.tech.fileTransfer = !!params.fileTransfer;
+              return true;
+            },
+            getUserParams: function() {
+              return user.capabilities.user;
+            },
+            setUserParams: function(params) {
+              if (typeof params.instantMessaging != 'undefined') user.capabilities.user.instantMessaging = !!params.instantMessaging;
+              if (typeof params.audioCall != 'undefined') user.capabilities.user.audioCall = !!params.audioCall;
+              if (typeof params.videoCall != 'undefined') user.capabilities.user.videoCall = !!params.videoCall;
+              if (typeof params.fileTransfer != 'undefined') user.capabilities.user.fileTransfer = !!params.fileTransfer;
+              return true;
+            },
+            params: function() {
+              return user.capabilities[user.capabilities.orientation];
+            }
+          };
           return user;
         }
         return false;

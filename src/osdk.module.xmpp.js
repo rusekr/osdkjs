@@ -133,7 +133,7 @@
         // 'xmpp.disconnected': {self: true},
         'disconnected': {other: true, client: true},
         // 'xmpp.connectionFailed': {self: true},
-        'connectionFailed': {other: true, client: true},
+        'connectionFailed': {other: true, client: true, cancels: 'connected'},
         // Client
         'newContactsList': {client: true},
         'newSubscriptionRequest': {client: true},
@@ -165,8 +165,6 @@
       subscription: this.OSDK_SUBSCRIPTION_NONE,
       ask: false,
       status: 'unavailable',
-      canChat: false,
-      // Temp
       picture: false
     });
 
@@ -1170,6 +1168,8 @@
       return result;
     };
 
+    // Set status & capabilities, system or not
+
     this.setStatus = function() {
       var onError = function() {/*---*/};
       var onSuccess = function() {/*---*/};
@@ -1268,6 +1268,42 @@
       return true;
     };
 
+    this.setStatusAvailable = function() {
+      return this.setStatus('available', {
+        instantMessaging: true,
+        audioCall: true,
+        videoCall: true,
+        fileTransfer: true
+      });
+    };
+
+    this.setStatusAway = function() {
+      return this.setStatus('away', {
+        instantMessaging: true,
+        audioCall: true,
+        videoCall: true,
+        fileTransfer: true
+      });
+    };
+
+    this.setStatusDoNotDisturb = function() {
+      return this.setStatus('do not disturb', {
+        instantMessaging: true,
+        audioCall: false,
+        videoCall: false,
+        fileTransfer: false
+      });
+    };
+
+    this.setStatusXAvailable = function() {
+      return this.setStatus('x-available', {
+        instantMessaging: true,
+        audioCall: false,
+        videoCall: false,
+        fileTransfer: false
+      });
+    };
+
     this.getClient = function() { return storage.client; };
     this.getContacts = function() { return storage.contacts; };
     this.getAcceptedRequests = function() { return storage.acceptedRequests; };
@@ -1275,6 +1311,14 @@
     this.getRejectedRequests = function() { return storage.rejectedRequests; };
 
     // Initiation
+
+    module.on('connectionFailed', function() {
+      if (connection.connected()) {
+        connection.disconnect();
+      }
+      module.trigger('connectionFailed', {data: 'Some other modules failed to connect'});
+      return true;
+    });
 
     module.on('gotTempCreds', function() {
       // Check & define params
@@ -1355,17 +1399,20 @@
       // Add & Remove contact
       addContact: xmpp.addContact,
       removeContact: xmpp.removeContact,
+      deleteContact: xmpp.deleteContact,
       // Accept & reject request
       acceptRequest: xmpp.acceptRequest,
       rejectRequest: xmpp.rejectRequest,
       // Rejected request
       getRejectedRequests: xmpp.getRejectedRequests,
       deleteRejectedRequests: xmpp.deleteRejectedRequests,
-
-      deleteContact: xmpp.deleteContact,
-
+      // Work with status & capabilities
       setStatus: xmpp.setStatus,
-
+      setStatusAvailable: xmpp.setStatusAvailable,
+      setStatusAway: xmpp.setStatusAway,
+      setStatusDoNotDisturb: xmpp.setStatusDoNotDisturb,
+      setStatusXAvailable: xmpp.setStatusXAvailable,
+      // To dolete
       superPresence: xmpp.superPresence
 
     });
