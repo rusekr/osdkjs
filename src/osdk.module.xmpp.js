@@ -127,18 +127,31 @@
 
     this.events = function() {
       return {
-        'connected': ['xmpp.connected', 'core.connected'],
-        'disconnected': ['xmpp.disconnected', 'core.disconnected'],
-        'connectionFailed': ['xmpp.connectionFailed', 'core.connectionFailed'],
+        // Inner
+        // 'xmpp.connected': {self: true},
+        'connected': {other: true, client: true},
+        // 'xmpp.disconnected': {self: true},
+        'disconnected': {other: true, client: true},
+        // 'xmpp.connectionFailed': {self: true},
+        'connectionFailed': {other: true, client: true},
         // Client
-        'contactCapabilitiesChanged': true,
-        'contactStatusChanged': true
+        'newContactsList': {client: true},
+        'newSubscriptionRequest': {client: true},
+        'contactIsAvailable': {client: true},
+        'contactIsUnavailable': {client: true},
+        'authRequestRejected': {client: true},
+        'contactCapabilitiesChanged': {client: true},
+        'contactStatusChanged': {client: true}
       };
     };
 
     // Register events
 
     module.registerEvents(this.events());
+
+    // Debendensis
+
+    module.registerDeps(['gotTempCreds', 'disconnecting']);
 
     // Register methods
 
@@ -484,11 +497,11 @@
                       /* TODO */
                     },
                     onSuccess: function() {
-                      module.trigger(['xmpp.connected', 'core.connected'], [].slice.call(arguments, 0));
+                      module.trigger('connected', [].slice.call(arguments, 0));
                     }
                   });
                 } else {
-                  module.trigger(['xmpp.connected', 'core.connected'], [].slice.call(arguments, 0));
+                  module.trigger('connected', [].slice.call(arguments, 0));
                 }
               }
             });
@@ -499,11 +512,11 @@
                   /* TODO */
                 },
                 onSuccess: function() {
-                  module.trigger(['xmpp.connected', 'core.connected'], [].slice.call(arguments, 0));
+                  module.trigger('connected', [].slice.call(arguments, 0));
                 }
               });
             } else {
-              module.trigger(['xmpp.connected', 'core.connected'], [].slice.call(arguments, 0));
+              module.trigger('connected', [].slice.call(arguments, 0));
             }
           }
           return true;
@@ -514,14 +527,14 @@
         module.info('XMPP HANDLER(disconnect)');
         if (storage.flags.connect != 'disconnected') {
           storage.flags.connect = 'disconnected';
-          module.trigger(['xmpp.disconnected', 'core.disconnected'], [].slice.call(arguments, 0));
+          module.trigger('disconnected', [].slice.call(arguments, 0));
           return true;
         }
         return false;
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
-        module.trigger(['xmpp.connectionFailed', 'core.connectionFailed'], [].slice.call(arguments, 0));
+        module.trigger('connectionFailed', [].slice.call(arguments, 0));
         /* TODO */
       },
       fnOnResume: function() {
@@ -1263,7 +1276,7 @@
 
     // Initiation
 
-    module.on('core.gotTempCreds', function() {
+    module.on('gotTempCreds', function() {
       // Check & define params
       var params = {
         debug: module.config('connection.debug'),

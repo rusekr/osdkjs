@@ -244,7 +244,7 @@
 
   // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
   auth.connectOnGotListener = function () {
-    var events  = auth.utils.events();
+    var events  = auth.utils.events;
     if(events.connected && events.connected.listeners.length) {
       auth.connect();
     } else {
