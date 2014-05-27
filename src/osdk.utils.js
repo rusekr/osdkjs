@@ -516,6 +516,7 @@
             cancelsEvents.concat(events[eventType].emittersObject[self.name].cancels);
 
             each(cancelsEvents, function cancelEvent (eventToCancel) {
+              self.info(eventType, 'cancelling events', cancelsEvents);
               eventToCancel.fired = false;
             });
           }
@@ -525,7 +526,7 @@
 
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
-          if(listener.module == 'client' && events[eventType].emittersObject[self.name].client) {
+          if(listener.module == 'client' && events[eventType].emittersObject[self.name].client == 'last') {
             each(events[eventType].emitters, function (emitter) {
               if(emitter.fired === false) {
                 notFiredModuleExists = true;
