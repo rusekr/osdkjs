@@ -47,44 +47,62 @@
       return value;
     };
 
-    this.history = {
-      length: HISTORY_MAX_LENGTH,
-      clear: function() {
-        history = [];
-        var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
-        oSDKH[key] = history;
-        set_oSDKHistory(oSDKH);
-        return true;
-      },
-      state: function() {
-        return history;
-      },
-      push: function(params) {
-        function prepareHistoryParams(params) {
-          var result = params, d = new Date();
-          if (!module.utils.isObject(result)) result = { data: result };
-          if (typeof result.type == 'undefined') result.type = 'unknown';
-          result.timeZoneOffset = d.getTimezoneOffset() / 60; // in hours
-          result.timeStamp = d.getTime() / 1000; // in secondes
-          return result;
-        }
-        var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
-        var element = prepareHistoryParams(params);
-        oSDKH[key].push(element);
-        if (oSDKH[key].length > HISTORY_MAX_LENGTH) {
-          var hist = [];
-          for (var i = 1; i != oSDKH[key].length; i ++) {
-            hist.push(oSDKH[key][i]);
-          }
-          oSDKH[key] = hist;
-        }
-        set_oSDKHistory(oSDKH);
-        return element;
-      }
-    };
+    if (typeof params != 'undefined' && module.utils.isObject(params) && typeof params.history != 'undefined' && !params.history) {
 
-    // Report
-    module.info('Create client: ' + this.account);
+      // Interface to work with history is not exists
+
+    } else {
+
+      // Interface to work with history to this exemplar of User
+
+      this.history = {
+        length: HISTORY_MAX_LENGTH,
+        clear: function() {
+          history = [];
+          var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
+          oSDKH[key] = history;
+          set_oSDKHistory(oSDKH);
+          return true;
+        },
+        state: function() {
+          var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
+          if (typeof oSDKH[key] == 'undefined') return [];
+          if (typeof params != 'undefined') {
+            var c, i = oSDKH[key].length - params, result = [];
+            if (i < 0) i = 0;
+            for (c = i; c != oSDKH[key].length; c ++) {
+              result.push(oSDKH[key][c]);
+            }
+            return result;
+          }
+          return oSDKH[key];
+        },
+        push: function(params) {
+          function prepareHistoryParams(params) {
+            var result = params, d = new Date();
+            if (!module.utils.isObject(result)) result = { data: result };
+            if (typeof result.type == 'undefined') result.type = 'unknown';
+            result.timeZoneOffset = d.getTimezoneOffset() / 60; // in hours
+            result.timeStamp = d.getTime(); // in millisecondes
+            return result;
+          }
+          var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
+          var element = prepareHistoryParams(params);
+          if (typeof oSDKH[key] == 'undefined') oSDKH[key] = [];
+          oSDKH[key].push(element);
+          if (oSDKH[key].length > HISTORY_MAX_LENGTH) {
+            var hist = [];
+            for (var i = 1; i != oSDKH[key].length; i ++) {
+              hist.push(oSDKH[key][i]);
+            }
+            oSDKH[key] = hist;
+          }
+          set_oSDKHistory(oSDKH);
+          return element;
+        }
+      };
+
+    }
 
   }
 
@@ -119,10 +137,10 @@
               enumerable: false
             }
           });
-          user.capabilities = {
 
-            orientation: 'common',
+          var orientationOfCapabilities = 'common';
 
+          var capabilities = {
             tech: {
               instantMessaging: false,
               audioCall: false,
@@ -140,31 +158,73 @@
               audioCall: false,
               videoCall: false,
               fileTransfer: false
-            },
+            }
+          };
+
+          user.capabilities = {
             getTechParams: function() {
-              return user.capabilities.tech;
+              return capabilities.tech;
             },
             setTechParams: function(params) {
-              if (typeof params.instantMessaging != 'undefined') user.capabilities.tech.instantMessaging = !!params.instantMessaging;
-              if (typeof params.audioCall != 'undefined') user.capabilities.tech.audioCall = !!params.audioCall;
-              if (typeof params.videoCall != 'undefined') user.capabilities.tech.videoCall = !!params.videoCall;
-              if (typeof params.fileTransfer != 'undefined') user.capabilities.tech.fileTransfer = !!params.fileTransfer;
+              if (typeof params.instantMessaging != 'undefined') {
+                capabilities.tech.instantMessaging = !!params.instantMessaging;
+                capabilities.common.instantMessaging = !!(capabilities.tech.instantMessaging & capabilities.user.instantMessaging);
+              }
+              if (typeof params.audioCall != 'undefined') {
+                capabilities.tech.audioCall = !!params.audioCall;
+                capabilities.common.audioCall = !!(capabilities.tech.audioCall & capabilities.user.audioCall);
+              }
+              if (typeof params.videoCall != 'undefined') {
+                capabilities.tech.videoCall = !!params.videoCall;
+                capabilities.common.videoCall = !!(capabilities.tech.videoCall & capabilities.user.videoCall);
+              }
+              if (typeof params.fileTransfer != 'undefined') {
+                capabilities.tech.fileTransfer = !!params.fileTransfer;
+                capabilities.common.fileTransfer = !!(capabilities.tech.fileTransfer & capabilities.user.fileTransfer);
+              }
               return true;
             },
             getUserParams: function() {
-              return user.capabilities.user;
+              return capabilities.user;
             },
             setUserParams: function(params) {
-              if (typeof params.instantMessaging != 'undefined') user.capabilities.user.instantMessaging = !!params.instantMessaging;
-              if (typeof params.audioCall != 'undefined') user.capabilities.user.audioCall = !!params.audioCall;
-              if (typeof params.videoCall != 'undefined') user.capabilities.user.videoCall = !!params.videoCall;
-              if (typeof params.fileTransfer != 'undefined') user.capabilities.user.fileTransfer = !!params.fileTransfer;
+              if (typeof params.instantMessaging != 'undefined') {
+                capabilities.user.instantMessaging = !!params.instantMessaging;
+                capabilities.common.instantMessaging = !!(capabilities.tech.instantMessaging & capabilities.user.instantMessaging);
+              }
+              if (typeof params.audioCall != 'undefined') {
+                capabilities.user.audioCall = !!params.audioCall;
+                capabilities.common.audioCall = !!(capabilities.tech.audioCall & capabilities.user.audioCall);
+              }
+              if (typeof params.videoCall != 'undefined') {
+                capabilities.user.videoCall = !!params.videoCall;
+                capabilities.common.videoCall = !!(capabilities.tech.videoCall & capabilities.user.videoCall);
+              }
+              if (typeof params.fileTransfer != 'undefined') {
+                capabilities.user.fileTransfer = !!params.fileTransfer;
+                capabilities.common.fileTransfer = !!(capabilities.tech.fileTransfer & capabilities.user.fileTransfer);
+              }
+              return true;
+            },
+            getOrientationOfCapabilities: function() {
+              return orientationOfCapabilities;
+            },
+            setOrientationOfCapabilities: function(param) {
+              if (typeof param == 'undefined' || !module.utils.isString(param)) return false;
+              switch(param.toLowerCase()) {
+                case 'tech' : orientationOfCapabilities = 'tech'; break;
+                case 'user' : orientationOfCapabilities = 'user'; break;
+                case 'common' : orientationOfCapabilities = 'common'; break;
+                default : return false;
+              }
               return true;
             },
             params: function() {
-              return user.capabilities[user.capabilities.orientation];
+              return capabilities[orientationOfCapabilities];
             }
           };
+          // Report
+          module.info('Create user: ' + user.account);
           return user;
         }
         return false;
