@@ -248,10 +248,100 @@
   });
 
   // TODO: replace with direct jssip listener
-  sip.on('sip.newMediaSession', function (data) {
-    // sip.log(data);
-    sessions.push(data.data.session);
-    sip.trigger('newMediaSession', data);
+  sip.on('sip.newMediaSession', function (event) {
+    // Augmenting session object with useful properties
+    sip.log('Got newMediaSession with data', event);
+
+    event.data.session.incoming = (event.data.originator == 'remote')?true:false;
+
+    Object.defineProperties(event.data.session, {
+      hasVideo: {
+        enumerable: true,
+        get: function () {
+          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getVideoTracks().length > 0) {
+            return true;
+          }
+          return false;
+        }
+      },
+      hasAudio: {
+        enumerable: true,
+        get: function () {
+          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getAudioTracks().length > 0) {
+            return true;
+          }
+          return false;
+        }
+      }
+    });
+
+    // Easier link to streams getter functions
+    event.data.session.localStreams = event.data.session.getLocalStreams;
+    event.data.session.remoteStreams = event.data.session.getRemoteStreams;
+
+    // Mute video shortcut
+    event.data.session.muteVideo = function oSDKSIPMuteVideo (flag) {
+      flag = !!flag;
+
+      var localStream = event.data.session.localStreams()[0];
+
+      if(!localStream) {
+        sip.log('Local media stream is not initialized.');
+        return;
+      }
+
+      // Call the getVideoTracks method via adapter.js.
+      var videoTracks = localStream.getVideoTracks();
+
+      if (videoTracks.length === 0) {
+        sip.log('No local video available.');
+        return;
+      }
+
+      for (var i = 0; i < videoTracks.length; i++) {
+        if (!flag) {
+          videoTracks[i].enabled = true;
+          sip.log('Video unmuted.');
+        } else {
+          videoTracks[i].enabled = false;
+          sip.log('Video muted.');
+        }
+      }
+    };
+
+    // Mute audio shortcut
+    event.data.session.muteAudio = function oSDKSIPMuteAudio (flag) {
+      flag = !!flag;
+
+      var localStream = event.data.session.localStreams()[0];
+
+      if(!localStream) {
+        sip.log('Local media stream is not initialized.');
+        return;
+      }
+
+      // Call the getAudioTracks method via adapter.js.
+      var audioTracks = localStream.getAudioTracks();
+
+      if (audioTracks.length === 0) {
+        sip.log('No local audio available.');
+        return;
+      }
+
+      for (var i = 0; i < audioTracks.length; i++) {
+        if (!flag) {
+          audioTracks[i].enabled = true;
+          sip.log('Audio unmuted.');
+        } else {
+          audioTracks[i].enabled = false;
+          sip.log('Audio muted.');
+        }
+      }
+    };
+
+
+    sessions.push(event.data.session);
+    sip.trigger('newMediaSession', event);
   });
 
   sip.on('sip.disconnected', function (data) {
@@ -272,7 +362,8 @@
   });
 
   sip.registerMethods({
-    'call': sip.call
+    'call': sip.call,
+    'attachMediaStream': media.attachMediaStream
   });
 
   sip.registerNamespaces({

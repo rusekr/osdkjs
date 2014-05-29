@@ -437,8 +437,13 @@
     };
     self.off = self.constructor.prototype.off.bind(self);
 
-    // TODO: standartize and normalize data object, passed to events? Without breaking internal passing of events from jssip and friends
-    // Fires custom callbacks
+    /**
+     * Fires custom callbacks
+     * @alias self.trigger
+     * @param string||array event type.
+     * @param object event data. Augmented with "type" and "module" properties if not defined already.
+     * Transparent proxying of arguments through events can be accomplished with property "arguments" in data object. Other properties are ignored in this case.
+     */
     self.constructor.prototype.trigger = function oSDKtrigger () {
 
       var configObject = {
@@ -454,7 +459,6 @@
         // First argument is string or array
         configObject.type = [].concat(arguments[0]);
         configObject.data = isObject(arguments[1])?arguments[1]:{};
-        extend(configObject, arguments[2]);
 
       } else {
         // First argument is object
@@ -540,9 +544,23 @@
             return;
           }
 
-          self.log('Firing', eventType, 'with event data', configObject.data, 'for listener', listener);
-          // Just firing
-          listener.handler.call(configObject.context, configObject.data);
+          // Just firing with transparent arguments or with own data object
+          var fireArgs = [];
+          if(configObject.data.arguments) {
+            if (isArray(configObject.data.arguments)) {
+              fireArgs = configObject.data.arguments;
+            } else if (isObject(configObject.data.arguments)) {
+              fireArgs = Array.prototype.slice.call(configObject.data.arguments, 0);
+            } else {
+              throw new self.Error('Unknown type of arguments to pass.');
+            }
+          } else {
+            fireArgs.push(configObject.data);
+          }
+
+          self.log('Firing', eventType, 'with event data', configObject.data, 'as arguments',fireArgs , 'for listener', listener);
+
+          listener.handler.apply(configObject.context, fireArgs);
 
           // Cleaning self emitters
           each(events[eventType].emitters, function (emitter) {
@@ -1118,12 +1136,17 @@
 
   // Dedicated for osdk window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
   window.addEventListener('beforeunload', function () {
-    utils.trigger('beforeunload', {});
+    utils.trigger('beforeunload', { arguments: arguments });
+  });
+
+  window.addEventListener('error', function () {
+    utils.log('error Got unhandled exception with data', arguments);
+    utils.trigger('windowerror', { arguments: arguments });
   });
 
   // Dedicated for osdk DOMContentLoaded event
   document.addEventListener("DOMContentLoaded", function () {
-    utils.trigger('DOMContentLoaded', {});
+    utils.trigger('DOMContentLoaded', { arguments: arguments });
   });
 
   // For creation of module objects
@@ -1131,8 +1154,9 @@
     utils: utils
   });
 
-  // TODO: note this events in module developers guide
+  // Own system listeners wrappers TODO: note this events in module developers guide
   utils.registerEvents({
+    'windowerror': { self: true, other: true },
     'beforeunload': { self: true, other: true },
     'DOMContentLoaded': { self: true, other: true }
   });
