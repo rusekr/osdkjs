@@ -24,7 +24,15 @@
   });
 
   errors.registerEvents({
-      'error': { other: true, client: true } // Error event for listen
+    /**
+    * Dispatched when some oSDK module throws unhandled exception.
+    * <p>
+    *
+    * @event oSDK#error
+    * @param {oSDK~ErrorEvent} event The event object associated with this event.
+    *
+    */
+    'error': { other: true, client: true } // Error event for listen
   });
 
 })(oSDK);

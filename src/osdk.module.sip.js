@@ -23,21 +23,21 @@
     if (window.navigator.webkitGetUserMedia) {
       getUserMedia = window.navigator.webkitGetUserMedia.bind(navigator);
 
-      attachMediaStream = function(element, stream) {
+      attachMediaStream = function (element, stream) {
         element.src = webkitURL.createObjectURL(stream);
       };
     }
     else if (window.navigator.mozGetUserMedia) {
       getUserMedia = window.navigator.mozGetUserMedia.bind(navigator);
 
-      attachMediaStream = function(element, stream) {
+      attachMediaStream = function (element, stream) {
         element.mozSrcObject = stream;
       };
     }
     else if (window.navigator.getUserMedia) {
       getUserMedia = window.navigator.getUserMedia.bind(navigator);
 
-      attachMediaStream = function(element, stream) {
+      attachMediaStream = function (element, stream) {
         element.src = stream;
       };
     }
@@ -154,6 +154,16 @@
 
 
       });
+  };
+
+  /**
+   * newMediaSessionEventObject constructor
+   *
+   * @class
+   */
+  function NewMediaSession (rtcSessionEventObject) {
+    this.rtcSession = rtcSessionEventObject;
+
   };
 
   // Init method
@@ -361,36 +371,103 @@
     });
   });
 
+  // Registration stuff
+
+  /**
+  * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
+  *
+  * @typedef {object} newMediaSessionEventObject
+  * @property {JsSIP.rtcSession} Session controlling object
+  * @property {JsSIP.URI} instanceAddress
+  * The unique address assigned to the client instance that sent the
+  * response.
+  */
+
   sip.registerMethods({
+    /**
+     * This method used to start media (audio or video) call to another user.
+     *
+     * @method oSDK.call
+     */
     'call': sip.call,
+    /**
+     * This method is used to attach audio or video stream of media session to web page object like audio or video element.
+     *
+     * @method oSDK.attachMediaStream
+     */
     'attachMediaStream': media.attachMediaStream
   });
 
+  /*
+   * Described in auth module.
+   */
   sip.registerNamespaces({
     'client': client
   });
 
+  /*
+   * Described in auth module.
+   */
   sip.registerObjects({
-    'user': client
+    'User': client
   });
 
   sip.registerEvents({
+    /**
+    * Dispatched when SIP module successfully registered on sip server inside openSDP network.
+    *
+    * @event oSDK#'sip.registered'
+    * @param {oSDK~SipRegisteredEvent} event The event object associated with this event.
+    *
+    */
     'sip.registered': { client: true },
+    /**
+    * Dispatched when SIP module successfully unregistered on sip server inside openSDP network.
+    *
+    * @event oSDK#'sip.unregistered'
+    * @param {oSDK~SipUnregisteredEvent} event The event object associated with this event.
+    *
+    */
     'sip.unregistered': { client: true },
+    /**
+    * Dispatched when SIP module failed to register on sip server inside openSDP network.
+    *
+    * @event oSDK#'sip.registrationFailed'
+    * @param {oSDK~SipRegistrationFailedEvent} event The event object associated with this event.
+    *
+    */
     'sip.registrationFailed': { client: true },
     'sip.connected': { self: true },
     'sip.disconnected': { self: true },
     'sip.newMediaSession': { self: true },
+    /**
+    * Dispatched when SIP module got sesson object of incoming or outgoing call.
+    *
+    * @event oSDK#newMediaSession
+    * @param {newMediaSessionEventObject} event The event object associated with this event.
+    *
+    */
     'newMediaSession': { client: true },
+    /*
+     * Described in auth module
+     */
     'disconnected': { other: true, client: 'last' },
+    /*
+     * Described in auth module
+     */
     'connected': { other: true, client: 'last' },
     'connectionFailed': { client: true, other: true, cancels: 'connected' },
+    /**
+    * Dispatched when SIP module successfully got media capabilities of current client environment (web browser) which consists of audio and video calls possibilities.
+    *
+    * @event oSDK#gotMediaCapabilities
+    * @param {oSDK~gotMediaCapabilitiesEvent} event The event object associated with this event.
+    *
+    */
     'gotMediaCapabilities': { client: true, other: true }
   });
 
-  // SIP module needs this event registered by some other module
-  sip.registerDeps(['gotTempCreds', 'disconnecting']);
-
   sip.registerConfig(defaultConfig);
+
 
 })(oSDK, JsSIP);
