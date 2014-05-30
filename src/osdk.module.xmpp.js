@@ -272,7 +272,17 @@
         'disconnected': {other: true, client: 'last'},
         // 'xmpp.connectionFailed': {self: true},
         'connectionFailed': {other: true, client: true, cancels: 'connected'},
-        // Client
+
+        /**
+         * Dispatched when XMPP module got a new roster from server and parsed him
+         *
+         * @event oSDK#'gotNewRoster'
+         * @returns {bool}
+         * @param {object} Handlers
+         * @param {function} Handlers.onError
+         * @param {function} Handlers.onSuccess
+         * @param {function} Handlers.onComplete
+         */
         'gotNewRoster': {client: true},
 
         'contactIsAvailable': {client: true},
@@ -280,18 +290,55 @@
         'contactStatusChanged': {client: true},
         'contactCapabilitiesChanged': {client: true},
 
+        /**
+         * Dispatched when XMPP module accept new new auth request
+         *
+         * @event oSDK#'incomingRequest'
+         * @param {object} User
+         * @param {string} User.login Login
+         * @param {string} User.domain Domain
+         * @param {string} User.account Account (login + @ + domain)
+         * @param {string} User.ask Request type: 'subscribe' or 'unsubscribe'
+         * @param {string} User.subscription Current subscription
+         */
         'incomingRequest': {client: true},
 
         /**
          * Dispatched when XMPP module accepted new message
          *
          * @event oSDK#'incomingMessage'
-         * @param {oSDK~TextMessage} event
+         * @param {object} Message
+         * @param {string} Message.from Account
+         * @param {string} Message.to Account
+         * @param {string} Message.message Text message
          */
         'incomingMessage': {client: true},
+
+        /**
+         * Dispatched when XMPP module sended new message
+         *
+         * @event oSDK#'outcomingMessage'
+         * @param {object} Message
+         * @param {string} Message.from Account
+         * @param {string} Message.to Account
+         * @param {string} Message.message Text message
+         */
         'outcomingMessage': {client: true},
 
+        /**
+         * Dispatched when contact accepted your auth request
+         *
+         * @event oSDK#'requestWasAccepted'
+         * @param {object} User
+         */
         'requestWasAccepted': {client: true},
+
+        /**
+         * Dispatched when contact rejected your auth request
+         *
+         * @event oSDK#'requestWasRejected'
+         * @param {object} User
+         */
         'requestWasRejected': {client: true}
 
       };
@@ -1578,7 +1625,7 @@
        * Returns current authorized client
        *
        * @method oSDK.getClient
-       * @returns {object}
+       * @returns {object} User
        */
       "getClient": xmpp.getClient,
 
@@ -1586,35 +1633,206 @@
        * Get roster from server and parse him
        *
        * @method oSDK.getRoster
-       * @param {object} three hanlers: onError, onSuccess, onComplete
+       * @param {object} Callbacks
+       * @param {object} Callbacks.onClient
+       * @param {object} Callbacks.onSuccess
+       * @param {object} Callbacks.onComplete
        * @returns {bool}
        */
       "getRoster": xmpp.getRoster,
 
+      /**
+       * Return contact from contacts list by User or User.account
+       *
+       * @method oSDK.getContact
+       * @param {string} User.account
+       * @returns {object} User
+       */
       "getContact": xmpp.getContact,
+
+      /**
+       * Return contacts list
+       *
+       * @method oSDK.getContacts
+       * @returns {array}
+       */
       "getContacts": xmpp.getContacts,
 
+      /**
+       * Returns accepted request by account
+       *
+       * @method oSDK.getAcceptedRequest
+       * @param {string} User.account
+       * @returns {object} User
+       */
       "getAcceptedRequest": xmpp.getAcceptedRequest,
+
+      /**
+       * Returns rejected recuest by account to current session
+       *
+       * @method oSDK.getRejectedRequest
+       * @param {string} User.account
+       * @returns {object} User
+       */
       "getRejectedRequest": xmpp.getRejectedRequest,
+
+      /**
+       * Returns incoming request by account
+       *
+       * @method oSDK.getIncomingRequest
+       * @param {string} User.account
+       * @returns {object} User
+       */
       "getIncomingRequest": xmpp.getIncomingRequest,
+
+      /**
+       * Returns outcoming request by account to current session
+       *
+       * @method oSDK.getOutcomingRequest
+       * @param {string} User.account
+       * @returns {object} User
+       */
       "getOutcomingRequest": xmpp.getOutcomingRequest,
+
+      /**
+       * Returns list of accepted requests
+       *
+       * @method oSDK.getAcceptedRequests
+       * @returns {array} Array
+       */
       "getAcceptedRequests": xmpp.getAcceptedRequests,
+
+
       "getRejectedRequests": xmpp.getRejectedRequests,
+
+
       "getIncomingRequests": xmpp.getIncomingRequests,
+
+
       "getOutcomingRequests": xmpp.getOutcomingRequests,
 
+
       "acceptRequest": xmpp.acceptRequest,
+
+
       "rejectRequest": xmpp.rejectRequest,
 
+      /**
+       * Set status or/and capabilities to current auth client:
+       *
+       * @method oSDK.setStatusAvailable
+       * @param {object} Params
+       * @param {string} Params.status Maybe: 'available' or 'chat', 'away', 'do not disturb' or 'dnd', 'x-available' or 'xa'
+       * @param {bool} Params.instantMessaging
+       * @param {bool} Params.audioCall
+       * @param {bool} Params.videoCall
+       * @param {bool} Params.fileTransfer
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       * @returns {bool} True or False
+       */
       "setStatus": xmpp.setStatus,
+
+      /**
+       * Set status 'available' (XMPP.chat) to current auth client and set:<br />
+       * Client.capability.instantMessaging to true<br />
+       * Client.capability.audioCall to true<br />
+       * Client.capability.videoCall to true<br />
+       * Client.capability.fileTransfer to true
+       *
+       * @method oSDK.setStatusAvailable
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       * @returns {bool} True or False
+       */
       "setStatusAvailable": xmpp.setStatusAvailable,
+
+      /**
+       * Set status 'away' (XMPP.away) to current auth client and set:<br />
+       * Client.capability.instantMessaging to true<br />
+       * Client.capability.audioCall to true<br />
+       * Client.capability.videoCall to true<br />
+       * Client.capability.fileTransfer to true
+       *
+       * @method oSDK.setStatusAway
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       * @returns {bool} True or False
+       */
       "setStatusAway": xmpp.setStatusAway,
+
+      /**
+       * Set status 'do not disturb' (XMPP.dnd) to current auth client and set:<br />
+       * Client.capability.instantMessaging to true<br />
+       * Client.capability.audioCall to false<br />
+       * Client.capability.videoCall to false<br />
+       * Client.capability.fileTransfer to false
+       *
+       * @method oSDK.setStatusDoNotDisturb
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       * @returns {bool} True or False
+       */
       "setStatusDoNotDisturb": xmpp.setStatusDoNotDisturb,
+
+      /**
+       * Set status 'x-available' (XMPP.xa) to current auth client and set:<br />
+       * Client.capability.instantMessaging to false<br />
+       * Client.capability.audioCall to false<br />
+       * Client.capability.videoCall to false<br />
+       * Client.capability.fileTransfer to false
+       *
+       * @method oSDK.setStatusXAvailable
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       * @returns {bool} True or False
+       */
       "setStatusXAvailable": xmpp.setStatusXAvailable,
 
+      /**
+       * Send text message
+       *
+       * @method oSDK.sendMessage
+       * @param {string} Account
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       */
       "sendMessage": xmpp.sendMessage,
 
+      /**
+       * Send auth requests
+       *
+       * @method oSDK.addContact
+       * @param {object|string} User|User.account
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       */
       "addContact": xmpp.addContact,
+
+      /**
+       * Remove contact from contacts list on current auth client
+       *
+       * @method oSDK.removeContact
+       * @param {object|string} User|User.account
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @param {function} Callbacks.onComplete
+       */
       "removeContact": xmpp.removeContact
 
     });
