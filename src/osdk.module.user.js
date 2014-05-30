@@ -166,6 +166,9 @@
               return capabilities.tech;
             },
             setTechParams: function(params) {
+              console.warn('TRACE');
+              console.warn(params);
+              console.trace();
               if (typeof params.instantMessaging != 'undefined') {
                 capabilities.tech.instantMessaging = !!params.instantMessaging;
                 capabilities.common.instantMessaging = !!(capabilities.tech.instantMessaging & capabilities.user.instantMessaging);

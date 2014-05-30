@@ -282,6 +282,12 @@
 
         'incomingRequest': {client: true},
 
+        /**
+         * Dispatched when XMPP module accepted new message
+         *
+         * @event oSDK#'incomingMessage'
+         * @param {oSDK~TextMessage} event
+         */
         'incomingMessage': {client: true},
         'outcomingMessage': {client: true},
 
@@ -327,6 +333,9 @@
           }
           module.trigger('contactCapabilitiesChanged', {contact: storage.contacts.get(p.info.from)});
         }
+      },
+      sendMeWhatYouCan: function(p) {
+        self.thatICan(p.info.from);
       }
     };
 
@@ -576,38 +585,6 @@
                 return true;
               }
             }
-            // var contact = xmpp.getContactByAccount(data.from);
-            /*
-            if (!data.type && contact.status == xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE) data.type = OSDK_PRESENCE_TYPE_AVAILABLE;
-            if (data.type == OSDK_PRESENCE_TYPE_UNAVAILABLE) {
-              contact.status = OSDK_PRESENCE_TYPE_UNAVAILABLE;
-              oSDK.trigger('contactStatusChanged', {contact: contact});
-            } else {
-              if (data.type == OSDK_PRESENCE_TYPE_AVAILABLE || (data.show && data.show == OSDK_PRESENCE_SHOW_CHAT)) {
-                if (contact.status != OSDK_PRESENCE_TYPE_AVAILABLE) {
-                  contact.status = OSDK_PRESENCE_TYPE_AVAILABLE;
-                  oSDK.trigger('contactStatusChanged', {contact: contact});
-                }
-              } else {
-                if (data.show) {
-                  switch(data.show) {
-                    case OSDK_PRESENCE_SHOW_AWAY :
-                      contact.status = OSDK_PRESENCE_SHOW_AWAY;
-                      break;
-                    case OSDK_PRESENCE_SHOW_DND :
-                      contact.status = OSDK_PRESENCE_SHOW_DND;
-                      break;
-                    case OSDK_PRESENCE_SHOW_XA :
-                      contact.status = OSDK_PRESENCE_SHOW_XA;
-                      break;
-                    default :
-                      break;
-                  }
-                  oSDK.trigger('contactStatusChanged', {contact: contact});
-                }
-              }
-            }
-            */
           }
         }
       },
@@ -822,6 +799,41 @@
       }
     };
 
+    this.sendMeWhatYouCanToAll = function(params) {
+
+      var i, len = storage.contacts.len(), con = storage.contacts.get();
+
+      for (i = 0; i != len; i ++) {
+
+        self.sendMeWhatYouCan(con[i].account, params);
+
+      }
+
+    };
+
+    this.sendMeWhatYouCan = function(to, params) {
+      if (!to) {
+        self.sendMeWhatYouCanToAll(params);
+        return false;
+      }
+      var handlers = self.getHandlers(params);
+      var contact = storage.contacts.get(to);
+      if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
+        this.sendPresence({
+          to: to,
+          data: {
+            command: 'sendMeWhatYouCan'
+          },
+          onError: handlers.onError
+        });
+        handlers.onSuccess();
+        handlers.onComplete();
+      } else {
+        handlers.onError();
+        return false;
+      }
+    };
+
     this.thatICanToAll = function(params) {
 
       var i, len = storage.contacts.len(), con = storage.contacts.get();
@@ -1013,6 +1025,12 @@
             module.trigger('gotNewRoster', {"data": data});
 
             handlers.onSuccess({"data": data});
+
+            if (storage.logged) {
+
+              self.sendMeWhatYouCan();
+
+            }
 
           }
 
@@ -1556,35 +1574,48 @@
 
     xmpp.registerMethods({
 
-      getClient: xmpp.getClient,
+      /**
+       * Returns current authorized client
+       *
+       * @method oSDK.getClient
+       * @returns {object}
+       */
+      "getClient": xmpp.getClient,
 
-      getRoster: xmpp.getRoster,
+      /**
+       * Get roster from server and parse him
+       *
+       * @method oSDK.getRoster
+       * @param {object} three hanlers: onError, onSuccess, onComplete
+       * @returns {bool}
+       */
+      "getRoster": xmpp.getRoster,
 
-      getContact: xmpp.getContact,
-      getContacts: xmpp.getContacts,
+      "getContact": xmpp.getContact,
+      "getContacts": xmpp.getContacts,
 
-      getAcceptedRequest: xmpp.getAcceptedRequest,
-      getRejectedRequest: xmpp.getRejectedRequest,
-      getIncomingRequest: xmpp.getIncomingRequest,
-      getOutcomingRequest: xmpp.getOutcomingRequest,
-      getAcceptedRequests: xmpp.getAcceptedRequests,
-      getRejectedRequests: xmpp.getRejectedRequests,
-      getIncomingRequests: xmpp.getIncomingRequests,
-      getOutcomingRequests: xmpp.getOutcomingRequests,
+      "getAcceptedRequest": xmpp.getAcceptedRequest,
+      "getRejectedRequest": xmpp.getRejectedRequest,
+      "getIncomingRequest": xmpp.getIncomingRequest,
+      "getOutcomingRequest": xmpp.getOutcomingRequest,
+      "getAcceptedRequests": xmpp.getAcceptedRequests,
+      "getRejectedRequests": xmpp.getRejectedRequests,
+      "getIncomingRequests": xmpp.getIncomingRequests,
+      "getOutcomingRequests": xmpp.getOutcomingRequests,
 
-      acceptRequest: xmpp.acceptRequest,
-      rejectRequest: xmpp.rejectRequest,
+      "acceptRequest": xmpp.acceptRequest,
+      "rejectRequest": xmpp.rejectRequest,
 
-      setStatus: xmpp.setStatus,
-      setStatusAvailable: xmpp.setStatusAvailable,
-      setStatusAway: xmpp.setStatusAway,
-      setStatusDoNotDisturb: xmpp.setStatusDoNotDisturb,
-      setStatusXAvailable: xmpp.setStatusXAvailable,
+      "setStatus": xmpp.setStatus,
+      "setStatusAvailable": xmpp.setStatusAvailable,
+      "setStatusAway": xmpp.setStatusAway,
+      "setStatusDoNotDisturb": xmpp.setStatusDoNotDisturb,
+      "setStatusXAvailable": xmpp.setStatusXAvailable,
 
-      sendMessage: xmpp.sendMessage,
+      "sendMessage": xmpp.sendMessage,
 
-      addContact: xmpp.addContact,
-      removeContact: xmpp.removeContact
+      "addContact": xmpp.addContact,
+      "removeContact": xmpp.removeContact
 
     });
 
