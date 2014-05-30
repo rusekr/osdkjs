@@ -252,16 +252,17 @@
       self[method] = self.constructor.prototype[method].bind(self);
     });
 
-        /*
+    /**
     * oSDK error object prototype
+    *
+    * @class oSDK.Error
     *
     */
     self.constructor.prototype.Error = function oSDKError (eobj) {
       // Defaults
-      var module = module || self.name;
       this.oSDKError = true; // Identificator because "instanceof oSDKError" is not working out of this scope
       this.ecode = 0;
-      this.module = module;
+      this.module = self.name;
       this.message = "Unknown error detected";
       this.htmlMessage = null;
       this.data = {};
@@ -711,14 +712,14 @@
     };
     self.registerObjects = self.constructor.prototype.registerObjects.bind(self);
 
-    // Registers other modules event(s) name(s) needed for this module to work
-    self.constructor.prototype.registerDeps = function oSDKregisterDeps (eventsList) {
-
-      eventsList  = [].concat(eventsList);
-      dependencies[self.name] = eventsList;
-
-    };
-    self.registerDeps = self.constructor.prototype.registerDeps.bind(self);
+    // Registers other modules event(s) name(s) needed for this module to work (TODO: make automatic on time of event listener and emitters registration)
+//     self.constructor.prototype.registerDeps = function oSDKregisterDeps (eventsList) {
+//
+//       eventsList  = [].concat(eventsList);
+//       dependencies[self.name] = eventsList;
+//
+//     };
+//     self.registerDeps = self.constructor.prototype.registerDeps.bind(self);
 
     self.constructor.prototype.registerConfig = function oSDKregisterConfig (configObject) {
       mainConfig = extend(true, {}, mainConfig, configObject);
@@ -1140,7 +1141,6 @@
   });
 
   window.addEventListener('error', function () {
-    utils.log('error Got unhandled exception with data', arguments);
     utils.trigger('windowerror', { arguments: arguments });
   });
 

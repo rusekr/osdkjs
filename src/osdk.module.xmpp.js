@@ -1468,7 +1468,7 @@
     // Initiation
 
     module.on('connectionFailed', function() {
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
         connection.disconnect();
       }
       return true;

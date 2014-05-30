@@ -2,7 +2,7 @@
   "name": "opensdp.osdk",
   "title": "Teligent oSDK: JavaScript Library",
   "description": "Web-based communications built around WebRTC, SIP, MSRP, and XMPP.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "homepage": "http://osdp.teligent.ru",
   "author": {
     "name": "Teligent OOO",
