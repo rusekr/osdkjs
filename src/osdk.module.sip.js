@@ -164,7 +164,7 @@
   function NewMediaSession (rtcSessionEventObject) {
     this.rtcSession = rtcSessionEventObject;
 
-  };
+  }
 
   // Init method
   // TODO: !!!may be syncronize getting of media capabilities and connecting states and only after that fire connected?
