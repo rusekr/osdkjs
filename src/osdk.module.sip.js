@@ -96,7 +96,7 @@
     'unregistered': 'sip.unregistered', // not needed now
     'registrationFailed': ['connectionFailed', 'sip.registrationFailed'], // TODO: test
     'connectionFailed': 'connectionFailed',
-    'newRTCSession': ['sip.newMediaSession', 'newMediaSession']
+    'newRTCSession': ['sip.newMediaSession']
   };
 
   var clientInt = {
@@ -157,13 +157,132 @@
   };
 
   /**
+  * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
+  *
+  * @typedef {object} MediaSessionEventObject
+  * @property {JsSIP.rtcSession} JsSIPrtcSessionEvent Session controlling object
+  */
+
+  /**
    * newMediaSessionEventObject constructor
    *
    * @class
    */
-  function NewMediaSession (rtcSessionEventObject) {
-    this.rtcSession = rtcSessionEventObject;
+  function MediaSession (JsSIPrtcSessionEvent) {
 
+    var self = this;
+    var event = JsSIPrtcSessionEvent;
+
+    self.JsSIPrtcSessionEvent = event;
+
+    // Incoming session, if false - outgoing.
+    self.incoming = (event.data.originator == 'remote')?true:false;
+
+    // Whether session has audio and/or video stream or not.
+    Object.defineProperties(self, {
+      hasVideo: {
+        enumerable: true,
+        get: function () {
+          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getVideoTracks().length > 0) {
+            return true;
+          }
+          return false;
+        }
+      },
+      hasAudio: {
+        enumerable: true,
+        get: function () {
+          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getAudioTracks().length > 0) {
+            return true;
+          }
+          return false;
+        }
+      }
+    });
+
+    // Translation of session handlers.
+    self.on = function (sessionEventType, handler) {
+      event.data.session[sessionEventType] = handler;
+    };
+
+    // Other side user ID
+    self.opponent = event.data.request.from.uri.user;
+
+    // Easier link to streams getter functions
+    self.localStreams = event.data.session.getLocalStreams;
+    self.remoteStreams = event.data.session.getRemoteStreams;
+
+    // Mute video shortcut
+    self.muteVideo = function oSDKSIPMuteVideo (flag) {
+      flag = !!flag;
+
+      var localStream = event.data.session.localStreams()[0];
+
+      if(!localStream) {
+        sip.log('Local media stream is not initialized.');
+        return;
+      }
+
+      // Call the getVideoTracks method via adapter.js.
+      var videoTracks = localStream.getVideoTracks();
+
+      if (videoTracks.length === 0) {
+        sip.log('No local video available.');
+        return;
+      }
+
+      for (var i = 0; i < videoTracks.length; i++) {
+        if (!flag) {
+          videoTracks[i].enabled = true;
+          sip.log('Video unmuted.');
+        } else {
+          videoTracks[i].enabled = false;
+          sip.log('Video muted.');
+        }
+      }
+    };
+
+    // Mute audio shortcut
+    self.muteAudio = function oSDKSIPMuteAudio (flag) {
+      flag = !!flag;
+
+      var localStream = event.data.session.localStreams()[0];
+
+      if(!localStream) {
+        sip.log('Local media stream is not initialized.');
+        return;
+      }
+
+      // Call the getAudioTracks method via adapter.js.
+      var audioTracks = localStream.getAudioTracks();
+
+      if (audioTracks.length === 0) {
+        sip.log('No local audio available.');
+        return;
+      }
+
+      for (var i = 0; i < audioTracks.length; i++) {
+        if (!flag) {
+          audioTracks[i].enabled = true;
+          sip.log('Audio unmuted.');
+        } else {
+          audioTracks[i].enabled = false;
+          sip.log('Audio muted.');
+        }
+      }
+    };
+
+    // Session answer proxy
+    if(self.incoming) {
+      self.answer = function () {
+        return event.data.session.answer.apply(event.data.session, [].slice.call(arguments, 0));
+      };
+    }
+
+    // Terminate session proxying function
+    self.end = function () {
+      return event.data.session.terminate();
+    };
   }
 
   // Init method
@@ -213,19 +332,19 @@
     }
   };
 
-  sip.on('gotTempCreds', function (e) {
+  sip.on('gotTempCreds', function (event) {
     sip.log('Got temp creds', arguments);
     try {
       sip.initialize({
         'ws_servers': sip.config('serverURL'),
         'connection_recovery': false,
-        'uri': 'sip:' + e.data.username.split(':')[1],
-        'password': e.data.password,
+        'uri': 'sip:' + event.data.username.split(':')[1],
+        'password': event.data.password,
         'stun_servers': [],
         'registrar_server': 'sip:'+sip.config('serverURL').replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
         'trace_sip': true,
         'register': true,
-        'authorization_user': e.data.username.split(':')[1],
+        'authorization_user': event.data.username.split(':')[1],
         'use_preloaded_route': false
         //,hack_via_tcp: true
       });
@@ -262,96 +381,12 @@
     // Augmenting session object with useful properties
     sip.log('Got newMediaSession with data', event);
 
-    event.data.session.incoming = (event.data.originator == 'remote')?true:false;
-
-    Object.defineProperties(event.data.session, {
-      hasVideo: {
-        enumerable: true,
-        get: function () {
-          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getVideoTracks().length > 0) {
-            return true;
-          }
-          return false;
-        }
-      },
-      hasAudio: {
-        enumerable: true,
-        get: function () {
-          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getAudioTracks().length > 0) {
-            return true;
-          }
-          return false;
-        }
-      }
-    });
-
-    // Easier link to streams getter functions
-    event.data.session.localStreams = event.data.session.getLocalStreams;
-    event.data.session.remoteStreams = event.data.session.getRemoteStreams;
-
-    // Mute video shortcut
-    event.data.session.muteVideo = function oSDKSIPMuteVideo (flag) {
-      flag = !!flag;
-
-      var localStream = event.data.session.localStreams()[0];
-
-      if(!localStream) {
-        sip.log('Local media stream is not initialized.');
-        return;
-      }
-
-      // Call the getVideoTracks method via adapter.js.
-      var videoTracks = localStream.getVideoTracks();
-
-      if (videoTracks.length === 0) {
-        sip.log('No local video available.');
-        return;
-      }
-
-      for (var i = 0; i < videoTracks.length; i++) {
-        if (!flag) {
-          videoTracks[i].enabled = true;
-          sip.log('Video unmuted.');
-        } else {
-          videoTracks[i].enabled = false;
-          sip.log('Video muted.');
-        }
-      }
-    };
-
-    // Mute audio shortcut
-    event.data.session.muteAudio = function oSDKSIPMuteAudio (flag) {
-      flag = !!flag;
-
-      var localStream = event.data.session.localStreams()[0];
-
-      if(!localStream) {
-        sip.log('Local media stream is not initialized.');
-        return;
-      }
-
-      // Call the getAudioTracks method via adapter.js.
-      var audioTracks = localStream.getAudioTracks();
-
-      if (audioTracks.length === 0) {
-        sip.log('No local audio available.');
-        return;
-      }
-
-      for (var i = 0; i < audioTracks.length; i++) {
-        if (!flag) {
-          audioTracks[i].enabled = true;
-          sip.log('Audio unmuted.');
-        } else {
-          audioTracks[i].enabled = false;
-          sip.log('Audio muted.');
-        }
-      }
-    };
-
-
     sessions.push(event.data.session);
-    sip.trigger('newMediaSession', event);
+
+    var mediaSession = new MediaSession(event);
+
+    sip.log('Modifyed session to', mediaSession);
+    sip.trigger('newMediaSession', mediaSession);
   });
 
   sip.on('sip.disconnected', function (data) {
@@ -372,16 +407,6 @@
   });
 
   // Registration stuff
-
-  /**
-  * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
-  *
-  * @typedef {object} newMediaSessionEventObject
-  * @property {JsSIP.rtcSession} Session controlling object
-  * @property {JsSIP.URI} instanceAddress
-  * The unique address assigned to the client instance that sent the
-  * response.
-  */
 
   sip.registerMethods({
     /**
