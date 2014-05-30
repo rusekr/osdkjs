@@ -90,13 +90,13 @@
   })();
 
   var attachableEvents = {
-    'connected': 'sip.connected', // not needed now
-    'disconnected': 'sip.disconnected',
-    'registered': ['connected', 'sip.registered'],
-    'unregistered': 'sip.unregistered', // not needed now
-    'registrationFailed': ['connectionFailed', 'sip.registrationFailed'], // TODO: test
+    'connected': 'sip_connected', // not needed now
+    'disconnected': 'sip_disconnected',
+    'registered': ['connected', 'sip_registered'],
+    'unregistered': 'sip_unregistered', // not needed now
+    'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
     'connectionFailed': 'connectionFailed',
-    'newRTCSession': ['sip.newMediaSession']
+    'newRTCSession': ['sip_gotMediaSession']
   };
 
   var clientInt = {
@@ -159,14 +159,26 @@
   /**
   * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
   *
-  * @typedef {object} MediaSessionEventObject
-  * @property {JsSIP.rtcSession} JsSIPrtcSessionEvent Session controlling object
+  * @typedef {object} MediaSessionObject
+  * @property {JsSIP.rtcSession} JsSIPrtcSessionEvent JsSIP library session controlling object
+  * @property {bool} incoming Whether this session incoming or outgoing
+  * @property {bool} hasAudio Whether this session has audio streams or not
+  * @property {bool} hasVideo Whether this session has video streams or not
+  * @property {function} on Lets you add listeners to current session events
   */
 
   /**
-   * newMediaSessionEventObject constructor
+  * Dispatched when current SIP session successfully started.
+  *
+  * @event oSDK#SIPSession~started
+  * @param {object} event The event object associated with this event.
+  *
+  */
+
+  /**
+   * MediaSessionObject constructor
    *
-   * @class
+   * @class oSDK.MediaSession
    */
   function MediaSession (JsSIPrtcSessionEvent) {
 
@@ -202,6 +214,7 @@
 
     // Translation of session handlers.
     self.on = function (sessionEventType, handler) {
+      //TODO: proxy newDTMF to client as gotDTMF on per session basis
       event.data.session[sessionEventType] = handler;
     };
 
@@ -283,10 +296,16 @@
       };
     }
 
+    // Send DTMF signal to other end of call session
+    self.sendDTMF = function () {
+      return event.data.session.sendDTMF.apply(event.data.session, [].slice.call(arguments, 0));
+    };
+
     // Terminate session proxying function
     self.end = function () {
       return event.data.session.terminate.apply(event.data.session, [].slice.call(arguments, 0));
     };
+
   }
 
   // Init method
@@ -302,7 +321,7 @@
       if(result == 'success') {
         clientInt.canAudio = props.audio;
         clientInt.canVideo = props.video;
-        sip.trigger('gotMediaCapabilities', { data: props });
+        sip.trigger('gotMediaCapabilities', props);
       }
       else {
         throw new sip.Error("Media capabilities are not found.");
@@ -370,34 +389,43 @@
     sip.stop();
   });
 
-  // On self registrationFailed event
-  sip.on('registrationFailed', function (data) {
-    sip.trigger('connectionFailed', data);
-  });
-
   // On other modules connectionFailed event
   sip.on('connectionFailed', function (data) {
     sip.stop();
   });
 
   // TODO: replace with direct jssip listener
-  sip.on('sip.newMediaSession', function (event) {
+  sip.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
-    sip.log('Got newMediaSession with data', event);
-
     sessions.push(event.data.session);
 
     var mediaSession = new MediaSession(event);
 
     sip.log('Modifyed session to', mediaSession);
-    sip.trigger('newMediaSession', mediaSession);
+    sip.trigger('gotMediaSession', mediaSession);
   });
 
-  sip.on('sip.disconnected', function (data) {
+  sip.on('sip_disconnected', function (data) {
     sip.trigger('disconnected');
   });
 
   sip.call = function () {
+
+    if (arguments[1] && sip.utils.isObject(arguments[1])) {
+      if (!arguments[1].mediaConstraints || !sip.utils.isObject(arguments[1].mediaConstraints)) {
+        arguments[1].mediaConstraints = {};
+      }
+      if (arguments[1].audio && arguments[1].audio === true) {
+        arguments[1].mediaConstraints.audio = true;
+      } else {
+        arguments[1].mediaConstraints.audio = false;
+      }
+      if (arguments[1].audio && arguments[1].video === true) {
+        arguments[1].mediaConstraints.video = true;
+      } else {
+        arguments[1].mediaConstraints.video = false;
+      }
+    }
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
@@ -413,12 +441,14 @@
   // Registration stuff
 
   sip.registerMethods({
+
     /**
      * This method used to start media (audio or video) call to another user.
      *
      * @method oSDK.call
      */
     'call': sip.call,
+
     /**
      * This method is used to attach audio or video stream of media session to web page object like audio or video element.
      *
@@ -442,50 +472,20 @@
   });
 
   sip.registerEvents({
-    /**
-    * Dispatched when SIP module successfully registered on sip server inside openSDP network.
-    *
-    * @event oSDK#'sip.registered'
-    * @param {oSDK~SipRegisteredEvent} event The event object associated with this event.
-    *
-    */
-    'sip.registered': { client: true },
-    /**
-    * Dispatched when SIP module successfully unregistered on sip server inside openSDP network.
-    *
-    * @event oSDK#'sip.unregistered'
-    * @param {oSDK~SipUnregisteredEvent} event The event object associated with this event.
-    *
-    */
-    'sip.unregistered': { client: true },
-    /**
-    * Dispatched when SIP module failed to register on sip server inside openSDP network.
-    *
-    * @event oSDK#'sip.registrationFailed'
-    * @param {oSDK~SipRegistrationFailedEvent} event The event object associated with this event.
-    *
-    */
-    'sip.registrationFailed': { client: true },
-    'sip.connected': { self: true },
-    'sip.disconnected': { self: true },
-    'sip.newMediaSession': { self: true },
+
+    /*
+     * Main events
+     */
+
     /**
     * Dispatched when SIP module got sesson object of incoming or outgoing call.
     *
-    * @event oSDK#newMediaSession
-    * @param {newMediaSessionEventObject} event The event object associated with this event.
+    * @event oSDK#gotMediaSession
+    * @param {MediaSessionObject} event The event object associated with this event.
     *
     */
-    'newMediaSession': { client: true },
-    /*
-     * Described in auth module
-     */
-    'disconnected': { other: true, client: 'last' },
-    /*
-     * Described in auth module
-     */
-    'connected': { other: true, client: 'last' },
-    'connectionFailed': { client: true, other: true, cancels: 'connected' },
+    'gotMediaSession': { client: true },
+
     /**
     * Dispatched when SIP module successfully got media capabilities of current client environment (web browser) which consists of audio and video calls possibilities.
     *
@@ -493,7 +493,64 @@
     * @param {oSDK~gotMediaCapabilitiesEvent} event The event object associated with this event.
     *
     */
-    'gotMediaCapabilities': { client: true, other: true }
+    'gotMediaCapabilities': { client: true, other: true },
+
+    /*
+     * Optional events
+     */
+
+    /**
+    * Dispatched when SIP module successfully registered on sip server inside openSDP network.
+    *
+    * @private
+    * @event oSDK#sip_registered
+    * @param {oSDK~SipRegisteredEvent} event The event object associated with this event.
+    *
+    */
+    'sip_registered': { client: false },
+
+    /**
+    * Dispatched when SIP module successfully unregistered on sip server inside openSDP network.
+    *
+    * @private
+    * @event oSDK#sip_unregistered
+    * @param {oSDK~SipUnregisteredEvent} event The event object associated with this event.
+    *
+    */
+    'sip_unregistered': { client: false },
+
+    /**
+    * Dispatched when SIP module failed to register on sip server inside openSDP network.
+    *
+    * @private
+    * @event oSDK#sip_registrationFaileds
+    * @param {oSDK~SipRegistrationFailedEvent} event The event object associated with this event.
+    *
+    */
+    'sip_registrationFailed': { client: false },
+
+    /*
+     * Inner events
+     */
+
+    'sip_connected': { self: true },
+    'sip_disconnected': { self: true },
+    'sip_gotMediaSession': { self: true },
+
+    /*
+     * Described in auth module
+     */
+    'disconnected': { other: true, client: 'last' },
+
+    /*
+     * Described in auth module
+     */
+    'connected': { other: true, client: 'last' },
+
+    /*
+     * Described in auth module
+     */
+    'connectionFailed': { client: true, other: true, cancels: 'connected' }
   });
 
   sip.registerConfig(defaultConfig);

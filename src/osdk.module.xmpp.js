@@ -276,7 +276,7 @@
         /**
          * Dispatched when XMPP module got a new roster from server and parsed him
          *
-         * @event oSDK#'gotNewRoster'
+         * @event oSDK#gotNewRoster
          * @returns {bool}
          * @param {object} Handlers
          * @param {function} Handlers.onError
@@ -293,7 +293,7 @@
         /**
          * Dispatched when XMPP module accept new new auth request
          *
-         * @event oSDK#'incomingRequest'
+         * @event oSDK#incomingRequest
          * @param {object} User
          * @param {string} User.login Login
          * @param {string} User.domain Domain
@@ -306,7 +306,7 @@
         /**
          * Dispatched when XMPP module accepted new message
          *
-         * @event oSDK#'incomingMessage'
+         * @event oSDK#incomingMessage
          * @param {object} Message
          * @param {string} Message.from Account
          * @param {string} Message.to Account
@@ -317,7 +317,7 @@
         /**
          * Dispatched when XMPP module sended new message
          *
-         * @event oSDK#'outcomingMessage'
+         * @event oSDK#outcomingMessage
          * @param {object} Message
          * @param {string} Message.from Account
          * @param {string} Message.to Account
@@ -328,7 +328,7 @@
         /**
          * Dispatched when contact accepted your auth request
          *
-         * @event oSDK#'requestWasAccepted'
+         * @event oSDK#requestWasAccepted
          * @param {object} User
          */
         'requestWasAccepted': {client: true},
@@ -336,7 +336,7 @@
         /**
          * Dispatched when contact rejected your auth request
          *
-         * @event oSDK#'requestWasRejected'
+         * @event oSDK#requestWasRejected
          * @param {object} User
          */
         'requestWasRejected': {client: true}
@@ -1594,8 +1594,8 @@
       module.on('gotMediaCapabilities', function(e) {
         module.log('Got media capabilities');
         storage.client.capabilities.setTechParams({
-          audioCall: e.data.audio,
-          videoCall: e.data.video
+          audioCall: e.audio,
+          videoCall: e.video
         });
       });
       // Connect and login
