@@ -56,7 +56,7 @@
       // Interface to work with history to this exemplar of User
 
       this.history = {
-        length: HISTORY_MAX_LENGTH,
+        maxLength: HISTORY_MAX_LENGTH,
         clear: function() {
           history = [];
           var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
@@ -90,7 +90,7 @@
           var element = prepareHistoryParams(params);
           if (typeof oSDKH[key] == 'undefined') oSDKH[key] = [];
           oSDKH[key].push(element);
-          if (oSDKH[key].length > HISTORY_MAX_LENGTH) {
+          if (oSDKH[key].maxLength > HISTORY_MAX_LENGTH) {
             var hist = [];
             for (var i = 1; i != oSDKH[key].length; i ++) {
               hist.push(oSDKH[key][i]);

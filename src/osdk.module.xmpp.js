@@ -661,12 +661,8 @@
       },
       fnOnDisconnect: function() {
         module.info('XMPP HANDLER(disconnect)');
-        if (storage.flags.connect != 'disconnected') {
-          storage.flags.connect = 'disconnected';
-          module.trigger('disconnected', [].slice.call(arguments, 0));
-          return true;
-        }
-        return false;
+        module.trigger('disconnected', [].slice.call(arguments, 0));
+        return true;
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
