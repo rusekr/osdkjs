@@ -209,14 +209,18 @@
     self.opponent = event.data.request.from.uri.user;
 
     // Easier link to streams getter functions
-    self.localStreams = event.data.session.getLocalStreams;
-    self.remoteStreams = event.data.session.getRemoteStreams;
+    self.localStreams = function () {
+      return event.data.session.getLocalStreams.apply(event.data.session, [].slice.call(arguments, 0));
+    };
+    self.remoteStreams = function () {
+      return event.data.session.getRemoteStreams.apply(event.data.session, [].slice.call(arguments, 0));
+    };
 
     // Mute video shortcut
     self.muteVideo = function oSDKSIPMuteVideo (flag) {
       flag = !!flag;
 
-      var localStream = event.data.session.localStreams()[0];
+      var localStream = event.data.session.getLocalStreams()[0];
 
       if(!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -246,7 +250,7 @@
     self.muteAudio = function oSDKSIPMuteAudio (flag) {
       flag = !!flag;
 
-      var localStream = event.data.session.localStreams()[0];
+      var localStream = event.data.session.getLocalStreams()[0];
 
       if(!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -281,7 +285,7 @@
 
     // Terminate session proxying function
     self.end = function () {
-      return event.data.session.terminate();
+      return event.data.session.terminate.apply(event.data.session, [].slice.call(arguments, 0));
     };
   }
 
