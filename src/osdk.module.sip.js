@@ -4,7 +4,9 @@
 (function (oSDK, JsSIP) {
   "use strict";
 
-  // Module namespace
+  /**
+   * @namespace MediaAPI
+   */
   var sip = new oSDK.utils.Module('sip');
 
   // RTC sessions array
@@ -159,6 +161,7 @@
   /**
   * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
   *
+  * @memberof MediaAPI
   * @typedef {object} MediaSessionObject
   * @property {JsSIP.rtcSession} JsSIPrtcSessionEvent JsSIP library session controlling object
   * @property {bool} incoming Whether this session incoming or outgoing
@@ -445,6 +448,7 @@
     /**
      * This method used to start media (audio or video) call to another user.
      *
+     * @memberof MediaAPI
      * @method oSDK.call
      */
     'call': sip.call,
@@ -452,6 +456,7 @@
     /**
      * This method is used to attach audio or video stream of media session to web page object like audio or video element.
      *
+     * @memberof MediaAPI
      * @method oSDK.attachMediaStream
      */
     'attachMediaStream': media.attachMediaStream
@@ -480,6 +485,7 @@
     /**
     * Dispatched when SIP module got sesson object of incoming or outgoing call.
     *
+    * @memberof MediaAPI
     * @event oSDK#gotMediaSession
     * @param {MediaSessionObject} event The event object associated with this event.
     *
@@ -489,6 +495,7 @@
     /**
     * Dispatched when SIP module successfully got media capabilities of current client environment (web browser) which consists of audio and video calls possibilities.
     *
+    * @memberof MediaAPI
     * @event oSDK#gotMediaCapabilities
     * @param {oSDK~gotMediaCapabilitiesEvent} event The event object associated with this event.
     *

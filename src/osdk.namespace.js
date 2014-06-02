@@ -6,9 +6,33 @@
  * Licensed under the TODO license.
  */
 
-/** @namespace
- * @alias oSDK
- * @param {Object} config
+/**
+ * @namespace BasicAPI
+ */
+
+/**
+ * <p>
+ * Initialises the openSDP oSDK JavaScript Library and returns a
+ * {@link oSDK oSDK} Object instance. The <code>config</code>
+ * parameter should be an object containing any properties/event handlers
+ * you want to configure; any that are not provided will be set to their
+ * default value.
+ * </p>
+ *
+ * <p>
+ * The <code>appID</code> property <b>MUST</b> be defined.
+ * </p>
+ *
+ * @memberof BasicAPI
+ * @function
+ * @param {oSDK~Config} config
+ *            <p>
+ *            The <code>config</code> parameter should be an object
+ *            containing any properties/event handlers you want to
+ *            configure; any that are not provided will be set to their
+ *            default value.
+ *            </p>
+ * @returns oSDK
  */
 var oSDK = function (config) {
   "use strict";

@@ -341,6 +341,7 @@
     /**
      * Initiates oSDK connection to all internal services.
      *
+     * @memberof BasicAPI
      * @method
      * @alias oSDK.connect
      */
@@ -348,6 +349,7 @@
     /**
      * Closes oSDK connection to all internal services.
      *
+     * @memberof BasicAPI
      * @method
      * @alias oSDK.disconnect
      */
@@ -355,6 +357,7 @@
     /**
      * Returns status of client's authorization on server. Thus client may want to know if it can connect to oSDP network without invoking user login form through popup or redirect.
      *
+     * @memberof BasicAPI
      * @method oSDK.isAuthorized
      * @returns {bool}
      */
@@ -363,9 +366,7 @@
 
   auth.registerNamespaces({
     'auth': auth, // Needed for main window-popup message passing
-    /**
-     * @namespace oSDK.client
-     */
+
     'client': auth.client
   });
 
@@ -385,6 +386,7 @@
     * <p>
     * This event has no properties for now.
     *
+    * @memberof BasicAPI
     * @event oSDK#connected
     *
     */
@@ -395,6 +397,7 @@
     * <p>
     * This event has no properties for now.
     *
+    * @memberof BasicAPI
     * @event oSDK#disconnected
     *
     */
@@ -404,6 +407,7 @@
     * <p>
     * Modules successed to connect in case of this error start gracefully disconnecting from openSDP network.
     *
+    * @memberof BasicAPI
     * @event oSDK#connectionFailed
     * @param {oSDK~ConnectionFailedEvent} event The event object associated with this event.
     *
