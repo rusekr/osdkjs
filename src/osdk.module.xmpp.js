@@ -9,6 +9,18 @@
 
   "use strict";
 
+  /**
+  * @namespace RosterAPI
+  */
+
+  /**
+  * @namespace PresenceAPI
+  */
+
+  /**
+  * @namespace MessagingAPI
+  */
+
   // Exemplar of oSDK XMPP module
 
   var module;
@@ -276,7 +288,8 @@
         /**
          * Dispatched when XMPP module got a new roster from server and parsed him
          *
-         * @event oSDK#gotNewRoster
+         * @memberof RosterAPI
+         * @event gotNewRoster
          * @returns {bool}
          * @param {object} Handlers
          * @param {function} Handlers.onError
@@ -293,7 +306,8 @@
         /**
          * Dispatched when XMPP module accept new new auth request
          *
-         * @event oSDK#incomingRequest
+         * @memberof PresenceAPI
+         * @event incomingRequest
          * @param {object} User
          * @param {string} User.login Login
          * @param {string} User.domain Domain
@@ -306,7 +320,8 @@
         /**
          * Dispatched when XMPP module accepted new message
          *
-         * @event oSDK#incomingMessage
+         * @memberof MessagingAPI
+         * @event incomingMessage
          * @param {object} Message
          * @param {string} Message.from Account
          * @param {string} Message.to Account
@@ -317,7 +332,8 @@
         /**
          * Dispatched when XMPP module sended new message
          *
-         * @event oSDK#outcomingMessage
+         * @memberof MessagingAPI
+         * @event outcomingMessage
          * @param {object} Message
          * @param {string} Message.from Account
          * @param {string} Message.to Account
@@ -328,7 +344,8 @@
         /**
          * Dispatched when contact accepted your auth request
          *
-         * @event oSDK#requestWasAccepted
+         * @memberof PresenceAPI
+         * @event requestWasAccepted
          * @param {object} User
          */
         'requestWasAccepted': {client: true},
@@ -336,7 +353,8 @@
         /**
          * Dispatched when contact rejected your auth request
          *
-         * @event oSDK#requestWasRejected
+         * @memberof PresenceAPI
+         * @event requestWasRejected
          * @param {object} User
          */
         'requestWasRejected': {client: true}
@@ -1624,6 +1642,7 @@
       /**
        * Returns current authorized client
        *
+       * @memberof CapabilitiesAPI
        * @method oSDK.getClient
        * @returns {object} User
        */
@@ -1632,6 +1651,7 @@
       /**
        * Get roster from server and parse him
        *
+       * @memberof RosterAPI
        * @method oSDK.getRoster
        * @param {object} Callbacks
        * @param {object} Callbacks.onClient
@@ -1644,6 +1664,7 @@
       /**
        * Return contact from contacts list by User or User.account
        *
+       * @memberof RosterAPI
        * @method oSDK.getContact
        * @param {string} User.account
        * @returns {object} User
@@ -1653,6 +1674,7 @@
       /**
        * Return contacts list
        *
+       * @memberof RosterAPI
        * @method oSDK.getContacts
        * @returns {array}
        */
@@ -1661,6 +1683,7 @@
       /**
        * Returns accepted request by account
        *
+       * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequest
        * @param {string} User.account
        * @returns {object} User
@@ -1670,6 +1693,7 @@
       /**
        * Returns rejected recuest by account to current session
        *
+       * @memberof PresenceAPI
        * @method oSDK.getRejectedRequest
        * @param {string} User.account
        * @returns {object} User
@@ -1679,6 +1703,7 @@
       /**
        * Returns incoming request by account
        *
+       * @memberof PresenceAPI
        * @method oSDK.getIncomingRequest
        * @param {string} User.account
        * @returns {object} User
@@ -1688,6 +1713,7 @@
       /**
        * Returns outcoming request by account to current session
        *
+       * @memberof PresenceAPI
        * @method oSDK.getOutcomingRequest
        * @param {string} User.account
        * @returns {object} User
@@ -1697,6 +1723,7 @@
       /**
        * Returns list of accepted requests
        *
+       * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequests
        * @returns {array} Array
        */
@@ -1720,6 +1747,7 @@
       /**
        * Set status or/and capabilities to current auth client:
        *
+       * @memberof PresenceAPI
        * @method oSDK.setStatusAvailable
        * @param {object} Params
        * @param {string} Params.status Maybe: 'available' or 'chat', 'away', 'do not disturb' or 'dnd', 'x-available' or 'xa'
@@ -1742,6 +1770,7 @@
        * Client.capability.videoCall to true<br />
        * Client.capability.fileTransfer to true
        *
+       * @memberof PresenceAPI
        * @method oSDK.setStatusAvailable
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
@@ -1758,6 +1787,7 @@
        * Client.capability.videoCall to true<br />
        * Client.capability.fileTransfer to true
        *
+       * @memberof PresenceAPI
        * @method oSDK.setStatusAway
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
@@ -1774,6 +1804,7 @@
        * Client.capability.videoCall to false<br />
        * Client.capability.fileTransfer to false
        *
+       * @memberof PresenceAPI
        * @method oSDK.setStatusDoNotDisturb
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
@@ -1790,6 +1821,7 @@
        * Client.capability.videoCall to false<br />
        * Client.capability.fileTransfer to false
        *
+       * @memberof PresenceAPI
        * @method oSDK.setStatusXAvailable
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
@@ -1802,6 +1834,7 @@
       /**
        * Send text message
        *
+       * @memberof MessagingAPI
        * @method oSDK.sendMessage
        * @param {string} Account
        * @param {object} Callbacks
@@ -1814,6 +1847,7 @@
       /**
        * Send auth requests
        *
+       * @memberof RosterAPI
        * @method oSDK.addContact
        * @param {object|string} User|User.account
        * @param {object} Callbacks
@@ -1826,6 +1860,7 @@
       /**
        * Remove contact from contacts list on current auth client
        *
+       * @memberof RosterAPI
        * @method oSDK.removeContact
        * @param {object|string} User|User.account
        * @param {object} Callbacks
