@@ -10,6 +10,12 @@
 
   var sip = new oSDK.utils.Module('sip');
 
+  var defaultConfig = {
+    sip: {
+      'serverURL': 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
+    }
+  };
+
   // RTC sessions array
   var sessions = [];
 
@@ -134,12 +140,6 @@
     }
   };
 
-  var defaultConfig = {
-    sip: {
-      'serverURL': 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
-    }
-  };
-
   // Attach triggers for registered events through initialized module object
   var attachTriggers = function (attachableEvents, triggerFunction, context) {
 
@@ -200,23 +200,64 @@
    */
   function MediaSession (JsSIPrtcSessionEvent) {
 
+    var evData = JsSIPrtcSessionEvent.data;
+
     var self = this;
-
-    self.JsSIPrtcSessionEvent = JsSIPrtcSessionEvent;
-
-    var evData = self.JsSIPrtcSessionEvent.data;
-
-    // Incoming session, if false - outgoing.
-    self.incoming = (evData.originator != 'local')?true:false;
-
-    self.originator = evData.originator;
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
+
       /**
-      * Whether this session has video in stream from remote side or not
-      * @alias mediaSession.hasVideo
+       * Contains internal JsSIP newRTCSession event data. For advanced use.
+       *
+       * @alias JsSIPrtcSessionEvent
+       * @memberof MediaSession
+       * @instance
+       *
+       * @type object
+       */
+      JsSIPrtcSessionEvent: {
+        enumerable: true,
+        get: function () {
+          return JsSIPrtcSessionEvent;
+        }
+      },
+
+      /**
+       * Initiator of the media session. Can be 'local', 'remote' or 'system'.
+       *
+       * @alias originator
+       * @memberof MediaSession
+       * @instance
+       * @type string
+       */
+      originator: {
+        enumerable: true,
+        get: function () {
+          return evData.originator;
+        }
+      },
+
+      /**
+       * Whether this media session is incoming or not.
+       *
+       * @alias incoming
+       * @memberof MediaSession
+       * @instance
+       * @type boolean
+       */
+      incoming: {
+        enumerable: true,
+        get: function () {
+          return (evData.originator != 'local')?true:false;
+        }
+      },
+
+      /**
+      * Whether this session has video in stream from remote side or not.
+      * @alias hasVideo
       * @memberof MediaSession
+      * @instance
       * @type boolean
       */
       hasVideo: {
@@ -231,10 +272,12 @@
           return false;
         }
       },
+
       /**
-      * Whether this session has audio in stream from remote side or not
-      * @alias mediaSession.hasAudio
+      * Whether this session has audio in stream from remote side or not.
+      * @alias hasAudio
       * @memberof MediaSession
+      * @instance
       * @type boolean
       */
       hasAudio: {
@@ -249,10 +292,12 @@
           return false;
         }
       },
+
       /**
-      * Whether this session has only audio in stream from remote side
-      * @alias mediaSession.isAudioCall
+      * Whether this session has only audio in stream from remote side.
+      * @alias isAudioCall
       * @memberof MediaSession
+      * @instance
       * @type boolean
       */
       isAudioCall: {
@@ -268,10 +313,12 @@
           return false;
         }
       },
+
       /**
-      * Whether this session has both audio and video in stream from remote side
-      * @alias mediaSession.isVideoCall
+      * Whether this session has both audio and video in stream from remote side.
+      * @alias isVideoCall
       * @memberof MediaSession
+      * @instance
       * @type boolean
       */
       isVideoCall: {
@@ -288,9 +335,10 @@
         }
       },
      /**
-     * Call opponent ID
-     * @alias mediaSession.opponent
+     * Call opponent ID.
+     * @alias opponent
      * @memberof MediaSession
+     * @instance
      * @type string
      */
       opponent: {
@@ -347,9 +395,13 @@
     */
 
     /**
-     * Attaches event handlers to session events
-     * @alias mediaSession.on
+     * Attaches event handlers to session events.
+     * @alias on
      * @memberof MediaSession
+     * @instance
+     * @param {string} event Event type.
+     * @param {function} handler Handler function.
+     * @param {object} handler.event Event object.
      */
     self.on = function (sessionEventType, handler) {
       //TODO: proxy newDTMF to client as gotDTMF on per session basis
@@ -357,9 +409,10 @@
     };
 
     /**
-     * Session own streams
-     * @alias mediaSession.localStreams
+     * Session own streams.
+     * @alias localStreams
      * @memberof MediaSession
+     * @instance
      * @returns {array.<Stream>} Array of stream objects.
      */
     self.localStreams = function () {
@@ -367,9 +420,10 @@
     };
 
     /**
-     * Session opponent streams
-     * @alias mediaSession.remoteStreams
+     * Session opponent streams.
+     * @alias remoteStreams
      * @memberof MediaSession
+     * @instance
      * @returns {array.<Stream>} Array of stream objects.
      */
     self.remoteStreams = function () {
@@ -377,9 +431,12 @@
     };
 
     /**
-     * Attaches local stream to media element
-     * @alias mediaSession.attachLocalStream
+     * Attaches local stream to media element.
+     * @alias attachLocalStream
      * @memberof MediaSession
+     * @instance
+     * @param <DOMNode> element - Element to which to attach a media stream.
+     * @param <integer> [index] - Index of the track in stream.
      */
     self.attachLocalStream = function (element, index) {
       if(typeof index == 'undefined') {
