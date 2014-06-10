@@ -9,6 +9,10 @@
 
   "use strict";
 
+  /**
+  * @namespace CapabilitiesAPI
+  */
+
   // Config history
 
   var HISTORY_MAX_LENGTH = 5000;

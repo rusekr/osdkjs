@@ -341,7 +341,7 @@
     /**
      * Initiates oSDK connection to all internal services.
      *
-     * @memberof BasicAPI
+     * @memberof ConnectionAPI
      * @method
      * @alias oSDK.connect
      */
@@ -349,7 +349,7 @@
     /**
      * Closes oSDK connection to all internal services.
      *
-     * @memberof BasicAPI
+     * @memberof ConnectionAPI
      * @method
      * @alias oSDK.disconnect
      */
@@ -357,9 +357,9 @@
     /**
      * Returns status of client's authorization on server. Thus client may want to know if it can connect to oSDP network without invoking user login form through popup or redirect.
      *
-     * @memberof BasicAPI
+     * @memberof ConnectionAPI
      * @method oSDK.isAuthorized
-     * @returns {bool}
+     * @returns {bool} True or false.
      */
     'isAuthorized': auth.isAuthorized // TODO: May be use oSDK's status 'Connected' instead.
   });
@@ -378,38 +378,52 @@
   });
 
   auth.registerEvents({
+
     'gotTokenFromPopup': { self: true },
+
     'gotTempCreds': { other: true },
+
     'connecting': { other: true },
+
     /**
     * Dispatched when all built in oSDK modules successfully connected to openSDP network.
     * <p>
     * This event has no properties for now.
     *
-    * @memberof BasicAPI
-    * @event oSDK#connected
+    * @memberof ConnectionAPI
+    * @event connected
     *
     */
     'connected': { other: true, client: 'last' },
+
     'disconnecting': { other: true },
+
     /**
     * Dispatched when all built in oSDK modules successfully disconnected from openSDP network.
     * <p>
     * This event has no properties for now.
     *
-    * @memberof BasicAPI
-    * @event oSDK#disconnected
+    * @memberof ConnectionAPI
+    * @event disconnected
     *
     */
     'disconnected': { other: true, client: 'last' },
+
+    /**
+     * @memberof ConnectionAPI
+     * @typedef ConnectionFailedEventObject
+     * @type object
+     * @property {object} data Failed module specific data.
+     */
+
     /**
     * Dispatched when any of built in oSDK modules failed to connect to openSDP network.
     * <p>
     * Modules successed to connect in case of this error start gracefully disconnecting from openSDP network.
     *
-    * @memberof BasicAPI
-    * @event oSDK#connectionFailed
-    * @param {oSDK~ConnectionFailedEvent} event The event object associated with this event.
+    * @memberof ConnectionAPI
+    * @event connectionFailed
+    * @param {ConnectionFailedEventObject} event The event object associated with this event.
     *
     */
     'connectionFailed': { client: true, other: true, cancels: 'connected' }

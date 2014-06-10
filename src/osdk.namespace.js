@@ -7,7 +7,7 @@
  */
 
 /**
- * @namespace BasicAPI
+ * @namespace ConnectionAPI
  */
 
 /**
@@ -23,7 +23,7 @@
  * The <code>appID</code> property <b>MUST</b> be defined.
  * </p>
  *
- * @memberof BasicAPI
+ * @memberof ConnectionAPI
  * @function
  * @param {oSDK~Config} config
  *            <p>

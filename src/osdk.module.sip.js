@@ -7,6 +7,7 @@
   /**
    * @namespace MediaAPI
    */
+
   var sip = new oSDK.utils.Module('sip');
 
   // RTC sessions array
@@ -87,7 +88,11 @@
 
       getUserMedia: getUserMedia,
 
-      attachMediaStream: attachMediaStream
+      attachMediaStream: attachMediaStream,
+
+      detachMediaStream: function (element) {
+        attachMediaStream(element, null);
+      }
     };
   })();
 
@@ -159,84 +164,264 @@
   };
 
   /**
-  * Event object for new incoming or outgoing media (audio/video) calls. All work with call which generated this object goes through this object.
-  *
-  * @memberof MediaAPI
-  * @typedef {object} MediaSessionObject
-  * @property {JsSIP.rtcSession} JsSIPrtcSessionEvent JsSIP library session controlling object
-  * @property {bool} incoming Whether this session incoming or outgoing
-  * @property {bool} hasAudio Whether this session has audio streams or not
-  * @property {bool} hasVideo Whether this session has video streams or not
-  * @property {function} on Lets you add listeners to current session events
-  */
-
-  /**
-  * Dispatched when current SIP session successfully started.
-  *
-  * @event oSDK#SIPSession~started
-  * @param {object} event The event object associated with this event.
-  *
-  */
-
-  /**
-   * MediaSessionObject constructor
+   * Converts ours call & answer options to JsSIP friendly structure.
    *
-   * @class oSDK.MediaSession
+   * @function
+   * @private
+   */
+  function callOptionsConverter(options) {
+    if(!sip.utils.isObject(options)) {
+      throw new sip.Error('Call/answer options must be the object.');
+    }
+    if (!options.mediaConstraints || !sip.utils.isObject(options.mediaConstraints)) {
+      options.mediaConstraints = {};
+    }
+    if(!options.mediaConstraints.audio) {
+      if (options.audio && options.audio === true) {
+        options.mediaConstraints.audio = true;
+      } else {
+        options.mediaConstraints.audio = false;
+      }
+    }
+    if(!options.mediaConstraints.video) {
+      if (options.audio && options.video === true) {
+        options.mediaConstraints.video = true;
+      } else {
+        options.mediaConstraints.video = false;
+      }
+    }
+    sip.log('converted', options);
+    return options;
+  }
+
+  /**
+   * Media session object
+   * @constructor MediaSession
    */
   function MediaSession (JsSIPrtcSessionEvent) {
 
     var self = this;
-    var event = JsSIPrtcSessionEvent;
 
-    self.JsSIPrtcSessionEvent = event;
+    self.JsSIPrtcSessionEvent = JsSIPrtcSessionEvent;
+
+    var evData = self.JsSIPrtcSessionEvent.data;
 
     // Incoming session, if false - outgoing.
-    self.incoming = (event.data.originator == 'remote')?true:false;
+    self.incoming = (evData.originator != 'local')?true:false;
+
+    self.originator = evData.originator;
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
+      /**
+      * Whether this session has video in stream from remote side or not
+      * @alias mediaSession.hasVideo
+      * @memberof MediaSession
+      * @type boolean
+      */
       hasVideo: {
         enumerable: true,
         get: function () {
-          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getVideoTracks().length > 0) {
+          if (
+            evData.session.getRemoteStreams().length > 0 &&
+            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+          ) {
             return true;
           }
           return false;
         }
       },
+      /**
+      * Whether this session has audio in stream from remote side or not
+      * @alias mediaSession.hasAudio
+      * @memberof MediaSession
+      * @type boolean
+      */
       hasAudio: {
         enumerable: true,
         get: function () {
-          if (event.data.session.getRemoteStreams().length > 0 && event.data.session.getRemoteStreams()[0].getAudioTracks().length > 0) {
+          if (
+            evData.session.getRemoteStreams().length > 0 &&
+            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0
+          ) {
             return true;
           }
           return false;
         }
+      },
+      /**
+      * Whether this session has only audio in stream from remote side
+      * @alias mediaSession.isAudioCall
+      * @memberof MediaSession
+      * @type boolean
+      */
+      isAudioCall: {
+        enumerable: true,
+        get: function () {
+          if (
+            evData.session.getRemoteStreams().length > 0 &&
+            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
+            evData.session.getRemoteStreams()[0].getVideoTracks().length === 0
+          ) {
+            return true;
+          }
+          return false;
+        }
+      },
+      /**
+      * Whether this session has both audio and video in stream from remote side
+      * @alias mediaSession.isVideoCall
+      * @memberof MediaSession
+      * @type boolean
+      */
+      isVideoCall: {
+        enumerable: true,
+        get: function () {
+          if (
+            evData.session.getRemoteStreams().length > 0 &&
+            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
+            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+          ) {
+            return true;
+          }
+          return false;
+        }
+      },
+     /**
+     * Call opponent ID
+     * @alias mediaSession.opponent
+     * @memberof MediaSession
+     * @type string
+     */
+      opponent: {
+        enumerable: true,
+        get: function () {
+          return evData.session.remote_identity.toString().replace(/^.*?<sip:(.*?)>.*$/, '$1');
+        }
       }
     });
 
-    // Translation of session handlers.
+    /**
+    * Dispatched when current SIP session successfully started.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#started
+    * @param {object} event The event object associated with this event.
+    *
+    */
+
+    /**
+    * Dispatched when current SIP session successfully ended (terminated).
+    *
+    * @memberof MediaSession
+    * @event MediaSession#ended
+    * @param {object} event The event object associated with this event.
+    *
+    */
+
+    /**
+    * Dispatched when current SIP session abnormally terminated or aborted.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#failed
+    * @param {object} event The event object associated with this event.
+    *
+    */
+
+    /**
+    * Dispatched when current SIP session in progress TODO: get from JsSIP doc.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#progress
+    * @param {object} event The event object associated with this event.
+    *
+    */
+
+    /**
+    * Dispatched when current SIP session got DTMF signal.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#newDTMF
+    * @param {object} event The event object associated with this event.
+    *
+    */
+
+    /**
+     * Attaches event handlers to session events
+     * @alias mediaSession.on
+     * @memberof MediaSession
+     */
     self.on = function (sessionEventType, handler) {
       //TODO: proxy newDTMF to client as gotDTMF on per session basis
-      event.data.session[sessionEventType] = handler;
+      evData.session[sessionEventType] = handler;
     };
 
-    // Other side user ID
-    self.opponent = event.data.request.from.uri.user;
-
-    // Easier link to streams getter functions
+    /**
+     * Session own streams
+     * @alias mediaSession.localStreams
+     * @memberof MediaSession
+     * @returns {array.<Stream>} Array of stream objects.
+     */
     self.localStreams = function () {
-      return event.data.session.getLocalStreams.apply(event.data.session, [].slice.call(arguments, 0));
-    };
-    self.remoteStreams = function () {
-      return event.data.session.getRemoteStreams.apply(event.data.session, [].slice.call(arguments, 0));
+      return evData.session.getLocalStreams.apply(evData.session, [].slice.call(arguments, 0));
     };
 
-    // Mute video shortcut
+    /**
+     * Session opponent streams
+     * @alias mediaSession.remoteStreams
+     * @memberof MediaSession
+     * @returns {array.<Stream>} Array of stream objects.
+     */
+    self.remoteStreams = function () {
+      return evData.session.getRemoteStreams.apply(evData.session, [].slice.call(arguments, 0));
+    };
+
+    /**
+     * Attaches local stream to media element
+     * @alias mediaSession.attachLocalStream
+     * @memberof MediaSession
+     */
+    self.attachLocalStream = function (element, index) {
+      if(typeof index == 'undefined') {
+        index = 0;
+      }
+      var streams = evData.session.getLocalStreams.call(evData.session);
+      sip.log('attachLocalStream got streams and index', streams, index);
+      media.attachMediaStream(element, streams[index]);
+    };
+
+    /**
+     * Attaches remote stream to media element
+     * @alias mediaSession.attachRemoteStream
+     * @memberof MediaSession
+     */
+    self.attachRemoteStream = function (element, index) {
+      if(typeof index == 'undefined') {
+        index = 0;
+      }
+      var streams = evData.session.getRemoteStreams.call(evData.session);
+      sip.log('attachRemoteStream got streams and index', streams, index);
+      media.attachMediaStream(element, streams[index]);
+    };
+
+    /**
+     * Detaches stream from media element. This function is for advanced handling of streams. Normally stream will be detached automatically after session end.
+     * @alias mediaSession.detachStream
+     * @memberof MediaSession
+     */
+    self.detachStream = function (element) {
+      media.detachMediaStream(element);
+    };
+
+    /**
+     * Disables own video translation to opponent
+     * @alias mediaSession.muteVideo
+     * @memberof MediaSession
+     */
     self.muteVideo = function oSDKSIPMuteVideo (flag) {
       flag = !!flag;
 
-      var localStream = event.data.session.getLocalStreams()[0];
+      var localStream = evData.session.getLocalStreams()[0];
 
       if(!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -262,11 +447,15 @@
       }
     };
 
-    // Mute audio shortcut
+    /**
+     * Disables own audio translation to opponent
+     * @alias mediaSession.muteAudio
+     * @memberof MediaSession
+     */
     self.muteAudio = function oSDKSIPMuteAudio (flag) {
       flag = !!flag;
 
-      var localStream = event.data.session.getLocalStreams()[0];
+      var localStream = evData.session.getLocalStreams()[0];
 
       if(!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -292,21 +481,36 @@
       }
     };
 
-    // Session answer proxy
     if(self.incoming) {
+    /**
+     * Answer to incoming call
+     * @alias mediaSession.answer
+     * @memberof MediaSession
+     */
       self.answer = function () {
-        return event.data.session.answer.apply(event.data.session, [].slice.call(arguments, 0));
+        if(arguments[0]) {
+          arguments[0] = callOptionsConverter(arguments[0]);
+        }
+        return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
       };
     }
 
-    // Send DTMF signal to other end of call session
+    /**
+     * Send DTMF signal to other end of call session
+     * @alias mediaSession.sendDTMF
+     * @memberof MediaSession
+     */
     self.sendDTMF = function () {
-      return event.data.session.sendDTMF.apply(event.data.session, [].slice.call(arguments, 0));
+      return evData.session.sendDTMF.apply(evData.session, [].slice.call(arguments, 0));
     };
 
-    // Terminate session proxying function
+    /**
+     * End call session
+     * @alias mediaSession.end
+     * @memberof MediaSession
+     */
     self.end = function () {
-      return event.data.session.terminate.apply(event.data.session, [].slice.call(arguments, 0));
+      return evData.session.terminate.apply(evData.session, [].slice.call(arguments, 0));
     };
 
   }
@@ -400,9 +604,10 @@
   // TODO: replace with direct jssip listener
   sip.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
-    sessions.push(event.data.session);
 
     var mediaSession = new MediaSession(event);
+
+    sessions.push(mediaSession);
 
     sip.log('Modifyed session to', mediaSession);
     sip.trigger('gotMediaSession', mediaSession);
@@ -412,33 +617,41 @@
     sip.trigger('disconnected');
   });
 
+  /**
+   * Default semi-transparent proxy of JsSIP call initiator interface.
+   * @private
+   *
+   *
+   */
   sip.call = function () {
 
-    if (arguments[1] && sip.utils.isObject(arguments[1])) {
-      if (!arguments[1].mediaConstraints || !sip.utils.isObject(arguments[1].mediaConstraints)) {
-        arguments[1].mediaConstraints = {};
-      }
-      if (arguments[1].audio && arguments[1].audio === true) {
-        arguments[1].mediaConstraints.audio = true;
-      } else {
-        arguments[1].mediaConstraints.audio = false;
-      }
-      if (arguments[1].audio && arguments[1].video === true) {
-        arguments[1].mediaConstraints.video = true;
-      } else {
-        arguments[1].mediaConstraints.video = false;
-      }
+    if (arguments[1]) {
+      arguments[1] = callOptionsConverter(arguments[1]);
     }
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
+  //
+  sip.audioCall = function (userID) {
+
+
+
+    return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
+  };
+
+  sip.videoCall = function () {
+
+  };
+
   sip.on('beforeunload', function (event) {
+    sip.info('Beforeunload start');
     sessions.forEach(function (session) {
       // TODO: make sure session is opened
       if(session) {
-        session.terminate();
+        session.end();
       }
     });
+    sip.info('Beforeunload end');
   });
 
   // Registration stuff
@@ -446,27 +659,65 @@
   sip.registerMethods({
 
     /**
-     * This method used to start media (audio or video) call to another user.
+     * This method used to start media (audio or video) call to another user. For advanced use. User can specify type of media for this call (audio only, video only, audion and video, without media).
      *
      * @memberof MediaAPI
      * @method oSDK.call
+     *
+     * @param {string} userID ID of opponent.
+     * @param {object} options Call initiation options.
+     * @param {string} options.audio Include audio stream in session.
+     * @param {string} options.vide Include Video stream in session.
+     *
      */
     'call': sip.call,
 
     /**
-     * This method is used to attach audio or video stream of media session to web page object like audio or video element.
+     * This method used to start audio call to another user.
+     *
+     * @memberof MediaAPI
+     * @method oSDK.audioCall
+     * @param TODO
+     * @param TODO
+     */
+    'audioCall': sip.audioCall,
+
+    /**
+     * This method used to start video call to another user.
+     *
+     * @memberof MediaAPI
+     * @method oSDK.videoCall
+     * @param TODO
+     * @param TODO
+     */
+    'videoCall': sip.videoCall,
+
+    /**
+     * This method used to attach media stream to HTML element.
      *
      * @memberof MediaAPI
      * @method oSDK.attachMediaStream
+     * @param {DOMNode} DOMNode Element to which to attach the stream.
+     * @param {stream} stream Local or remote stream.
      */
-    'attachMediaStream': media.attachMediaStream
+    'attachMediaStream': media.attachMediaStream,
+
+    /**
+     * This method used to detach media stream from HTML element.
+     *
+     * @memberof MediaAPI
+     * @method oSDK.detachMediaStream
+     * @param {DOMNode} DOMNode Element from which to detach the stream.
+     */
+    'detachMediaStream': media.detachMediaStream
   });
 
   /*
    * Described in auth module.
    */
   sip.registerNamespaces({
-    'client': client
+    'client': client,
+    'mediaSessions': sessions // TODO: remove after DEBUG
   });
 
   /*
@@ -483,11 +734,31 @@
      */
 
     /**
-    * Dispatched when SIP module got sesson object of incoming or outgoing call.
+    * Dispatched when oSDK got incoming audio call (both sides have only audio). For use with oSDK.audioCall method.
     *
     * @memberof MediaAPI
-    * @event oSDK#gotMediaSession
-    * @param {MediaSessionObject} event The event object associated with this event.
+    * @event gotIncomingAudioCall
+    * @param {MediaSession} event The event object associated with this event.
+    *
+    */
+    'gotIncomingAudioCall': { client: true },
+
+    /**
+    * Dispatched when oSDK got incoming video call (both sides have audio and video).  For use with oSDK.videoCall method.
+    *
+    * @memberof MediaAPI
+    * @event gotIncomingVideoCall
+    * @param {MediaSession} event The event object associated with this event.
+    *
+    */
+    'gotIncomingVideoCall': { client: true },
+
+    /**
+    * Dispatched when SIP module got sesson object of incoming or outgoing call. For advanced use like handling media sessions of all sorts.
+    *
+    * @memberof MediaAPI
+    * @event gotMediaSession
+    * @param {MediaSession} event The event object associated with this event.
     *
     */
     'gotMediaSession': { client: true },
@@ -495,9 +766,9 @@
     /**
     * Dispatched when SIP module successfully got media capabilities of current client environment (web browser) which consists of audio and video calls possibilities.
     *
-    * @memberof MediaAPI
-    * @event oSDK#gotMediaCapabilities
-    * @param {oSDK~gotMediaCapabilitiesEvent} event The event object associated with this event.
+    * @memberof CapabilitiesAPI
+    * @event gotMediaCapabilities
+    * @param {oSDK~MediaAPI#MediaCapabilitiesObject} event The event object associated with this event.
     *
     */
     'gotMediaCapabilities': { client: true, other: true },

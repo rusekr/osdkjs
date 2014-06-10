@@ -669,18 +669,28 @@
           namespaces[i] = {};
           oSDK[i] = {};
         } else {
-          self.log('Registering namespaces for module: ' + self.name + '. Namespace "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + '. Combining.');
+          if(isObject(oSDK[i])) {
+            self.log('Namespace to be registered "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + '. Combining.');
+          } else {
+            throw new self.Error('Namespace to be registered "' + i + '" is already filled by module(s) ' + namespaces[i].toString() + ' and not an object. Can\'t combine.');
+          }
         }
         namespaces[i][self.name] = []; // Array of property names by module
-        for (var j in namespacesObject[i]) {
-          if ( ownProperty(namespacesObject[i], j) ) {
-            if ( !oSDK[i][j] ) {
-              oSDK[i][j] = namespacesObject[i][j];
-              namespaces[i][self.name].push(j);
-            } else {
-              throw new self.Error('Registering module: ' + self.name + '. Namespace "' + i + '" is already has property ' + j);
+
+        if (isObject(namespacesObject[i])) {
+          for (var j in namespacesObject[i]) {
+            if ( ownProperty(namespacesObject[i], j) ) {
+              if ( !oSDK[i][j] ) {
+                oSDK[i][j] = namespacesObject[i][j];
+                namespaces[i][self.name].push(j);
+              } else {
+                throw new self.Error('Registering module: ' + self.name + '. Namespace "' + i + '" is already has property ' + j);
+              }
             }
           }
+        } else {
+          oSDK[i] = namespacesObject[i];
+          namespaces[i][self.name].push(i);
         }
       }
     };
@@ -1137,17 +1147,19 @@
 
   // Dedicated for osdk window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
   window.addEventListener('beforeunload', function () {
+    utils.info('Beforeunload start');
     utils.trigger('beforeunload', { arguments: arguments });
-  });
+    utils.info('Beforeunload end');
+  }, false);
 
   window.addEventListener('error', function () {
     utils.trigger('windowerror', { arguments: arguments });
-  });
+  }, false);
 
   // Dedicated for osdk DOMContentLoaded event
   document.addEventListener("DOMContentLoaded", function () {
     utils.trigger('DOMContentLoaded', { arguments: arguments });
-  });
+  }, false);
 
   // For creation of module objects
   utils.registerNamespaces({
