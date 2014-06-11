@@ -415,7 +415,7 @@
      * @alias localStreams
      * @memberof MediaSession
      * @instance
-     * @returns {Stream[]} Array of stream objects.
+     * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.localStreams = function () {
       return evData.session.getLocalStreams.apply(evData.session, [].slice.call(arguments, 0));
@@ -426,7 +426,7 @@
      * @alias remoteStreams
      * @memberof MediaSession
      * @instance
-     * @returns {Stream[]} Array of stream objects.
+     * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.remoteStreams = function () {
       return evData.session.getRemoteStreams.apply(evData.session, [].slice.call(arguments, 0));
@@ -806,7 +806,7 @@
      * @memberof MediaAPI
      * @method oSDK.attachMediaStream
      * @param {DOMNode} DOMNode Element to which to attach the stream.
-     * @param {stream} stream Local or remote stream.
+     * @param {stream} stream Local or remote {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream}.
      */
     'attachMediaStream': media.attachMediaStream,
 

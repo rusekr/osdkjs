@@ -255,10 +255,10 @@
     /**
     * oSDK error object prototype
     *
-    * @class oSDK.Error
+    * @class OSDKError
     *
     */
-    self.constructor.prototype.Error = function oSDKError (eobj) {
+    self.constructor.prototype.Error = function OSDKError (eobj) {
       // Defaults
       this.oSDKError = true; // Identificator because "instanceof oSDKError" is not working out of this scope
       this.ecode = 0;

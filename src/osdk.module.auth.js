@@ -4,6 +4,12 @@
 (function (oSDK) {
   "use strict";
 
+  /**
+   * ConnectionAPI allows web-application to connect to openSDP network, disconnect from it gracefully, handle various connection errors and access information about authorization of user in this web-application.
+   *
+   * @namespace ConnectionAPI
+   */
+
   // Module namespace
   var auth = new oSDK.utils.Module('auth');
 
@@ -347,7 +353,7 @@
      */
     'connect': auth.connect,
     /**
-     * Closes oSDK connection to all internal services.
+     * Initiates closing of oSDK connections to all internal services.
      *
      * @memberof ConnectionAPI
      * @method
@@ -359,7 +365,7 @@
      *
      * @memberof ConnectionAPI
      * @method oSDK.isAuthorized
-     * @returns {bool} True or false.
+     * @returns {boolean} True or false.
      */
     'isAuthorized': auth.isAuthorized // TODO: May be use oSDK's status 'Connected' instead.
   });
@@ -411,7 +417,7 @@
 
     /**
      * @memberof ConnectionAPI
-     * @typedef ConnectionFailedEventObject
+     * @typedef ConnectionAPI~ConnectionFailedEventObject
      * @type object
      * @property {object} data Failed module specific data.
      */
@@ -423,7 +429,7 @@
     *
     * @memberof ConnectionAPI
     * @event connectionFailed
-    * @param {ConnectionFailedEventObject} event The event object associated with this event.
+    * @param {ConnectionAPI~ConnectionFailedEventObject} event The event object associated with this event.
     *
     */
     'connectionFailed': { client: true, other: true, cancels: 'connected' }

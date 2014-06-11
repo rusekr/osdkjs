@@ -1,6 +1,5 @@
 /*
  * oSDK Errors module (http://jira.teligent.ru/browse/OSDKJS-27)
- * TODO: Merge with utils
  */
 (function (oSDK) {
   "use strict";
@@ -28,8 +27,8 @@
     * Dispatched when some oSDK module throws unhandled exception.
     * <p>
     *
-    * @event oSDK#gotError
-    * @param {oSDK~ErrorEvent} event The event object associated with this event.
+    * @event oSDK~gotError
+    * @param {oSDK~ErrorObject} event The event object associated with this event.
     *
     */
     'gotError': { other: true, client: true } // Error event for listen

@@ -6,8 +6,18 @@
  * Licensed under the TODO license.
  */
 
+
 /**
- * @namespace ConnectionAPI
+  * CoreAPI allows you to configure oSDK and to add/remove functions which listen to oSDK events. After that you can switch to {@link ConnectionAPI ConnectionAPI} for connection related topics.
+  *
+  * @namespace CoreAPI
+  */
+
+/**
+ * @typedef {object} CoreAPI~ConfigObject
+ * @memberof CoreAPI
+ * @property {string} appID - ID of application gained from {@link http://osdp.ru developer's portal}.
+ *
  */
 
 /**
@@ -23,9 +33,10 @@
  * The <code>appID</code> property <b>MUST</b> be defined.
  * </p>
  *
- * @memberof ConnectionAPI
+ * @memberof CoreAPI
  * @function
- * @param {oSDK~Config} config
+ * @alias oSDK
+ * @param {CoreAPI~ConfigObject} config
  *            <p>
  *            The <code>config</code> parameter should be an object
  *            containing any properties/event handlers you want to

@@ -10,16 +10,12 @@
 
   "use strict";
 
-  /**
-   * @namespace CoreAPI
-   */
-
   // Module namespace
   var client = new oSDK.utils.Module('client');
 
   client.registerMethods({
     /**
-     * Allows client to register listener for one or several event types {@link eventTypes}.
+     * Allows client to register listener for one or several event types.
      *
      * @memberof CoreAPI
      * @method
@@ -31,7 +27,7 @@
     "on": function (type, handler) { return client.on(type, handler); }, // Simplify interface for users
 
     /**
-     * Allows client to unregister listener for one or several event types {@link eventTypes}.
+     * Allows client to unregister listener for one or several event types.
      *
      * @memberof CoreAPI
      * @method
