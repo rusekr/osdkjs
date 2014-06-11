@@ -5,30 +5,27 @@
 
 (function () {
 
-  // Use strict mode
-
   "use strict";
 
   /**
-  * @namespace RosterAPI
-  */
+   * @namespace RosterAPI
+   */
 
   /**
-  * @namespace PresenceAPI
-  */
+   * @namespace PresenceAPI
+   */
 
   /**
-  * @namespace MessagingAPI
-  */
+   * @namespace MessagingAPI
+   */
 
   // Exemplar of oSDK XMPP module
 
   var module;
 
-  // Some list
-  // Maybe: xmpp roster, list of contacts, incoming requests, outcoming requests, accepted requests, rejected requests
+  // Some list, maybe: xmpp roster, list of contacts, incoming requests, outgoing requests, accepted requests, rejected requests
 
-  function ListOfContacts() {
+  function SDKList() {
 
     var self = this;
 
@@ -166,28 +163,28 @@
       history: false
     });
 
-    this.client.type = 'online';
-    this.client.status = 'available';
+    this.client.type = null;
+    this.client.status = null;
 
     module.log('Create new authorized client', this.client);
 
     // Roster
 
-    this.roster = new ListOfContacts();
+    this.roster = new SDKList();
 
     // Contacts
 
-    this.contacts = new ListOfContacts();
+    this.contacts = new SDKList();
 
     // Requests
 
     this.requests = {
-      accepted: new ListOfContacts(),
-      rejected: new ListOfContacts(),
-      incoming: new ListOfContacts(),
-      outcoming: new ListOfContacts(),
-      wasAccepted: new ListOfContacts(),
-      wasRejected: new ListOfContacts()
+      accepted: new SDKList(),
+      rejected: new SDKList(),
+      incoming: new SDKList(),
+      outgoing: new SDKList(),
+      wasAccepted: new SDKList(),
+      wasRejected: new SDKList()
     };
 
     // Flags of some statuses
@@ -195,10 +192,12 @@
     this.logged = false;
     this.status = null;
 
+    this.confirm = null;
+
     this.message = {
       from: null,
       to: null,
-      succemss: null
+      success: null
     };
 
   }
@@ -291,56 +290,81 @@
          *
          * @memberof RosterAPI
          * @event gotNewRoster
-         * @returns {bool}
-         * @param {object} Handlers
-         * @param {function} Handlers.onError
-         * @param {function} Handlers.onSuccess
-         * @param {function} Handlers.onComplete
+         * @returns {array} Contacts list
          */
         'gotNewRoster': {client: true},
 
+        /**
+         * Dispatched when element of roster became available
+         *
+         * @memberof PresenceAPI
+         * @event contactIsAvailable
+         * @returns {object} User
+         */
         'contactIsAvailable': {client: true},
+
+        /**
+         * Dispatched when element of roster became unavailable
+         *
+         * @memberof PresenceAPI
+         * @event contactIsUnavailable
+         * @returns {object} User
+         */
         'contactIsUnavailable': {client: true},
+
+        /**
+         * Dispatched when contact changed its status
+         *
+         * @memberof PresenceAPI
+         * @event contactStatusChanged
+         * @returns {object} User
+         */
         'contactStatusChanged': {client: true},
+
+        /**
+         * Dispatched when contact changed its capabilities
+         *
+         * @memberof PresenceAPI
+         * @event contactCapabilitiesChanged
+         * @returns {object} User
+         */
         'contactCapabilitiesChanged': {client: true},
 
         /**
-         * Dispatched when XMPP module accept new new auth request
+         * Dispatched when XMPP module accepted new auth request from other user
          *
          * @memberof PresenceAPI
          * @event incomingRequest
          * @param {object} User
-         * @param {string} User.login Login
-         * @param {string} User.domain Domain
-         * @param {string} User.account Account (login + @ + domain)
-         * @param {string} User.ask Request type: 'subscribe' or 'unsubscribe'
-         * @param {string} User.subscription Current subscription
          */
         'incomingRequest': {client: true},
 
         /**
-         * Dispatched when XMPP module accepted new message
+         * Dispatched when XMPP module sent auth request to other user
+         *
+         * @memberof PresenceAPI
+         * @event outgoingRequest
+         * @param {object} User
+         */
+        'outgoingRequest': {client: true},
+
+        /**
+         * Dispatched when XMPP module accepted new message from other user
          *
          * @memberof MessagingAPI
          * @event incomingMessage
          * @param {object} Message
-         * @param {string} Message.from Account
-         * @param {string} Message.to Account
-         * @param {string} Message.message Text message
          */
         'incomingMessage': {client: true},
 
         /**
-         * Dispatched when XMPP module sended new message
+         * Dispatched when XMPP module sent new message to other user
          *
          * @memberof MessagingAPI
-         * @event outcomingMessage
+         * @event outgoingMessage
          * @param {object} Message
-         * @param {string} Message.from Account
-         * @param {string} Message.to Account
-         * @param {string} Message.message Text message
          */
-        'outcomingMessage': {client: true},
+        'outgoingMessage': {client: true},
 
         /**
          * Dispatched when contact accepted your auth request
@@ -386,18 +410,23 @@
 
     this.commands = {
       thatICan: function(p) {
+        var contact = storage.contacts.get(p.info.from);
         if (p.data.status) {
-          storage.contacts.get(p.info.from).status = p.data.status;
-          module.trigger('contactStatusChanged', {contact: storage.contacts.get(p.info.from)});
+          if (contact) {
+            contact.status = p.data.status;
+            module.trigger('contactStatusChanged', {contact: contact});
+          }
         }
         if (p.data.tech || p.data.user) {
-          if (p.data.tech) {
-            storage.contacts.get(p.info.from).capabilities.setTechParams(p.data.tech);
+          if (contact) {
+            if (p.data.tech) {
+              contact.capabilities.setTechParams(p.data.tech);
+            }
+            if (p.data.user) {
+              contact.capabilities.setUserParams(p.data.user);
+            }
+            module.trigger('contactCapabilitiesChanged', {contact: contact});
           }
-          if (p.data.user) {
-            storage.contacts.get(p.info.from).capabilities.setUserParams(p.data.user);
-          }
-          module.trigger('contactCapabilitiesChanged', {contact: storage.contacts.get(p.info.from)});
         }
       },
       sendMeWhatYouCan: function(p) {
@@ -448,8 +477,8 @@
           message: packet.getBody().htmlEnc()
         });
       },
-      fnOutcomingMessage: function(packet) {
-        module.info('XMPP HANDLER(outcoming message)');
+      fnOutgoingMessage: function(packet) {
+        module.info('XMPP HANDLER(outgoing message)');
         var user = oSDK.user.create(storage.message.to);
         user.history.push({
           type: 'message',
@@ -464,7 +493,7 @@
             message: packet.getBody().htmlEnc()
           });
         }
-        module.trigger('outcomingMessage', {
+        module.trigger('outgoingMessage', {
           to: storage.message.to,
           from: storage.message.from,
           message: packet.getBody().htmlEnc()
@@ -563,16 +592,20 @@
                   break;
                 // SUBSCRIBED
                 case self.OSDK_PRESENCE_TYPE_SUBSCRIBED :
-                  user = storage.requests.outcoming.get(data.from);
+                  user = storage.requests.outgoing.get(data.from);
                   if (user) {
                     if (user.ask) {
                       switch(user.ask) {
                         case self.OSDK_PRESENCE_TYPE_SUBSCRIBE :
                           storage.requests.wasAccepted.put(user);
-                          storage.requests.outcoming.rem(user);
+                          storage.requests.outgoing.rem(user);
                           self.getRoster({
                             "onSuccess": function(params) {
-                              module.trigger('requestWasAccepted', {contact: user});
+                              if (storage.confirm != user.account) {
+                                module.trigger('requestWasAccepted', {contact: user});
+                              } else {
+                                storage.confirm = null;
+                              }
                             }
                           });
                           break;
@@ -597,13 +630,13 @@
                   break;
                 // UNSUBSCRIBED
                 case self.OSDK_PRESENCE_TYPE_UNSUBSCRIBED :
-                  user = storage.requests.outcoming.get(data.from);
+                  user = storage.requests.outgoing.get(data.from);
                   if (user) {
                     if (user.ask) {
                       switch(user.ask) {
                         case self.OSDK_PRESENCE_TYPE_SUBSCRIBE :
                           storage.requests.wasRejected.put(user);
-                          storage.requests.outcoming.rem(data.from);
+                          storage.requests.outgoing.rem(data.from);
                           self.deleteContact(data.from, {
                             "onSuccess": function(params) {
                               self.getRoster({
@@ -654,8 +687,8 @@
           }
         }
       },
-      fnOutcomingPresence: function(packet) {
-        module.info('XMPP HANDLER(outcoming presence)');
+      fnOutgoingPresence: function(packet) {
+        module.info('XMPP HANDLER(outgoing presence)');
         var data = xmpp.getPresenceData(packet);
         if (!data) {
           /* TODO */
@@ -671,8 +704,8 @@
       fnIncomingPacket: function(packet) {
         module.info('XMPP HANDLER(incoming packet)');
       },
-      fnOutcomingPacket: function(packet) {
-        module.info('XMPP HANDLER(outcoming packet)');
+      fnOutgoingPacket: function(packet) {
+        module.info('XMPP HANDLER(outgoing packet)');
       },
       fnOnConnect: function() {
         module.info('XMPP HANDLER(connect)');
@@ -985,7 +1018,7 @@
 
               storage.roster.clear();
               storage.contacts.clear();
-              storage.requests.outcoming.clear();
+              storage.requests.outgoing.clear();
 
             }
 
@@ -1068,7 +1101,7 @@
 
                 if (roster[i].ask) {
                   if (roster[i].ask == self.OSDK_ROSTER_ASK_UNSUBSCRIBE) addToContacts = false;
-                  storage.requests.outcoming.put(roster[i]);
+                  storage.requests.outgoing.put(roster[i]);
                 }
 
                 if (addToContacts) storage.contacts.put(roster[i]);
@@ -1076,7 +1109,7 @@
               }
 
               module.log('Contacts: ', storage.contacts.get());
-              module.log('Outcoming requests: ', storage.requests.outcoming.get());
+              module.log('Outgoing requests: ', storage.requests.outgoing.get());
 
             }
 
@@ -1085,7 +1118,7 @@
               acceptedRequests: storage.requests.accepted.get(),
               rejectedRequests: storage.requests.rejected.get(),
               incomingRequests: storage.requests.incoming.get(),
-              outcomingRequests: storage.requests.outcoming.get()
+              outgoingRequests: storage.requests.outgoing.get()
             };
 
             module.trigger('gotNewRoster', {"data": data});
@@ -1156,7 +1189,7 @@
             break;
         }
       }
-      request = storage.requests.outcoming.get(jid);
+      request = storage.requests.outgoing.get(jid);
       if (request) {
         switch(request.ask) {
           case self.OSDK_ROSTER_ASK_SUBSCRIBE :
@@ -1180,6 +1213,10 @@
           to: jid,
           type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE
         });
+        var usr = oSDK.user.create(jid);
+        usr.ask = xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE;
+        usr.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
+        module.trigger('outgoingRequest', {contact: usr});
         self.getRoster(handlers);
       }
       return true;
@@ -1266,6 +1303,7 @@
         });
         storage.requests.accepted.put(request);
         storage.requests.incoming.rem(request);
+        storage.confirm = jid;
         self.sendPresence({
           to: request.account,
           type: self.OSDK_PRESENCE_TYPE_SUBSCRIBE
@@ -1543,11 +1581,11 @@
     this.getAcceptedRequest = function(account) { return storage.requests.accepted.get(account); };
     this.getRejectedRequest = function(account) { return storage.requests.rejected.get(account); };
     this.getIncomingRequest = function(account) { return storage.requests.incoming.get(account); };
-    this.getOutcomingRequest = function(account) { return storage.requests.outcoming.get(account); };
+    this.getOutgoingRequest = function(account) { return storage.requests.outgoing.get(account); };
     this.getAcceptedRequests = function() { return storage.requests.accepted.get(); };
     this.getRejectedRequests = function() { return storage.requests.rejected.get(); };
     this.getIncomingRequests = function() { return storage.requests.incoming.get(); };
-    this.getOutcomingRequests = function() { return storage.requests.outcoming.get(); };
+    this.getOutgoingRequests = function() { return storage.requests.outgoing.get(); };
 
     // Initiation
 
@@ -1595,11 +1633,11 @@
       connection.registerHandler('onStatusChanged', xmpp.handlers.fnOnStatusChanged);
       connection.registerHandler('iq', xmpp.handlers.fnIQ);
       connection.registerHandler('message_in', xmpp.handlers.fnIncomingMessage);
-      connection.registerHandler('message_out', xmpp.handlers.fnOutcomingMessage);
+      connection.registerHandler('message_out', xmpp.handlers.fnOutgoingMessage);
       connection.registerHandler('presence_in', xmpp.handlers.fnIncomingPresence);
-      connection.registerHandler('presence_out', xmpp.handlers.fnOutcomingPresence);
+      connection.registerHandler('presence_out', xmpp.handlers.fnOutgoingPresence);
       // connection.registerHandler('packet_in', xmpp.handlers.fnIncomingPacket);
-      // connection.registerHandler('packet_out', xmpp.handlers.fnOutcomingPacket);
+      // connection.registerHandler('packet_out', xmpp.handlers.fnOutgoingPacket);
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
       // Disconnect
@@ -1644,7 +1682,7 @@
       /**
        * Returns current authorized client
        *
-       * @memberof CapabilitiesAPI
+       * @memberof RosterAPI
        * @method oSDK.getClient
        * @returns {object} User
        */
@@ -1658,13 +1696,12 @@
        * @param {object} Callbacks
        * @param {object} Callbacks.onClient
        * @param {object} Callbacks.onSuccess
-       * @param {object} Callbacks.onComplete
        * @returns {bool}
        */
       "getRoster": xmpp.getRoster,
 
       /**
-       * Return contact from contacts list by User or User.account
+       * Return contact from contacts list by User.login or User.account
        *
        * @memberof RosterAPI
        * @method oSDK.getContact
@@ -1678,12 +1715,12 @@
        *
        * @memberof RosterAPI
        * @method oSDK.getContacts
-       * @returns {array}
+       * @returns {array} Contacts list
        */
       "getContacts": xmpp.getContacts,
 
       /**
-       * Returns accepted request by account
+       * Returns accepted request by login or account
        *
        * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequest
@@ -1693,7 +1730,7 @@
       "getAcceptedRequest": xmpp.getAcceptedRequest,
 
       /**
-       * Returns rejected recuest by account to current session
+       * Returns rejected recuest by login or account
        *
        * @memberof PresenceAPI
        * @method oSDK.getRejectedRequest
@@ -1703,7 +1740,7 @@
       "getRejectedRequest": xmpp.getRejectedRequest,
 
       /**
-       * Returns incoming request by account
+       * Returns incoming request by login or account
        *
        * @memberof PresenceAPI
        * @method oSDK.getIncomingRequest
@@ -1713,46 +1750,76 @@
       "getIncomingRequest": xmpp.getIncomingRequest,
 
       /**
-       * Returns outcoming request by account to current session
+       * Returns outgoing request by login or account
        *
        * @memberof PresenceAPI
-       * @method oSDK.getOutcomingRequest
+       * @method oSDK.getOutgoingRequest
        * @param {string} User.account
        * @returns {object} User
        */
-      "getOutcomingRequest": xmpp.getOutcomingRequest,
+      "getOutgoingRequest": xmpp.getOutgoingRequest,
 
       /**
        * Returns list of accepted requests
        *
        * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequests
-       * @returns {array} Array
+       * @returns {array} List of accepted requests
        */
       "getAcceptedRequests": xmpp.getAcceptedRequests,
 
-
+      /**
+       * Returns list of rejected requests
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.getRejectedRequests
+       * @returns {array} List of rejected requests
+       */
       "getRejectedRequests": xmpp.getRejectedRequests,
 
-
+      /**
+       * Returns list of incoming requests
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.getIncomingRequests
+       * @returns {array} List of incoming requests
+       */
       "getIncomingRequests": xmpp.getIncomingRequests,
 
+      /**
+       * Returns list of outgoing requests
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.getOutgoingRequests
+       * @returns {array} List of outgoing requests
+       */
+      "getOutgoingRequests": xmpp.getOutgoingRequests,
 
-      "getOutcomingRequests": xmpp.getOutcomingRequests,
-
-
+      /**
+       * Accept request from other user
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.acceptRequest
+       * @returns {object} User
+       */
       "acceptRequest": xmpp.acceptRequest,
 
-
+      /**
+       * Reject request from other user
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.rejectRequest
+       * @returns {object} User
+       */
       "rejectRequest": xmpp.rejectRequest,
 
       /**
-       * Set status or/and capabilities to current auth client:
+       * Set status or/and capabilities to current auth client
        *
        * @memberof PresenceAPI
-       * @method oSDK.setStatusAvailable
+       * @method oSDK.setStatus
        * @param {object} Params
-       * @param {string} Params.status Maybe: 'available' or 'chat', 'away', 'do not disturb' or 'dnd', 'x-available' or 'xa'
+       * @param {string} Params.status maybe: 'available' or 'chat', 'away', 'do not disturb' or 'dnd', 'x-available' or 'xa'
        * @param {bool} Params.instantMessaging
        * @param {bool} Params.audioCall
        * @param {bool} Params.videoCall
@@ -1760,7 +1827,6 @@
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        * @returns {bool} True or False
        */
       "setStatus": xmpp.setStatus,
@@ -1777,7 +1843,6 @@
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        * @returns {bool} True or False
        */
       "setStatusAvailable": xmpp.setStatusAvailable,
@@ -1794,7 +1859,6 @@
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        * @returns {bool} True or False
        */
       "setStatusAway": xmpp.setStatusAway,
@@ -1811,7 +1875,6 @@
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        * @returns {bool} True or False
        */
       "setStatusDoNotDisturb": xmpp.setStatusDoNotDisturb,
@@ -1828,7 +1891,6 @@
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        * @returns {bool} True or False
        */
       "setStatusXAvailable": xmpp.setStatusXAvailable,
@@ -1838,37 +1900,35 @@
        *
        * @memberof MessagingAPI
        * @method oSDK.sendMessage
-       * @param {string} Account
-       * @param {object} Callbacks
-       * @param {function} Callbacks.onError
-       * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
+       * @param {string} to - Account of contact
+       * @param {string} message - Text message
+       * @param {object} callbacks
+       * @param {function} callbacks.onError - Erorr handler
+       * @param {function} callbacks.onSuccess - Success handler
        */
       "sendMessage": xmpp.sendMessage,
 
       /**
-       * Send auth requests
+       * Add contact to roster
        *
        * @memberof RosterAPI
        * @method oSDK.addContact
-       * @param {object|string} User|User.account
+       * @param {string} User.account
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        */
       "addContact": xmpp.addContact,
 
       /**
-       * Remove contact from contacts list on current auth client
+       * Remove contact from roster
        *
        * @memberof RosterAPI
        * @method oSDK.removeContact
-       * @param {object|string} User|User.account
+       * @param {string} User.account
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
-       * @param {function} Callbacks.onComplete
        */
       "removeContact": xmpp.removeContact
 
