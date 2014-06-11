@@ -56,7 +56,7 @@
         return streamSource;
       },
       initialize: function (callback) {
-        if(!initialized) {
+        if (!initialized) {
 
           mediaToGet = {
             video: true,
@@ -70,7 +70,7 @@
           };
           var errorCallback = function (err) {
             sip.log('Error while getting media stream: ', err);
-            if(mediaToGet.video === false) {
+            if (mediaToGet.video === false) {
               //if tried already to got only audio
               callback.call(this, 'error', mediaToGet, err);
             }
@@ -127,13 +127,13 @@
       return clientInt.canVideo;
     },
     needAudio: function (flag) {
-      if(typeof flag !== undefined) {
+      if (typeof flag !== undefined) {
         clientInt.needAudio = !!flag;
       }
       return clientInt.needAudio;
     },
     needVideo: function (flag) {
-      if(typeof flag !== undefined) {
+      if (typeof flag !== undefined) {
         clientInt.needAudio = !!flag;
       }
       return clientInt.needVideo;
@@ -170,25 +170,27 @@
    * @private
    */
   function callOptionsConverter(options) {
-    if(!sip.utils.isObject(options)) {
+    if (!sip.utils.isObject(options)) {
       throw new sip.Error('Call/answer options must be the object.');
     }
     if (!options.mediaConstraints || !sip.utils.isObject(options.mediaConstraints)) {
       options.mediaConstraints = {};
     }
-    if(!options.mediaConstraints.audio) {
+    if (!options.mediaConstraints.audio) {
       if (options.audio && options.audio === true) {
         options.mediaConstraints.audio = true;
       } else {
         options.mediaConstraints.audio = false;
       }
+      delete options.audio;
     }
-    if(!options.mediaConstraints.video) {
+    if (!options.mediaConstraints.video) {
       if (options.audio && options.video === true) {
         options.mediaConstraints.video = true;
       } else {
         options.mediaConstraints.video = false;
       }
+      delete options.video;
     }
     sip.log('converted', options);
     return options;
@@ -413,7 +415,7 @@
      * @alias localStreams
      * @memberof MediaSession
      * @instance
-     * @returns {array.<Stream>} Array of stream objects.
+     * @returns {Stream[]} Array of stream objects.
      */
     self.localStreams = function () {
       return evData.session.getLocalStreams.apply(evData.session, [].slice.call(arguments, 0));
@@ -424,7 +426,7 @@
      * @alias remoteStreams
      * @memberof MediaSession
      * @instance
-     * @returns {array.<Stream>} Array of stream objects.
+     * @returns {Stream[]} Array of stream objects.
      */
     self.remoteStreams = function () {
       return evData.session.getRemoteStreams.apply(evData.session, [].slice.call(arguments, 0));
@@ -435,11 +437,11 @@
      * @alias attachLocalStream
      * @memberof MediaSession
      * @instance
-     * @param <DOMNode> element - Element to which to attach a media stream.
-     * @param <integer> [index] - Index of the track in stream.
+     * @param {DOMNode} element - Element to which to attach a media stream.
+     * @param {integer} [index] - Index of the track in stream.
      */
     self.attachLocalStream = function (element, index) {
-      if(typeof index == 'undefined') {
+      if (typeof index == 'undefined') {
         index = 0;
       }
       var streams = evData.session.getLocalStreams.call(evData.session);
@@ -448,12 +450,15 @@
     };
 
     /**
-     * Attaches remote stream to media element
-     * @alias mediaSession.attachRemoteStream
+     * Attaches remote stream to media element.
+     * @alias attachRemoteStream
      * @memberof MediaSession
+     * @instance
+     * @param {DOMNode} element - Element to which to attach a media stream.
+     * @param {integer} [index] - Index of the track in stream.
      */
     self.attachRemoteStream = function (element, index) {
-      if(typeof index == 'undefined') {
+      if (typeof index == 'undefined') {
         index = 0;
       }
       var streams = evData.session.getRemoteStreams.call(evData.session);
@@ -462,25 +467,29 @@
     };
 
     /**
-     * Detaches stream from media element. This function is for advanced handling of streams. Normally stream will be detached automatically after session end.
-     * @alias mediaSession.detachStream
+     * Detaches stream from media element.
+     * @alias detachStream
      * @memberof MediaSession
+     * @instance
+     * @param {DOMNode} element - Element from which to detach a media stream.
      */
     self.detachStream = function (element) {
       media.detachMediaStream(element);
     };
 
     /**
-     * Disables own video translation to opponent
-     * @alias mediaSession.muteVideo
+     * Disables own video translation to opponent.
+     * @alias muteVideo
      * @memberof MediaSession
+     * @instance
+     * @param {boolean} flag Flag to set mute to true or false.
      */
     self.muteVideo = function oSDKSIPMuteVideo (flag) {
       flag = !!flag;
 
       var localStream = evData.session.getLocalStreams()[0];
 
-      if(!localStream) {
+      if (!localStream) {
         sip.log('Local media stream is not initialized.');
         return;
       }
@@ -505,16 +514,18 @@
     };
 
     /**
-     * Disables own audio translation to opponent
-     * @alias mediaSession.muteAudio
+     * Disables own audio translation to opponent.
+     * @alias muteAudio
      * @memberof MediaSession
+     * @instance
+     * @param {boolean} flag Flag to set mute to true or false.
      */
     self.muteAudio = function oSDKSIPMuteAudio (flag) {
       flag = !!flag;
 
       var localStream = evData.session.getLocalStreams()[0];
 
-      if(!localStream) {
+      if (!localStream) {
         sip.log('Local media stream is not initialized.');
         return;
       }
@@ -538,51 +549,89 @@
       }
     };
 
-    if(self.incoming) {
+    if (self.incoming) {
     /**
-     * Answer to incoming call
-     * @alias mediaSession.answer
+     * Answer to incoming call. NOTICE: this method is available only for incoming session.
+     * @alias answer
      * @memberof MediaSession
+     * @instance
+     * @param {object} [options] Answer options. Defaults to corresponding parameters of caller side.
+     * @param {boolean} options.audio Answer with own audio stream.
+     * @param {boolean} options.video Answer with own video stream.
      */
       self.answer = function () {
-        if(arguments[0]) {
-          arguments[0] = callOptionsConverter(arguments[0]);
+
+        if (!sip.utils.isObject(arguments[0])) {
+          arguments[0] = {};
         }
+
+        // Defaults
+        if (typeof arguments[0].audio == 'undefined') {
+          arguments[0].audio = self.hasAudio?true:false;
+        }
+        if (typeof arguments[0].video == 'undefined') {
+          arguments[0].video = self.hasVideo?true:false;
+        }
+
+        // Conversion to JsSIP object.
+        arguments[0] = callOptionsConverter(arguments[0]);
+
         return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
       };
     }
 
     /**
-     * Send DTMF signal to other end of call session
-     * @alias mediaSession.sendDTMF
+     * TODO
+     * Send DTMF signal to other end of call session.
+     * @alias sendDTMF
      * @memberof MediaSession
+     * @instance
+     * @param {object} options Options of signal to be sent.
      */
     self.sendDTMF = function () {
       return evData.session.sendDTMF.apply(evData.session, [].slice.call(arguments, 0));
     };
 
     /**
-     * End call session
-     * @alias mediaSession.end
+     * Terminates this call session.
+     * @alias end
      * @memberof MediaSession
+     * @instance
+     * @param {object} [options] Options for call session termination.
+     * @param {string} options.reasonPhrase String representing the SIP reason phrase.
      */
     self.end = function () {
+
+      if (!sip.utils.isObject(arguments[0])) {
+        arguments[0] = {};
+      }
+
+      // Conversion to JsSIP config object
+      if (typeof arguments[0].reasonPhrase != 'undefined') {
+        arguments[0].reason_phrase = arguments[0].reasonPhrase;
+        delete arguments[0].reasonPhrase;
+      }
+
       return evData.session.terminate.apply(evData.session, [].slice.call(arguments, 0));
     };
 
   }
 
-  // Init method
-  // TODO: !!!may be syncronize getting of media capabilities and connecting states and only after that fire connected?
+  /**
+   * Initialization method
+   * @alias initialize
+   * @memberof sip
+   * @private
+   */
   sip.initialize = function (config) {
 
     // Setting JsSIP internal logger
-    if(!sip.utils.debug) {
+    if (!sip.utils.debug) {
       JsSIP.loggerFactory.level = 0;
     }
 
     media.initialize(function (result, props, stream) {
-      if(result == 'success') {
+      if (result == 'success') {
         clientInt.canAudio = props.audio;
         clientInt.canVideo = props.video;
         sip.trigger('gotMediaCapabilities', props);
@@ -614,7 +663,7 @@
 
   // Sip stop method
   sip.stop = function () {
-    if(sip.JsSIPUA) {
+    if (sip.JsSIPUA) {
       sip.JsSIPUA.stop();
     }
   };
@@ -704,7 +753,7 @@
     sip.info('Beforeunload start');
     sessions.forEach(function (session) {
       // TODO: make sure session is opened
-      if(session) {
+      if (session) {
         session.end();
       }
     });
