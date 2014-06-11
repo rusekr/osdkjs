@@ -576,6 +576,8 @@
         // Conversion to JsSIP object.
         arguments[0] = callOptionsConverter(arguments[0]);
 
+        sip.log('Modifyed answer arguments to', arguments[0]);
+
         return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
       };
     }
