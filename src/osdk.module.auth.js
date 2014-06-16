@@ -206,8 +206,22 @@
         } else {
 
           // Filling user client sturcture
-          client.id = data.username.split(':')[1];
-          client.domain = client.id.split('@')[1];
+          client.id = data.id = data.username.split(':')[1];
+          client.domain = data.domain = client.id.split('@')[1];
+
+          // Array of mixed uris to object of grouped by service
+          if(auth.utils.isArray(data.uris)) {
+            var uris = {};
+            auth.utils.each(data.uris, function (uri) {
+              var serviceName = uri.split(':')[0].toLowerCase();
+              if(!uris[serviceName]) {
+                uris[serviceName] = [];
+              }
+              uris[serviceName].push(uri.split(':')[1]);
+            });
+            data.uris = uris;
+          }
+
 
           auth.trigger(['gotTempCreds'], { 'data': data });
 
