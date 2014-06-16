@@ -632,16 +632,23 @@
       JsSIP.loggerFactory.level = 0;
     }
 
-    media.initialize(function (result, props, stream) {
-      if (result == 'success') {
-        clientInt.canAudio = props.audio;
-        clientInt.canVideo = props.video;
-        sip.trigger('gotMediaCapabilities', props);
-      }
-      else {
-        throw new sip.Error("Media capabilities are not found.");
-      }
-    });
+    if(!media.initialized()) {
+      media.initialize(function (result, props, stream) {
+        if (result == 'success') {
+          clientInt.canAudio = props.audio;
+          clientInt.canVideo = props.video;
+          sip.trigger('gotMediaCapabilities', props);
+        }
+        else {
+          throw new sip.Error("Media capabilities are not found.");
+        }
+      });
+    } else {
+      sip.trigger('gotMediaCapabilities', {
+        audio: clientInt.canAudio,
+        video: clientInt.canVideo
+      });
+    }
 
     // JsSIP initialization
     sip.JsSIPUA = new JsSIP.UA(config);
