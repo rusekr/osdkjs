@@ -6,4 +6,4 @@ This library is provided for easier usage of openSDP platform services in your b
 
 ## Architecture ##
 
-![architecture](images/teligentsdk.png)
+![architecture](images/teligentsdk.svg)
