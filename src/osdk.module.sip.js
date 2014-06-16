@@ -185,7 +185,7 @@
       delete options.audio;
     }
     if (!options.mediaConstraints.video) {
-      if (options.audio && options.video === true) {
+      if (options.video && options.video === true) {
         options.mediaConstraints.video = true;
       } else {
         options.mediaConstraints.video = false;
@@ -736,6 +736,7 @@
     if (arguments[1]) {
       arguments[1] = callOptionsConverter(arguments[1]);
     }
+
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
