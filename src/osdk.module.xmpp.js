@@ -21,7 +21,7 @@
 
   // Exemplar of oSDK XMPP module
 
-  var module;
+  var xmpp, module;
 
   // Some list, maybe: xmpp roster, list of contacts, incoming requests, outgoing requests, accepted requests, rejected requests
 
@@ -166,6 +166,13 @@
     this.client.type = null;
     this.client.status = null;
 
+    this.client.capabilities.setTechParams({
+      audioCall: xmpp.techCapabilities().audioCall,
+      videoCall: xmpp.techCapabilities().videoCall
+    });
+
+    this.client.capabilities.setUserParams(xmpp.userCapabilities());
+
     module.log('Create new authorized client', this.client);
 
     // Roster
@@ -204,13 +211,41 @@
 
   // Inner XMPP module
 
-  var xmpp;
-
   function XMPP() {
 
     // Self, utils, JSJaC connection & inner storage
 
     var self = this, utils = module.utils, connection = null, storage = null;
+
+    // Storage to client capabilities
+
+    var techCapabilities = {
+
+      instantMessaging: false,
+      audioCall: false,
+      videoCall: false,
+      fileTransfer: false
+
+    };
+
+    var userCapabilities = {
+
+      instantMessaging: false,
+      audioCall: false,
+      videoCall: false,
+      fileTransfer: false
+
+    };
+
+    this.techCapabilities = function() {return techCapabilities;};
+    this.userCapabilities = function() {return userCapabilities;};
+
+    var lastClientParams = {
+      type: false,
+      status: false
+    };
+
+    this.lastClientParams = function() {return lastClientParams;};
 
     // Constants
 
@@ -709,13 +744,44 @@
       },
       fnOnConnect: function() {
         module.info('XMPP HANDLER(connect)');
-        storage.client.status = 'available';
-        storage.client.capabilities.setTechParams({instantMessaging: true});
+        var clientParams = xmpp.lastClientParams();
+        if (!clientParams.type) clientParams.type = 'online';
+        if (!clientParams.status) clientParams.status = 'available';
+        storage.client.type = clientParams.type;
+        storage.client.status = clientParams.status;
+        techCapabilities.instantMessaging = true;
+        storage.client.capabilities.setTechParams({instantMessaging: techCapabilities.instantMessaging});
+        switch(clientParams.status) {
+          case 'available' :
+            userCapabilities.instantMessaging = true;
+            userCapabilities.audioCall = true;
+            userCapabilities.videoCall = true;
+            userCapabilities.fileTransfer = false;
+            break;
+          case 'away' :
+            userCapabilities.instantMessaging = true;
+            userCapabilities.audioCall = true;
+            userCapabilities.videoCall = true;
+            userCapabilities.fileTransfer = false;
+            break;
+          case 'do not disturb' :
+            userCapabilities.instantMessaging = true;
+            userCapabilities.audioCall = false;
+            userCapabilities.videoCall = false;
+            userCapabilities.fileTransfer = false;
+            break;
+          case 'x-available' :
+            userCapabilities.instantMessaging = false;
+            userCapabilities.audioCall = false;
+            userCapabilities.videoCall = false;
+            userCapabilities.fileTransfer = false;
+            break;
+        }
         storage.client.capabilities.setUserParams({
-          instantMessaging: true,
-          audioCall: true,
-          videoCall: true,
-          fileTransfer: true
+          instantMessaging: userCapabilities.instantMessaging,
+          audioCall: userCapabilities.audioCall,
+          videoCall: userCapabilities.videoCall,
+          fileTransfer: userCapabilities.fileTransfer
         });
         self.getRoster({
           onError: function(data) {
@@ -728,6 +794,7 @@
               },
               onSuccess: function(data) {
                 storage.logged = true;
+                self.thatICanToAll();
                 module.trigger('connected', [].slice.call(arguments, 0));
               }
             });
@@ -737,20 +804,27 @@
       },
       fnOnDisconnect: function() {
         module.info('XMPP HANDLER(disconnect)');
+        storage = null;
+        connection = null;
+        techCapabilities.instantMessaging = false;
         module.trigger('disconnected', [].slice.call(arguments, 0));
         return true;
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
+        storage = null;
+        connection = null;
+        techCapabilities.instantMessaging = false;
         module.trigger('connectionFailed', [].slice.call(arguments, 0));
-        /* TODO */
+        return false;
       },
       fnOnResume: function() {
         module.info('XMPP HANDLER(resume)');
-        /* TODO */
+        return true;
       },
       fnOnStatusChanged: function(status) {
         module.info('XMPP HANDLER(status changed): ', status);
+        return true;
       }
     };
 
@@ -937,6 +1011,10 @@
 
       var i, len = storage.contacts.len(), con = storage.contacts.get();
 
+      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.params());
+      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.getTechParams());
+      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.getUserParams());
+
       for (i = 0; i != len; i ++) {
 
         self.thatICan(con[i].account, params);
@@ -957,6 +1035,12 @@
         thatICan.tech = storage.client.capabilities.getTechParams();
         thatICan.user = storage.client.capabilities.getUserParams();
         thatICan.status = storage.client.status;
+
+        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.params());
+        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.getTechParams());
+        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.getUserParams());
+
+        console.trace('THAT I CAN TRACE for: ', to, thatICan);
 
         this.sendPresence({
           to: to,
@@ -1477,53 +1561,66 @@
             storage.client.status = params.status.unreal;
           }
         }
-        storage.client.capabilities.setUserParams(params);
+        lastClientParams.status = storage.client.status;
+        userCapabilities.instantMessaging = params.instantMessaging;
+        userCapabilities.audioCall = params.audioCall;
+        userCapabilities.videoCall = params.videoCall;
+        userCapabilities.fileTransfer = params.fileTransfer;
+        storage.client.capabilities.setUserParams(userCapabilities);
         self.thatICanToAll(handlers);
       }
       return true;
     };
 
     this.setStatusAvailable = function(params) {
-      storage.client.capabilities.setUserParams({
+      userCapabilities = {
         instantMessaging: true,
         audioCall: true,
         videoCall: true,
         fileTransfer: false
-      });
-      storage.client.status = 'available';
+      };
+      storage.client.capabilities.setUserParams(userCapabilities);
+      lastClientParams.status = 'available';
+      storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
 
     this.setStatusAway = function(params) {
-      storage.client.capabilities.setUserParams({
+      userCapabilities = {
         instantMessaging: true,
         audioCall: true,
         videoCall: true,
         fileTransfer: false
-      });
-      storage.client.status = 'away';
+      };
+      storage.client.capabilities.setUserParams(userCapabilities);
+      lastClientParams.status = 'away';
+      storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
 
     this.setStatusDoNotDisturb = function(params) {
-      storage.client.capabilities.setUserParams({
+      userCapabilities = {
         instantMessaging: true,
         audioCall: false,
         videoCall: false,
         fileTransfer: false
-      });
-      storage.client.status = 'do not disturb';
+      };
+      storage.client.capabilities.setUserParams(userCapabilities);
+      lastClientParams.status = 'do not disturb';
+      storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
 
     this.setStatusXAvailable = function(params) {
-      storage.client.capabilities.setUserParams({
+      userCapabilities = {
         instantMessaging: false,
         audioCall: false,
         videoCall: false,
         fileTransfer: false
-      });
-      storage.client.status = 'x-available';
+      };
+      storage.client.capabilities.setUserParams(userCapabilities);
+      lastClientParams.status = 'x-available';
+      storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
 
@@ -1590,7 +1687,7 @@
     // Initiation
 
     module.on('connectionFailed', function() {
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
         connection.disconnect();
       }
       return true;
@@ -1640,22 +1737,6 @@
       // connection.registerHandler('packet_out', xmpp.handlers.fnOutgoingPacket);
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
-      // Disconnect
-      module.on('disconnecting', function (data) {
-        module.log('Started disconnect process');
-        if (connection.connected()) {
-          connection.disconnect();
-        }
-      });
-      // Media capabilities
-      module.on('gotMediaCapabilities', function(e) {
-        module.log('Got media capabilities');
-        storage.client.capabilities.setTechParams({
-          audioCall: e.audio,
-          videoCall: e.video
-        });
-        xmpp.thatICanToAll();
-      });
       // Connect and login
       connection.connect({
         domain: params.domain,
@@ -1663,6 +1744,32 @@
         username: params.login,
         password: params.password
       });
+    });
+
+    // Media capabilities
+    module.on('gotMediaCapabilities', function(e) {
+      module.log('Got media capabilities', e);
+      techCapabilities.audioCall = !!e.audio;
+      techCapabilities.videoCall = !!e.video;
+      if (storage && storage.client) {
+        storage.client.capabilities.setTechParams({
+          audioCall: techCapabilities.audioCall,
+          videoCall: techCapabilities.videoCall
+        });
+      }
+      if (connection && connection.connected()) {
+        xmpp.thatICanToAll();
+      }
+      return true;
+    });
+
+    // Disconnect
+    module.on('disconnecting', function (data) {
+      module.log('Started disconnect process');
+      if (connection.connected()) {
+        connection.disconnect();
+      }
+      return true;
     });
 
   }
