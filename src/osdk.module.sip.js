@@ -12,7 +12,12 @@
 
   var defaultConfig = {
     sip: {
-      'serverURL': 'wss://osdp-teligent-dev-registrar.virt.teligent.ru:8088/ws'
+      gw: {
+        proto: 'wss',
+        port: 8088,
+        url: 'ws',
+        host: null
+      }
     }
   };
 
@@ -671,15 +676,38 @@
   };
 
   sip.on('gotTempCreds', function (event) {
+
     sip.log('Got temp creds', arguments);
+
+    var hosts = [];
+    if (sip.config('gw.host')) {
+      hosts = hosts.concat(sip.config('gw.host'));
+    } else if (event.data.uris && sip.utils.isArray(event.data.uris.sip)) {
+      sip.utils.each(event.data.uris.sip, function (uri) {
+        hosts.push(sip.config('gw.proto') + '://' + uri.split(';')[0] + ':' + sip.config('gw.port') + '/' + sip.config('gw.url'));
+      });
+    }
+
+    var turnServers = [];
+    if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
+      sip.utils.each(event.data.uris.turn, function (uri) {
+        turnServers.push(uri);
+      });
+    }
+    sip.log(turnServers);
+
     try {
       sip.initialize({
-        'ws_servers': sip.config('serverURL'),
+        'ws_servers': hosts,
         'connection_recovery': false,
         'uri': 'sip:' + event.data.username.split(':')[1],
         'password': event.data.password,
         'stun_servers': [],
-        'registrar_server': 'sip:'+sip.config('serverURL').replace(/^[^\/]+\/\/(.*?):[^:]+$/, '$1'),
+        'turn_servers': {
+          urls: turnServers,
+          username: event.data.username,
+          credential: event.data.password
+        },
         'trace_sip': true,
         'register': true,
         'authorization_user': event.data.username.split(':')[1],
