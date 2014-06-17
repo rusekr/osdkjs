@@ -777,12 +777,7 @@
             userCapabilities.fileTransfer = false;
             break;
         }
-        storage.client.capabilities.setUserParams({
-          instantMessaging: userCapabilities.instantMessaging,
-          audioCall: userCapabilities.audioCall,
-          videoCall: userCapabilities.videoCall,
-          fileTransfer: userCapabilities.fileTransfer
-        });
+        storage.client.capabilities.setUserParams(userCapabilities);
         self.getRoster({
           onError: function(data) {
             /* TODO */
@@ -1011,10 +1006,6 @@
 
       var i, len = storage.contacts.len(), con = storage.contacts.get();
 
-      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.params());
-      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.getTechParams());
-      console.warn('thatICanToAll CONTACTS len: ', len, storage.client.capabilities.getUserParams());
-
       for (i = 0; i != len; i ++) {
 
         self.thatICan(con[i].account, params);
@@ -1035,12 +1026,6 @@
         thatICan.tech = storage.client.capabilities.getTechParams();
         thatICan.user = storage.client.capabilities.getUserParams();
         thatICan.status = storage.client.status;
-
-        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.params());
-        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.getTechParams());
-        console.warn('thatICan CONTACTS len: ', storage.client.capabilities.getUserParams());
-
-        console.trace('THAT I CAN TRACE for: ', to, thatICan);
 
         this.sendPresence({
           to: to,
@@ -1766,7 +1751,7 @@
     // Disconnect
     module.on('disconnecting', function (data) {
       module.log('Started disconnect process');
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
         connection.disconnect();
       }
       return true;
