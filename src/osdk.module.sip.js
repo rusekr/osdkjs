@@ -656,13 +656,6 @@
     // TODO: merge with other module stuff
     attachTriggers(attachableEvents, sip.JsSIPUA.on, sip.JsSIPUA);
 
-    // Extend {Object} User
-    oSDK.user.extend({
-      // Properties
-      canAudio: false,
-      canVideo: false
-    });
-
   };
 
   // Sip start method
