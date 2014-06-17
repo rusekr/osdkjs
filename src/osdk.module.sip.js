@@ -691,10 +691,13 @@
     var turnServers = [];
     if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
       sip.utils.each(event.data.uris.turn, function (uri) {
-        turnServers.push(uri);
+        turnServers.push({
+          urls: 'turn:' + uri.replace(';', '?'),
+          username: event.data.username,
+          credential: event.data.password
+        });
       });
     }
-    sip.log(turnServers);
 
     try {
       sip.initialize({
@@ -703,11 +706,7 @@
         'uri': 'sip:' + event.data.username.split(':')[1],
         'password': event.data.password,
         'stun_servers': [],
-        'turn_servers': {
-          urls: turnServers,
-          username: event.data.username,
-          credential: event.data.password
-        },
+        'turn_servers': turnServers,
         'trace_sip': true,
         'register': true,
         'authorization_user': event.data.username.split(':')[1],
