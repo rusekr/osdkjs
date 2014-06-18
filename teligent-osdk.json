@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "jquery": "2.1.0",
-    "jssip": "git+ssh://git@github.com:versatica/JsSIP.git#62e832320ce22d8f1a65c159cebee92a66f19588",
+    "jssip": "git+ssh://git@github.com:rusekr/JsSIP.git#dd88d9eabc6496f914f108766fb2a3bd5eb66515",
     "crocodile-msrp": "git+ssh://git@github.com:crocodilertc/crocodile-msrp.git#3c75169a7cac8df01632393acb014e8c9d1511e2",
     "jsjac": "git+ssh://git@github.com:sstrigler/JSJaC.git#bed823976cd49404d1fadb34b195da153f6c86df",
     "jso": "git+ssh://git@github.com:andreassolberg/jso.git#eaf551572e0c9c4088c67d01a324c89fe9d614d2"
