@@ -108,8 +108,9 @@ module.exports = function(grunt) {
   // Tasks
   grunt.registerTask('check', ['jshint']);
 
-  grunt.registerTask('default', ['check', 'clean', 'concat', 'jsdoc', 'copy']);
-  grunt.registerTask('buildwithuglify', ['check', 'clean', 'concat', 'uglify', 'jsdoc', 'copy']);
+  grunt.registerTask('default', ['check', 'clean', 'concat']);
+  grunt.registerTask('gendoc', ['jsdoc', 'copy']);
+  grunt.registerTask('buildugly', ['check', 'clean', 'concat', 'uglify', 'jsdoc', 'copy']);
 
 
 };
