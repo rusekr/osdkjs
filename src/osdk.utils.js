@@ -255,17 +255,67 @@
     /**
     * oSDK error object prototype
     *
-    * @class OSDKError
+    * @class Error
     *
     */
-    self.constructor.prototype.Error = function OSDKError (eobj) {
+    self.constructor.prototype.Error = function Error (eobj) {
       // Defaults
       this.oSDKError = true; // Identificator because "instanceof oSDKError" is not working out of this scope
+      /**
+       * Code of error.
+       *
+       * @alias ecode
+       * @memberof Error
+       * @instance
+       * @type number
+       * @default 0
+       */
       this.ecode = 0;
+      /**
+       * Module name error come from.
+       *
+       * @alias module
+       * @memberof Error
+       * @instance
+       * @type string
+       */
       this.module = self.name;
+      /**
+       * Error message.
+       *
+       * @alias message
+       * @memberof Error
+       * @instance
+       * @type string
+       */
       this.message = "Unknown error detected";
+      /**
+       * HTML version of error message.
+       *
+       * @alias htmlMessage
+       * @memberof Error
+       * @instance
+       * @type string
+       */
       this.htmlMessage = null;
+      /**
+       * Custom error data.
+       *
+       * @alias data
+       * @memberof Error
+       * @instance
+       * @type object
+       */
       this.data = {};
+      /**
+       * Returns cumulative error description.
+       *
+       * @alias toString
+       * @memberof Error
+       * @instance
+       * @returns {string} Error string
+       *
+       */
       this.toString = function(){return 'oSDKError: module ' + this.module + ': code ' + this.ecode + ': ' + this.message;};
 
       // Updating properties

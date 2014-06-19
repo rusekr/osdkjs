@@ -53,445 +53,265 @@
     <g class="Page">
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id3">
-       <path fill="rgb(114,159,207)" stroke="none" d="M 12950,16300 L 0,16300 0,14600 25900,14600 25900,16300 12950,16300 Z"/>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 12950,16300 L 0,16300 0,14600 25900,14600 25900,16300 12950,16300 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10677" y="15344"><tspan fill="rgb(0,0,0)" stroke="none">Browser capabilities </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="9451" y="15899"><tspan fill="rgb(0,0,0)" stroke="none">(basic, websocket, webRTC, ...)</tspan></tspan></tspan></text>
+       <path fill="rgb(0,184,255)" stroke="none" d="M 14850,21000 L 0,21000 0,19000 29700,19000 29700,21000 14850,21000 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 14850,21000 L 0,21000 0,19000 29700,19000 29700,21000 14850,21000 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="12577" y="19894"><tspan fill="rgb(0,0,0)" stroke="none">Browser capabilities </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="11351" y="20449"><tspan fill="rgb(0,0,0)" stroke="none">(basic, websocket, webRTC, ...)</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id4">
-       <path fill="rgb(114,159,207)" stroke="none" d="M 2050,10200 L 400,10200 400,8200 3700,8200 3700,10200 2050,10200 Z"/>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 2050,10200 L 400,10200 400,8200 3700,8200 3700,10200 2050,10200 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1652" y="8874"><tspan fill="rgb(0,0,0)" stroke="none">SIP </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1519" y="9348"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1415" y="9822"><tspan fill="rgb(0,0,0)" stroke="none">(jsSIP)</tspan></tspan></tspan></text>
+       <path fill="rgb(0,184,255)" stroke="none" d="M 2400,13500 L 600,13500 600,11300 4200,11300 4200,13500 2400,13500 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 2400,13500 L 600,13500 600,11300 4200,11300 4200,13500 2400,13500 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2002" y="12074"><tspan fill="rgb(0,0,0)" stroke="none">SIP </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1869" y="12548"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1765" y="13022"><tspan fill="rgb(0,0,0)" stroke="none">(jsSIP)</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id5">
-       <path fill="rgb(114,159,207)" stroke="none" d="M 5950,10200 L 4300,10200 4300,8200 7600,8200 7600,10200 5950,10200 Z"/>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 5950,10200 L 4300,10200 4300,8200 7600,8200 7600,10200 5950,10200 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5296" y="8874"><tspan fill="rgb(0,0,0)" stroke="none">XMPP </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5419" y="9348"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5222" y="9822"><tspan fill="rgb(0,0,0)" stroke="none">(JsJaC)</tspan></tspan></tspan></text>
+       <path fill="rgb(0,184,255)" stroke="none" d="M 6950,13500 L 5100,13500 5100,11300 8800,11300 8800,13500 6950,13500 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 6950,13500 L 5100,13500 5100,11300 8800,11300 8800,13500 6950,13500 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6296" y="12074"><tspan fill="rgb(0,0,0)" stroke="none">XMPP </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6419" y="12548"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6222" y="13022"><tspan fill="rgb(0,0,0)" stroke="none">(JsJaC)</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id6">
-       <path fill="rgb(114,159,207)" stroke="none" d="M 10150,10200 L 8200,10200 8200,8200 12100,8200 12100,10200 10150,10200 Z"/>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 10150,10200 L 8200,10200 8200,8200 12100,8200 12100,10200 10150,10200 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9539" y="8874"><tspan fill="rgb(0,0,0)" stroke="none">MSRP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9619" y="9348"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="8503" y="9822"><tspan fill="rgb(0,0,0)" stroke="none">(CrocodileMSRP)</tspan></tspan></tspan></text>
+       <path fill="rgb(0,184,255)" stroke="none" d="M 11550,13500 L 9700,13500 9700,11300 13400,11300 13400,13500 11550,13500 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 11550,13500 L 9700,13500 9700,11300 13400,11300 13400,13500 11550,13500 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="10939" y="12074"><tspan fill="rgb(0,0,0)" stroke="none">MSRP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="11019" y="12548"><tspan fill="rgb(0,0,0)" stroke="none">Stack</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9903" y="13022"><tspan fill="rgb(0,0,0)" stroke="none">(CrocodileMSRP)</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id7">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 2050,10400 L 200,10400 200,4800 3900,4800 3900,10400 2050,10400 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 2400,13808 L 300,13808 300,6599 4500,6599 4500,13808 2400,13808 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id8">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="986" y="5365"><tspan fill="rgb(0,0,0)" stroke="none">oSDK SIP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="1290" y="5920"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1017" y="6966"><tspan fill="rgb(0,0,0)" stroke="none">[Media API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="558" y="7440"><tspan fill="rgb(0,0,0)" stroke="none">Capabilities API]</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="1278" y="7174"><tspan fill="rgb(0,0,0)" stroke="none">oSDK SIP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="1582" y="7729"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1309" y="8775"><tspan fill="rgb(0,0,0)" stroke="none">[Media API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="850" y="9249"><tspan fill="rgb(0,0,0)" stroke="none">Capabilities API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id9">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 5950,10400 L 4100,10400 4100,4800 7800,4800 7800,10400 5950,10400 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 6950,13800 L 4800,13800 4800,6600 9100,6600 9100,13800 6950,13800 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id10">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="4597" y="5336"><tspan fill="rgb(0,0,0)" stroke="none">oSDK XMPP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="5205" y="5891"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="4487" y="6937"><tspan fill="rgb(0,0,0)" stroke="none">[Messaging API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="4672" y="7411"><tspan fill="rgb(0,0,0)" stroke="none">Presence API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="4945" y="7885"><tspan fill="rgb(0,0,0)" stroke="none">Roster API]</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="5460" y="7174"><tspan fill="rgb(0,0,0)" stroke="none">oSDK XMPP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="6068" y="7729"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5350" y="8775"><tspan fill="rgb(0,0,0)" stroke="none">[Messaging API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5535" y="9249"><tspan fill="rgb(0,0,0)" stroke="none">Presence API,</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="5808" y="9723"><tspan fill="rgb(0,0,0)" stroke="none">Roster API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id11">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="8789" y="5374"><tspan fill="rgb(0,0,0)" stroke="none">oSDK MSRP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="9409" y="5929"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9100" y="6975"><tspan fill="rgb(0,0,0)" stroke="none">[Filetransfer </tspan></tspan><tspan class="TextPosition" x="9820" y="7449"><tspan fill="rgb(0,0,0)" stroke="none">API]</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10117" y="7174"><tspan fill="rgb(0,0,0)" stroke="none">oSDK MSRP</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10737" y="7729"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9980" y="8775"><tspan fill="rgb(0,0,0)" stroke="none">[Filetransfer API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id12">
        <g>
         <defs>
-         <pattern id="pattern1" x="8000" y="4800" width="4301" height="5601" patternUnits="userSpaceOnUse">
-          <g transform="translate(-8000,-4800)">
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12200" y1="4800" x2="12300" y2="4900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12050" y1="4800" x2="12300" y2="5050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11900" y1="4800" x2="12300" y2="5200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11750" y1="4800" x2="12300" y2="5350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11600" y1="4800" x2="12300" y2="5500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11450" y1="4800" x2="12300" y2="5650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11300" y1="4800" x2="12300" y2="5800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11150" y1="4800" x2="12300" y2="5950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11000" y1="4800" x2="12300" y2="6100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10850" y1="4800" x2="12300" y2="6250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10700" y1="4800" x2="12300" y2="6400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10550" y1="4800" x2="12300" y2="6550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10400" y1="4800" x2="12300" y2="6700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10250" y1="4800" x2="12300" y2="6850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10100" y1="4800" x2="12300" y2="7000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9950" y1="4800" x2="12300" y2="7150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9800" y1="4800" x2="12300" y2="7300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9650" y1="4800" x2="12300" y2="7450"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9500" y1="4800" x2="12300" y2="7600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9350" y1="4800" x2="12300" y2="7750"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9200" y1="4800" x2="12300" y2="7900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9050" y1="4800" x2="12300" y2="8050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8900" y1="4800" x2="12300" y2="8200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8750" y1="4800" x2="12300" y2="8350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8600" y1="4800" x2="12300" y2="8500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8450" y1="4800" x2="12300" y2="8650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8300" y1="4800" x2="12300" y2="8800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8150" y1="4800" x2="12300" y2="8950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="4800" x2="12300" y2="9100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="4950" x2="12300" y2="9250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5100" x2="12300" y2="9400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5250" x2="12300" y2="9550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5400" x2="12300" y2="9700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5550" x2="12300" y2="9850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5700" x2="12300" y2="10000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="5850" x2="12300" y2="10150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6000" x2="12300" y2="10300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6150" x2="12250" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6300" x2="12100" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6450" x2="11950" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6600" x2="11800" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6750" x2="11650" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="6900" x2="11500" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7050" x2="11350" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7200" x2="11200" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7350" x2="11050" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7500" x2="10900" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7650" x2="10750" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7800" x2="10600" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="7950" x2="10450" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8100" x2="10300" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8250" x2="10150" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8400" x2="10000" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8550" x2="9850" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8700" x2="9700" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="8850" x2="9550" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9000" x2="9400" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9150" x2="9250" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9300" x2="9100" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9450" x2="8950" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9600" x2="8800" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9750" x2="8650" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="9900" x2="8500" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="10050" x2="8350" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="10200" x2="8200" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="8000" y1="10350" x2="8050" y2="10400"/>
+         <pattern id="pattern1" x="9400" y="6600" width="4301" height="7201" patternUnits="userSpaceOnUse">
+          <g transform="translate(-9400,-6600)">
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="7259" x2="10059" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="7970" x2="10770" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="8681" x2="11481" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="9392" x2="12192" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="10103" x2="12903" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="10814" x2="13614" y2="6600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="11525" x2="13700" y2="7225"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="12236" x2="13700" y2="7936"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="12947" x2="13700" y2="8647"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9400" y1="13658" x2="13700" y2="9358"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="9969" y1="13800" x2="13700" y2="10069"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="10680" y1="13800" x2="13700" y2="10780"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="11391" y1="13800" x2="13700" y2="11491"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12102" y1="13800" x2="13700" y2="12202"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12813" y1="13800" x2="13700" y2="12913"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13524" y1="13800" x2="13700" y2="13624"/>
           </g>
          </pattern>
         </defs>
-        <path style="fill:url(#pattern1)" d="M 10150,10400 L 8000,10400 8000,4800 12300,4800 12300,10400 10150,10400 Z"/>
+        <path style="fill:url(#pattern1)" d="M 11550,13800 L 9400,13800 9400,6600 13700,6600 13700,13800 11550,13800 Z"/>
        </g>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 10150,10400 L 8000,10400 8000,4800 12300,4800 12300,10400 10150,10400 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 11550,13800 L 9400,13800 9400,6600 13700,6600 13700,13800 11550,13800 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id13">
        <g>
         <defs>
-         <pattern id="pattern2" x="12700" y="3800" width="10201" height="6801" patternUnits="userSpaceOnUse">
-          <g transform="translate(-12700,-3800)">
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22750" y1="3800" x2="22900" y2="3950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22600" y1="3800" x2="22900" y2="4100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22450" y1="3800" x2="22900" y2="4250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22300" y1="3800" x2="22900" y2="4400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22150" y1="3800" x2="22900" y2="4550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22000" y1="3800" x2="22900" y2="4700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21850" y1="3800" x2="22900" y2="4850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21700" y1="3800" x2="22900" y2="5000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21550" y1="3800" x2="22900" y2="5150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21400" y1="3800" x2="22900" y2="5300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21250" y1="3800" x2="22900" y2="5450"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21100" y1="3800" x2="22900" y2="5600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20950" y1="3800" x2="22900" y2="5750"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20800" y1="3800" x2="22900" y2="5900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20650" y1="3800" x2="22900" y2="6050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20500" y1="3800" x2="22900" y2="6200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20350" y1="3800" x2="22900" y2="6350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20200" y1="3800" x2="22900" y2="6500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20050" y1="3800" x2="22900" y2="6650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19900" y1="3800" x2="22900" y2="6800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19750" y1="3800" x2="22900" y2="6950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19600" y1="3800" x2="22900" y2="7100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19450" y1="3800" x2="22900" y2="7250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19300" y1="3800" x2="22900" y2="7400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19150" y1="3800" x2="22900" y2="7550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19000" y1="3800" x2="22900" y2="7700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18850" y1="3800" x2="22900" y2="7850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18700" y1="3800" x2="22900" y2="8000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18550" y1="3800" x2="22900" y2="8150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18400" y1="3800" x2="22900" y2="8300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18250" y1="3800" x2="22900" y2="8450"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18100" y1="3800" x2="22900" y2="8600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17950" y1="3800" x2="22900" y2="8750"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17800" y1="3800" x2="22900" y2="8900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17650" y1="3800" x2="22900" y2="9050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17500" y1="3800" x2="22900" y2="9200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17350" y1="3800" x2="22900" y2="9350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17200" y1="3800" x2="22900" y2="9500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17050" y1="3800" x2="22900" y2="9650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16900" y1="3800" x2="22900" y2="9800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16750" y1="3800" x2="22900" y2="9950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16600" y1="3800" x2="22900" y2="10100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16450" y1="3800" x2="22900" y2="10250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16300" y1="3800" x2="22900" y2="10400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16150" y1="3800" x2="22900" y2="10550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16000" y1="3800" x2="22800" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15850" y1="3800" x2="22650" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15700" y1="3800" x2="22500" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15550" y1="3800" x2="22350" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15400" y1="3800" x2="22200" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15250" y1="3800" x2="22050" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15100" y1="3800" x2="21900" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14950" y1="3800" x2="21750" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14800" y1="3800" x2="21600" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14650" y1="3800" x2="21450" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14500" y1="3800" x2="21300" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14350" y1="3800" x2="21150" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14200" y1="3800" x2="21000" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14050" y1="3800" x2="20850" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13900" y1="3800" x2="20700" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13750" y1="3800" x2="20550" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13600" y1="3800" x2="20400" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13450" y1="3800" x2="20250" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13300" y1="3800" x2="20100" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13150" y1="3800" x2="19950" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="13000" y1="3800" x2="19800" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12850" y1="3800" x2="19650" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="3800" x2="19500" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="3950" x2="19350" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4100" x2="19200" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4250" x2="19050" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4400" x2="18900" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4550" x2="18750" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4700" x2="18600" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="4850" x2="18450" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5000" x2="18300" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5150" x2="18150" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5300" x2="18000" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5450" x2="17850" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5600" x2="17700" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5750" x2="17550" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="5900" x2="17400" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6050" x2="17250" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6200" x2="17100" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6350" x2="16950" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6500" x2="16800" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6650" x2="16650" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6800" x2="16500" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="6950" x2="16350" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7100" x2="16200" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7250" x2="16050" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7400" x2="15900" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7550" x2="15750" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7700" x2="15600" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="7850" x2="15450" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8000" x2="15300" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8150" x2="15150" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8300" x2="15000" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8450" x2="14850" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8600" x2="14700" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8750" x2="14550" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="8900" x2="14400" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9050" x2="14250" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9200" x2="14100" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9350" x2="13950" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9500" x2="13800" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9650" x2="13650" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9800" x2="13500" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="9950" x2="13350" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="10100" x2="13200" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="10250" x2="13050" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="10400" x2="12900" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="12700" y1="10550" x2="12750" y2="10600"/>
+         <pattern id="pattern2" x="14300" y="4600" width="11501" height="9501" patternUnits="userSpaceOnUse">
+          <g transform="translate(-14300,-4600)">
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="5259" x2="14959" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="5970" x2="15670" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="6681" x2="16381" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="7392" x2="17092" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="8103" x2="17803" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="8814" x2="18514" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="9525" x2="19225" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="10236" x2="19936" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="10947" x2="20647" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="11658" x2="21358" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="12369" x2="22069" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="13080" x2="22780" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14300" y1="13791" x2="23491" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14702" y1="14100" x2="24202" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15413" y1="14100" x2="24913" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16124" y1="14100" x2="25624" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16835" y1="14100" x2="25800" y2="5135"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17546" y1="14100" x2="25800" y2="5846"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18257" y1="14100" x2="25800" y2="6557"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="18968" y1="14100" x2="25800" y2="7268"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="19679" y1="14100" x2="25800" y2="7979"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20390" y1="14100" x2="25800" y2="8690"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21101" y1="14100" x2="25800" y2="9401"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="21812" y1="14100" x2="25800" y2="10112"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="22523" y1="14100" x2="25800" y2="10823"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23234" y1="14100" x2="25800" y2="11534"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23945" y1="14100" x2="25800" y2="12245"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24656" y1="14100" x2="25800" y2="12956"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25367" y1="14100" x2="25800" y2="13667"/>
           </g>
          </pattern>
         </defs>
-        <path style="fill:url(#pattern2)" d="M 17800,10600 L 12700,10600 12700,3800 22900,3800 22900,10600 17800,10600 Z"/>
+        <path style="fill:url(#pattern2)" d="M 20050,14100 L 14300,14100 14300,4600 25800,4600 25800,14100 20050,14100 Z"/>
        </g>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 17800,10600 L 12700,10600 12700,3800 22900,3800 22900,10600 17800,10600 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 20050,14100 L 14300,14100 14300,4600 25800,4600 25800,14100 20050,14100 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id14">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="15528" y="4474"><tspan fill="rgb(0,0,0)" stroke="none">oSDP OneAPI SDK</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="18255" y="5674"><tspan fill="rgb(0,0,0)" stroke="none">oSDP OneAPI SDK</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id15">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="13353" y="5374"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="13465" y="5929"><tspan fill="rgb(0,0,0)" stroke="none">SMS</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="13187" y="6484"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="15435" y="7174"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="15547" y="7729"><tspan fill="rgb(0,0,0)" stroke="none">SMS</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="15270" y="8284"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
       </g>
      </g>
-     <g class="com.sun.star.drawing.CustomShape">
+     <g class="com.sun.star.drawing.TextShape">
       <g id="id16">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 14050,10400 L 12900,10400 12900,4800 15200,4800 15200,10400 14050,10400 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="15083" y="12410"><tspan fill="rgb(0,0,0)" stroke="none">[SMS API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id17">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="13083" y="9510"><tspan fill="rgb(0,0,0)" stroke="none">[SMS API]</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="18303" y="7174"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="18013" y="7729"><tspan fill="rgb(0,0,0)" stroke="none">Location</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="18137" y="8284"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id18">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="15903" y="5374"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="15613" y="5929"><tspan fill="rgb(0,0,0)" stroke="none">Location</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="15737" y="6484"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="21303" y="7158"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="20974" y="7713"><tspan fill="rgb(0,0,0)" stroke="none">Payment</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="21137" y="8268"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
       </g>
      </g>
-     <g class="com.sun.star.drawing.CustomShape">
+     <g class="com.sun.star.drawing.TextShape">
       <g id="id19">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 16550,10416 L 15400,10416 15400,4800 17700,4800 17700,10416 16550,10416 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="18087" y="12110"><tspan fill="rgb(0,0,0)" stroke="none">[Location </tspan></tspan><tspan class="TextPosition" x="18548" y="12584"><tspan fill="rgb(0,0,0)" stroke="none">API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id20">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="18353" y="5374"><tspan fill="rgb(0,0,0)" stroke="none">oSDK </tspan></tspan><tspan class="TextPosition" x="18024" y="5929"><tspan fill="rgb(0,0,0)" stroke="none">Payment</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="18187" y="6484"><tspan fill="rgb(0,0,0)" stroke="none">module</tspan></tspan></tspan></text>
-      </g>
-     </g>
-     <g class="com.sun.star.drawing.CustomShape">
-      <g id="id21">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 19050,10400 L 17900,10400 17900,4800 20200,4800 20200,10400 19050,10400 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="21053" y="12110"><tspan fill="rgb(0,0,0)" stroke="none">[Payment</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="21548" y="12584"><tspan fill="rgb(0,0,0)" stroke="none">API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
+      <g id="id21">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="24329" y="10074"><tspan fill="rgb(0,0,0)" stroke="none">...</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
       <g id="id22">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="15687" y="9449"><tspan fill="rgb(0,0,0)" stroke="none">[Location </tspan></tspan><tspan class="TextPosition" x="16148" y="9923"><tspan fill="rgb(0,0,0)" stroke="none">API]</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 7000,14100 L 0,14100 0,4600 14000,4600 14000,14100 7000,14100 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id23">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="18153" y="9449"><tspan fill="rgb(0,0,0)" stroke="none">[Payment</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="18648" y="9923"><tspan fill="rgb(0,0,0)" stroke="none">API]</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="4171" y="5668"><tspan fill="rgb(0,0,0)" stroke="none">External libraries wrappers</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id24">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 21550,10400 L 20400,10400 20400,4800 22700,4800 22700,10400 21550,10400 Z"/>
+       <g>
+        <defs>
+         <pattern id="pattern3" x="26100" y="4600" width="3601" height="9501" patternUnits="userSpaceOnUse">
+          <g transform="translate(-26100,-4600)">
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="5259" x2="26759" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="5970" x2="27470" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="6681" x2="28181" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="7392" x2="28892" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="8103" x2="29603" y2="4600"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="8814" x2="29700" y2="5214"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="9525" x2="29700" y2="5925"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="10236" x2="29700" y2="6636"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="10947" x2="29700" y2="7347"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="11658" x2="29700" y2="8058"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="12369" x2="29700" y2="8769"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="13080" x2="29700" y2="9480"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26100" y1="13791" x2="29700" y2="10191"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="26502" y1="14100" x2="29700" y2="10902"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="27213" y1="14100" x2="29700" y2="11613"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="27924" y1="14100" x2="29700" y2="12324"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="28635" y1="14100" x2="29700" y2="13035"/>
+           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="29346" y1="14100" x2="29700" y2="13746"/>
+          </g>
+         </pattern>
+        </defs>
+        <path style="fill:url(#pattern3)" d="M 27900,14100 L 26100,14100 26100,4600 29700,4600 29700,14100 27900,14100 Z"/>
+       </g>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 27900,14100 L 26100,14100 26100,4600 29700,4600 29700,14100 27900,14100 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id25">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="21250" y="7768"><tspan fill="rgb(0,0,0)" stroke="none">...</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="27442" y="5174"><tspan fill="rgb(0,0,0)" stroke="none">TAS </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="27269" y="5729"><tspan fill="rgb(0,0,0)" stroke="none">Client </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="27394" y="6284"><tspan fill="rgb(0,0,0)" stroke="none">SDK </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="27036" y="6839"><tspan fill="rgb(0,0,0)" stroke="none">modules</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id26">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 6250,10600 L 0,10600 0,3800 12500,3800 12500,10600 6250,10600 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 14850,4300 L 0,4300 0,2300 29700,2300 29700,4300 14850,4300 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10075" y="2998"><tspan fill="rgb(0,0,0)" stroke="none">oSDK Client module (client utility methods) </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="13883" y="3963"><tspan fill="rgb(0,0,0)" stroke="none">[Core API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.TextShape">
       <g id="id27">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="3331" y="4474"><tspan fill="rgb(0,0,0)" stroke="none">External libraries wrappers</tspan></tspan></tspan></text>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="27001" y="12410"><tspan fill="rgb(0,0,0)" stroke="none">[TAS API]</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id28">
-       <g>
-        <defs>
-         <pattern id="pattern3" x="23100" y="3800" width="2801" height="6801" patternUnits="userSpaceOnUse">
-          <g transform="translate(-23100,-3800)">
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25800" y1="3800" x2="25900" y2="3900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25650" y1="3800" x2="25900" y2="4050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25500" y1="3800" x2="25900" y2="4200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25350" y1="3800" x2="25900" y2="4350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25200" y1="3800" x2="25900" y2="4500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="25050" y1="3800" x2="25900" y2="4650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24900" y1="3800" x2="25900" y2="4800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24750" y1="3800" x2="25900" y2="4950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24600" y1="3800" x2="25900" y2="5100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24450" y1="3800" x2="25900" y2="5250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24300" y1="3800" x2="25900" y2="5400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24150" y1="3800" x2="25900" y2="5550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="24000" y1="3800" x2="25900" y2="5700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23850" y1="3800" x2="25900" y2="5850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23700" y1="3800" x2="25900" y2="6000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23550" y1="3800" x2="25900" y2="6150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23400" y1="3800" x2="25900" y2="6300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23250" y1="3800" x2="25900" y2="6450"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="3800" x2="25900" y2="6600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="3950" x2="25900" y2="6750"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4100" x2="25900" y2="6900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4250" x2="25900" y2="7050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4400" x2="25900" y2="7200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4550" x2="25900" y2="7350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4700" x2="25900" y2="7500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="4850" x2="25900" y2="7650"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5000" x2="25900" y2="7800"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5150" x2="25900" y2="7950"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5300" x2="25900" y2="8100"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5450" x2="25900" y2="8250"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5600" x2="25900" y2="8400"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5750" x2="25900" y2="8550"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="5900" x2="25900" y2="8700"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6050" x2="25900" y2="8850"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6200" x2="25900" y2="9000"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6350" x2="25900" y2="9150"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6500" x2="25900" y2="9300"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6650" x2="25900" y2="9450"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6800" x2="25900" y2="9600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="6950" x2="25900" y2="9750"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7100" x2="25900" y2="9900"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7250" x2="25900" y2="10050"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7400" x2="25900" y2="10200"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7550" x2="25900" y2="10350"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7700" x2="25900" y2="10500"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="7850" x2="25850" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8000" x2="25700" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8150" x2="25550" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8300" x2="25400" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8450" x2="25250" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8600" x2="25100" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8750" x2="24950" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="8900" x2="24800" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9050" x2="24650" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9200" x2="24500" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9350" x2="24350" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9500" x2="24200" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9650" x2="24050" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9800" x2="23900" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="9950" x2="23750" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="10100" x2="23600" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="10250" x2="23450" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="10400" x2="23300" y2="10600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23100" y1="10550" x2="23150" y2="10600"/>
-          </g>
-         </pattern>
-        </defs>
-        <path style="fill:url(#pattern3)" d="M 24500,10600 L 23100,10600 23100,3800 25900,3800 25900,10600 24500,10600 Z"/>
-       </g>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 24500,10600 L 23100,10600 23100,3800 25900,3800 25900,10600 24500,10600 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 14850,16400 L 0,16400 0,14400 29700,14400 29700,16400 14850,16400 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="9180" y="15098"><tspan fill="rgb(0,0,0)" stroke="none">oSDK Auth module (authorization &amp; authentication) </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="12300" y="16063"><tspan fill="rgb(0,0,0)" stroke="none">[Core API, Connection API]</tspan></tspan></tspan></text>
       </g>
      </g>
-     <g class="com.sun.star.drawing.TextShape">
+     <g class="com.sun.star.drawing.CustomShape">
       <g id="id29">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="24056" y="4474"><tspan fill="rgb(0,0,0)" stroke="none">TAS </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="23883" y="5029"><tspan fill="rgb(0,0,0)" stroke="none">Client </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="24008" y="5584"><tspan fill="rgb(0,0,0)" stroke="none">SDK </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="23650" y="6139"><tspan fill="rgb(0,0,0)" stroke="none">modules</tspan></tspan></tspan></text>
+       <path fill="rgb(0,184,255)" stroke="none" d="M 14850,2000 L 0,2000 0,0 29700,0 29700,2000 14850,2000 Z"/>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 14850,2000 L 0,2000 0,0 29700,0 29700,2000 14850,2000 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="12069" y="1172"><tspan fill="rgb(0,0,0)" stroke="none">Web-application (oClient)</tspan></tspan></tspan></text>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id30">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 12950,3600 L 0,3600 0,1900 25900,1900 25900,3600 12950,3600 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="8175" y="2448"><tspan fill="rgb(0,0,0)" stroke="none">oSDK Client module (client utility methods) </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="11983" y="3413"><tspan fill="rgb(0,0,0)" stroke="none">[Core API]</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 14850,18700 L 0,18700 0,16700 29700,16700 29700,18700 14850,18700 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10253" y="17872"><tspan fill="rgb(0,0,0)" stroke="none">oSDK internal utilities, core module object</tspan></tspan></tspan></text>
       </g>
      </g>
-     <g class="com.sun.star.drawing.TextShape">
+     <g class="com.sun.star.drawing.CustomShape">
       <g id="id31">
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="23544" y="9411"><tspan fill="rgb(0,0,0)" stroke="none">[TAS API]</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 15950,13800 L 14600,13800 14600,6600 17300,6600 17300,13800 15950,13800 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id32">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 12950,12500 L 0,12500 0,10800 25900,10800 25900,12500 12950,12500 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="7280" y="11348"><tspan fill="rgb(0,0,0)" stroke="none">oSDK Auth module (authorization &amp; authentication) </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="10400" y="12313"><tspan fill="rgb(0,0,0)" stroke="none">[Core API, Connection API]</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 18950,13800 L 17600,13800 17600,6600 20300,6600 20300,13800 18950,13800 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id33">
-       <path fill="rgb(114,159,207)" stroke="none" d="M 12950,1700 L 0,1700 0,0 25900,0 25900,1700 12950,1700 Z"/>
-       <path fill="none" stroke="rgb(52,101,175)" d="M 12950,1700 L 0,1700 0,0 25900,0 25900,1700 12950,1700 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="10169" y="1022"><tspan fill="rgb(0,0,0)" stroke="none">Web-application (oClient)</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 21950,13800 L 20600,13800 20600,6600 23300,6600 23300,13800 21950,13800 Z"/>
       </g>
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id34">
-       <path fill="none" stroke="rgb(52,101,175)" d="M 12950,14400 L 0,14400 0,12700 25900,12700 25900,14400 12950,14400 Z"/>
-       <text class="TextShape"><tspan class="TextParagraph" font-family="Arimo, sans-serif" font-size="494px" font-weight="400"><tspan class="TextPosition" x="8353" y="13722"><tspan fill="rgb(0,0,0)" stroke="none">oSDK internal utilities, core module object</tspan></tspan></tspan></text>
+       <path fill="none" stroke="rgb(0,153,255)" d="M 24550,13800 L 23600,13800 23600,6600 25500,6600 25500,13800 24550,13800 Z"/>
       </g>
      </g>
     </g>
