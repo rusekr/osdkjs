@@ -23,6 +23,54 @@
 
   var xmpp, module;
 
+  // Exemplar of text message
+
+  function SDKTextMessage(params) {
+
+    this.type = 'SDKTextMessage';
+
+    this.from = null;
+    this.to = null;
+    this.subject = null;
+    this.message = null;
+    this.incoming = false;
+    this.outgoing = false;
+
+    if (typeof params.from != 'undefined' && module.utils.isValidAccount(params.from)) this.from = params.from;
+    if (typeof params.to != 'undefined' && module.utils.isValidAccount(params.to)) this.to = params.to;
+    if (typeof params.subject != 'undefined' && module.utils.isString(params.subject)) this.subject = params.subject;
+    if (typeof params.message != 'undefined' && module.utils.isString(params.message)) this.message = params.message;
+
+    if (this.from || this.to) {
+      if (this.from) {
+        if (oSDK.getClient().account == this.from) {
+          this.incoming = false;
+          this.outgoing = true;
+        }
+      }
+      if (this.to) {
+        if (oSDK.getClient().account == this.to) {
+          this.incoming = true;
+          this.outgoing = false;
+        }
+      }
+    }
+
+    var date = new Date();
+
+    this.timestamp = date.getTime();
+    this.timeZoneOffset = date.getTimezoneOffset() / 60;
+
+    this.day = date.getDate();
+    this.month = date.getMonth() + 1;
+    this.year = date.getFullYear();
+
+    this.hours = date.getHours();
+    this.minutes = date.getMinutes();
+    this.seconds = date.getSeconds();
+
+  }
+
   // Some list, maybe: xmpp roster, list of contacts, incoming requests, outgoing requests, accepted requests, rejected requests
 
   function SDKList() {
@@ -296,7 +344,7 @@
           */
           server: {
             protocol: 'wss',
-            domain: 'osdp-teligent-dev-xmpp.virt.teligent.ru',
+            domain: null,
             port: 5280,
             url: 'http-bind'
           }
@@ -500,27 +548,23 @@
       fnIncomingMessage: function(packet) {
         module.info('XMPP HANDLER(incoming message)');
         var user = oSDK.user.create(packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain());
-        user.history.push({
-          type: 'message',
-          to: packet.getToJID().getNode() + '@' + packet.getToJID().getDomain(),
+        var message = new SDKTextMessage({
           from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
+          to: packet.getToJID().getNode() + '@' + packet.getToJID().getDomain(),
           message: packet.getBody().htmlEnc()
         });
-        module.trigger('incomingMessage', {
-          to: packet.getToJID().getNode() + '@' + packet.getToJID().getDomain(),
-          from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
-          message: packet.getBody().htmlEnc()
-        });
+        user.history.push(message);
+        module.trigger('incomingMessage', message);
       },
       fnOutgoingMessage: function(packet) {
         module.info('XMPP HANDLER(outgoing message)');
         var user = oSDK.user.create(storage.message.to);
-        user.history.push({
-          type: 'message',
-          to: storage.message.to,
+        var message = new SDKTextMessage({
           from: storage.message.from,
+          to: storage.message.to,
           message: packet.getBody().htmlEnc()
         });
+        user.history.push(message);
         if (storage.message.success) {
           storage.message.success({
             to: storage.message.to,
@@ -528,16 +572,12 @@
             message: packet.getBody().htmlEnc()
           });
         }
-        module.trigger('outgoingMessage', {
-          to: storage.message.to,
-          from: storage.message.from,
-          message: packet.getBody().htmlEnc()
-        });
         storage.message = {
           success: null,
           from: null,
           to: null
         };
+        module.trigger('outgoingMessage', message);
       },
       fnIncomingPresence: function(packet) {
         var data = self.getPresenceData(packet), user, contact, request;
@@ -1680,10 +1720,12 @@
 
     module.on('gotTempCreds', function() {
       // Check & define params
+      var server = module.config('connection.server');
+      server.domain = arguments[0].data.uris.xmpp[0].split(';')[0];
       var params = {
         debug: module.config('connection.debug'),
         timer: module.config('connection.timer'),
-        server: ((utils.isString(module.config('connection.server'))) ? module.config('connection.server') : self.generateServerUrl(module.config('connection.server'))),
+        server: ((utils.isString(server)) ? server : self.generateServerUrl(server)),
         login: arguments[0].data.username.split(':')[1].split('@')[0],
         password: arguments[0].data.password,
         domain: arguments[0].data.username.split(':')[1].split('@')[1],

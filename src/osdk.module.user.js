@@ -83,11 +83,9 @@
         },
         push: function(params) {
           function prepareHistoryParams(params) {
-            var result = params, d = new Date();
+            var result = params;
             if (!module.utils.isObject(result)) result = { data: result };
             if (typeof result.type == 'undefined') result.type = 'unknown';
-            result.timeZoneOffset = d.getTimezoneOffset() / 60; // in hours
-            result.timeStamp = d.getTime(); // in millisecondes
             return result;
           }
           var oSDKH = get_oSDKHistory(), key = generateHistoryKey();
