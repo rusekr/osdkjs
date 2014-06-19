@@ -14,6 +14,7 @@ body
 
 a {
     color: #444;
+    font-weight: bold;
 }
 
 a:visited {
@@ -87,7 +88,7 @@ nav ul {
 }
 
 nav h2 a, nav h2 a:visited {
-    color: #A35A00;
+    color: #00b8ff;
     text-decoration: none;
 }
 
@@ -151,7 +152,7 @@ h4
 	letter-spacing: -0.01em;
 	margin-top: 16px;
 	margin: 18px 0 3px 0;
-	color: #A35A00;
+	color: #00b8ff;
 }
 
 h5, .container-overview .subsection-title
@@ -287,7 +288,7 @@ h6
 }
 
 .params .name, .props .name, .name code {
-	color: #A35A00;
+	color: #00b8ff;
 	font-family: Consolas, 'Lucida Console', Monaco, monospace;
 	font-size: 100%;
 }
