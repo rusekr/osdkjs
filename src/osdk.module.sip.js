@@ -719,7 +719,7 @@
     } catch (data) {
       sip.trigger(['connectionFailed'], {
         message: "SIP configuration error.",
-        ecode: 397496,
+        ecode: 'sip0001',
         data: data
       });
     }

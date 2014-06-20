@@ -262,12 +262,12 @@
       // Defaults
       this.oSDKError = true; // Identificator because "instanceof oSDKError" is not working out of this scope
       /**
-       * Code of error.
+       * Alphanumeric code of error.
        *
        * @alias ecode
        * @memberof Error
        * @instance
-       * @type number
+       * @type string
        * @default 0
        */
       this.ecode = 0;
