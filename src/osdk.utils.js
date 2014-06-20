@@ -1211,9 +1211,14 @@
     utils.trigger('windowerror', { arguments: arguments });
   }, false);
 
+  // Flag for checking of same-named event.
+  utils.DOMContentLoaded = false;
+
   // Dedicated for osdk DOMContentLoaded event
   document.addEventListener("DOMContentLoaded", function () {
     utils.trigger('DOMContentLoaded', { arguments: arguments });
+    // Flag for checking this event after it fired.
+    utils.DOMContentLoaded = true;
   }, false);
 
   // For creation of module objects

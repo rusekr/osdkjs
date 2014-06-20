@@ -174,6 +174,14 @@
 
   // Connection to openSDP network
   auth.connect = function () {
+
+    if(!auth.utils.DOMContentLoaded) {
+      auth.on('DOMContentLoaded', function () {
+        auth.connect();
+      });
+      return;
+    }
+
     if(auth.status == 'connected' || auth.status == 'connecting') {
       return;
     }
@@ -335,7 +343,7 @@
 
   // Instant actions
 
-  // DOMContentLoaded action
+  // mergedUserConfig action
    auth.on("mergedUserConfig", function () {
     auth.tokenCheck(false);
    });
