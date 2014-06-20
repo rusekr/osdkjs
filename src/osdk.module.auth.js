@@ -393,6 +393,7 @@
   auth.registerObjects({
     /**
      * @class oSDK.User
+     * @private
      */
     'User': auth.client
   });
