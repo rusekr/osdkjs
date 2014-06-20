@@ -26,4 +26,4 @@
 
 ## Tutorials ##
 
-<p>[Simple texting application](tutorial1.html)
+<p>{@tutorial tutorial1}

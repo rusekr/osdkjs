@@ -86,6 +86,7 @@ var oSDK = function (config) {
 
   // Merge default config with initialization config
   oSDK.utils.mergeConfig(config);
+  oSDK.utils.trigger('mergedUserConfig');
 
   return oSDK;
 };

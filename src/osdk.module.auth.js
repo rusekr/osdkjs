@@ -335,13 +335,10 @@
 
   // Instant actions
 
-  // Getting token from storage instantly
-  oauth.configure();
-
   // DOMContentLoaded action
-  auth.on("DOMContentLoaded", function () {
+   auth.on("mergedUserConfig", function () {
     auth.tokenCheck(false);
-  });
+   });
 
   // Before browser page closed action
   auth.on('beforeunload', function (event) {

@@ -74,6 +74,7 @@ module.exports = function(grunt) {
           destination: 'build/doc',
           private: false,
           template: 'jsdoc/templates/teligent',
+          tutorials: 'jsdoc/tutorials'
         },
       },
     },

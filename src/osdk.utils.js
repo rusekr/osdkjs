@@ -632,17 +632,21 @@
         var parameter = mainConfig[nameInt];
         var subParameter = arguments[0].split('.');
         var i = 0;
-        for (; i < subParameter.length; i++) {
-          if (!ownProperty(parameter, subParameter[i])) {
-            parameter = undefined;
-            break;
+        if (isObject(parameter)) {
+          for (; i < subParameter.length; i++) {
+            self.log('config searching', parameter, subParameter[i]);
+            if (!ownProperty(parameter, subParameter[i])) {
+              parameter = undefined;
+              break;
+            }
+            parameter = parameter[subParameter[i]];
           }
-          parameter = parameter[subParameter[i]];
         }
         if (parameter === undefined) {
           parameter = mainConfig;
           subParameter = arguments[0].split('.');
           for (i = 0; i < subParameter.length; i++) {
+            self.log('config searching', parameter, subParameter[i]);
             if (!ownProperty(parameter, subParameter[i])) {
               throw new self.Error('Module.config: can\'t find config parameter:' + arguments[0]);
             }
@@ -1191,6 +1195,7 @@
 
   utils.mergeConfig = function (config) {
     mainConfig = extend(true, {}, mainConfig, config);
+    this.log('merged config', config, 'with main config', mainConfig);
   };
 
   utils.Module = Module;
@@ -1220,7 +1225,8 @@
   utils.registerEvents({
     'windowerror': { self: true, other: true },
     'beforeunload': { self: true, other: true },
-    'DOMContentLoaded': { self: true, other: true }
+    'DOMContentLoaded': { self: true, other: true },
+    'mergedUserConfig': { self: true, other: true }
   });
 
 })(oSDK);
