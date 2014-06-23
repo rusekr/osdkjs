@@ -30,7 +30,11 @@
     appID: null,
     popup: false
   };
-    // Oauth handling object
+
+  // For not adding more than one event listener.
+  var DOMReadyEventListenerAdded = false;
+
+  // Oauth handling object
   var oauth = (function () {
 
     var config = {
@@ -68,7 +72,12 @@
         var error = auth.utils.getUrlParameter('error');
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
-          throw new auth.Error(error + ':' + error_description);
+          // Removing potential connection trigger.
+          if (auth.utils.storage.getItem('connectAfterRedirect') {
+            auth.utils.storage.getItem('connectAfterRedirect')
+          }
+          auth.trigger(['connectionFailed'], { 'message': error + ': ' + error_description, 'ecode': 'auth0010' });
+          auth.disconnect();
         }
 
         var token = auth.utils.hash.getItem('access_token');
@@ -175,7 +184,9 @@
   // Connection to openSDP network
   auth.connect = function () {
 
-    if(!auth.utils.DOMContentLoaded) {
+    // Waiting for DOMContentLoaded before anything because ajax can't be sent gracefully before this event fires.
+    if(!DOMReadyEventListenerAdded && !auth.utils.DOMContentLoaded) {
+      DOMReadyEventListenerAdded = true;
       auth.on('DOMContentLoaded', function () {
         auth.connect();
       });
@@ -253,13 +264,13 @@
   };
 
   // Imperative disconnection from openSDP network (optionally with clearing token
-  auth.disconnect = function (clearToken) {
+  auth.disconnect = function (keepToken) {
     if(auth.status == 'disconnected' || auth.status == 'disconnecting') {
       return false;
     }
     auth.trigger('disconnecting');
 
-    if(clearToken) {
+    if(keepToken !== true) {
       oauth.clearToken();
     }
 
@@ -377,6 +388,7 @@
      * @memberof ConnectionAPI
      * @method
      * @alias oSDK.disconnect
+     * @param {boolean} [keepToken=false] Keep authorization info while disconnecting. If true, token will be kept upon disconnect and you can reconnect afterwards without redirection to authorization page.
      */
     'disconnect': auth.disconnect,
     /**

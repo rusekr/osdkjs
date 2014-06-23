@@ -14,6 +14,7 @@
   var events = {};
   var dependencies = {};
   var mainConfig = {};
+  var DOMContentLoaded = false;
 
   // Generic functions
 
@@ -497,6 +498,23 @@
      */
     self.constructor.prototype.trigger = function oSDKtrigger () {
 
+      // DOMContentLoaded and mergedUserConfig are two system events that can (and must) go right through. All other need to wait for DOMContentLoaded.
+      if (!DOMContentLoaded && arguments[0] != 'DOMContentLoaded' && arguments[0] != 'mergedUserConfig') {
+        var args = arguments;
+        self.log('delaying event(s)', args[0], ' for DOMContentLoaded with arguments', args[1]);
+        self.on('DOMContentLoaded', function () {
+          self.log('firing delayed while DOMContentLoaded event(s)', args[0], 'with arguments', args[1]);
+          return self.trigger(args[0], Array.prototype.slice.call(args, 1));
+        });
+
+        return;
+      }
+      if (arguments[0] == 'DOMContentLoaded') {
+        // Flag for checking this event after it fired.
+        self.log('firing DOMContentLoaded');
+        DOMContentLoaded = true;
+      }
+
       var configObject = {
         type: [], // Event type(s) to trigger
         data: {}, // Parameter(s) to pass with event(s)
@@ -844,6 +862,7 @@
 
   utils.isValidAccount = function(account) {
     if (account && utils.isString(account)) {
+      // TODO: there are many international TLDs , need to check just @ in account name
       if (account.match(/^[-a-z0-9_]+@[a-z0-9_]+\.[a-z]{2,3}$/i)) return true;
     }
     return false;
@@ -875,10 +894,10 @@
     var hashData = {};
 
     var dec = function (str) {
-      return decodeURIComponent(str); // str.replace('&#61;', '=').replace('&#38;', '&');
+      return decodeURIComponent(str);
     };
     var enc = function (str) {
-      return encodeURIComponent(str); // str.replace('=', '&#61;').replace('&', '&#38;');
+      return encodeURIComponent(str);
     };
 
     var parseHash = function () {
@@ -973,6 +992,13 @@
 
   // Returns registered namespaces
   Object.defineProperties(utils, {
+    // DOMContentLoaded flag
+    DOMContentLoaded: {
+      enumerable: true,
+      get: function () {
+        return DOMContentLoaded;
+      }
+    },
     // Returns registered modules
     modules: {
       enumerable: true,
@@ -1211,14 +1237,9 @@
     utils.trigger('windowerror', { arguments: arguments });
   }, false);
 
-  // Flag for checking of same-named event.
-  utils.DOMContentLoaded = false;
-
   // Dedicated for osdk DOMContentLoaded event
   document.addEventListener("DOMContentLoaded", function () {
     utils.trigger('DOMContentLoaded', { arguments: arguments });
-    // Flag for checking this event after it fired.
-    utils.DOMContentLoaded = true;
   }, false);
 
   // For creation of module objects
