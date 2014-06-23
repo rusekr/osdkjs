@@ -73,8 +73,8 @@
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
           // Removing potential connection trigger.
-          if (auth.utils.storage.getItem('connectAfterRedirect') {
-            auth.utils.storage.getItem('connectAfterRedirect')
+          if (auth.utils.storage.getItem('connectAfterRedirect')) {
+            auth.utils.storage.getItem('connectAfterRedirect');
           }
           auth.trigger(['connectionFailed'], { 'message': error + ': ' + error_description, 'ecode': 'auth0010' });
           auth.disconnect();
