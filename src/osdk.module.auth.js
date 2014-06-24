@@ -442,7 +442,16 @@
 
     'gotTempCreds': { other: true },
 
-    'connecting': { other: true },
+    /**
+    * Dispatched when oSDK started connection process.
+    * <p>
+    * This event has no properties for now.
+    *
+    * @memberof ConnectionAPI
+    * @event connecting
+    *
+    */
+    'connecting': { other: true, client: true },
 
     /**
     * Dispatched when all built in oSDK modules successfully connected to openSDP network.
@@ -455,7 +464,16 @@
     */
     'connected': { other: true, client: 'last' },
 
-    'disconnecting': { other: true },
+    /**
+    * Dispatched when oSDK started disconnection process.
+    * <p>
+    * This event has no properties for now.
+    *
+    * @memberof ConnectionAPI
+    * @event disconnecting
+    *
+    */
+    'disconnecting': { other: true, client: true },
 
     /**
     * Dispatched when all built in oSDK modules successfully disconnected from openSDP network.

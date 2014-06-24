@@ -451,6 +451,8 @@
 
         events[eventType].listeners.push(listener);
         ids.push(id);
+
+        self.log(eventType, 'listener added');
       });
       return (ids.length == 1)?ids[0]:ids;
     };
