@@ -717,11 +717,11 @@
       sip.start();
 
     } catch (data) {
-      sip.trigger(['connectionFailed'], {
+      sip.trigger(['connectionFailed'], new sip.Error({
         message: "SIP configuration error.",
         ecode: 'sip0001',
         data: data
-      });
+      }));
     }
 
   });

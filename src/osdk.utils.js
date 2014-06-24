@@ -386,7 +386,6 @@
 
       var r = new XMLHttpRequest();
 
-      var headersNotSet = false;
       var setHeaders = function () {
         // Headers stuff
         if (!config.headers['Content-Type']) {
@@ -406,7 +405,7 @@
 
       // ReadyStateChange handlers
       r.onreadystatechange = function () {
-        if (r.readyState != 4) {
+        if (r.readyState != 4 || r.status === 0) {
           return;
         }
         if (r.status != 200) {
@@ -501,9 +500,9 @@
       // DOMContentLoaded and mergedUserConfig are two system events that can (and must) go right through. All other need to wait for DOMContentLoaded.
       if (!DOMContentLoaded && arguments[0] != 'DOMContentLoaded' && arguments[0] != 'mergedUserConfig') {
         var args = arguments;
-        self.log('delaying event(s)', args[0], ' for DOMContentLoaded with arguments', args[1]);
+        // self.log('delaying event(s)', args[0], ' for DOMContentLoaded with arguments', args[1]);
         self.on('DOMContentLoaded', function () {
-          self.log('firing delayed while DOMContentLoaded event(s)', args[0], 'with arguments', args[1]);
+          // self.log('firing delayed while DOMContentLoaded event(s)', args[0], 'with arguments', args[1]);
           return self.trigger(args[0], Array.prototype.slice.call(args, 1));
         });
 
@@ -511,7 +510,7 @@
       }
       if (arguments[0] == 'DOMContentLoaded') {
         // Flag for checking this event after it fired.
-        self.log('firing DOMContentLoaded');
+        // self.log('firing DOMContentLoaded');
         DOMContentLoaded = true;
       }
 
@@ -613,7 +612,7 @@
             return;
           }
 
-          // Just firing with transparent arguments or with own data object
+          // Just firing with transparent arguments if developer used arguments in trigger config object or with own data object
           var fireArgs = [];
           if(configObject.data.arguments) {
             if (isArray(configObject.data.arguments)) {

@@ -850,7 +850,7 @@
         storage = null;
         connection = null;
         techCapabilities.instantMessaging = false;
-        module.trigger('connectionFailed', [].slice.call(arguments, 0));
+        module.trigger('connectionFailed', new module.Error({ data: arguments }));
         return false;
       },
       fnOnResume: function() {

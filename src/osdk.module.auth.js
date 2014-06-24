@@ -72,12 +72,24 @@
         var error = auth.utils.getUrlParameter('error');
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
-          // Removing potential connection trigger.
-          if (auth.utils.storage.getItem('connectAfterRedirect')) {
-            auth.utils.storage.getItem('connectAfterRedirect');
+
+          // If we are in popup TODO: identify window opener.
+          if(window.opener) {
+            window.opener.oSDK.auth.trigger('gotErrorFromPopup', new auth.Error({
+              message: error,
+              data: {
+                description: error_description
+              }
+            }));
+          } else {
+            // Removing potential connection trigger.
+            if (auth.utils.storage.getItem('connectAfterRedirect')) {
+              auth.utils.storage.getItem('connectAfterRedirect');
+            }
+
+            auth.trigger(['connectionFailed'], new auth.Error({ 'message': error + ': ' + error_description, 'ecode': 'auth0010' }));
+            auth.disconnect();
           }
-          auth.trigger(['connectionFailed'], { 'message': error + ': ' + error_description, 'ecode': 'auth0010' });
-          auth.disconnect();
         }
 
         var token = auth.utils.hash.getItem('access_token');
@@ -128,7 +140,7 @@
             options.url += delim + 'access_token=' + config.access_token;
           }
         } else {
-          throw new auth.Error('Token not found or exosted');
+          throw new auth.Error('Token not found or exhausted.');
         }
         return auth.ajax.call(auth, options);
       },
@@ -220,7 +232,7 @@
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          auth.trigger(['connectionFailed'], { 'message': data.error, 'ecode': 'auth0002' });
+          auth.trigger(['connectionFailed'], new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
           auth.disconnect();
         } else {
 
@@ -248,7 +260,8 @@
           auth.trigger('connected', {});
         }
       },
-      error: function(jqxhr, status, string) {
+      error: function(jqxhr) {
+        auth.log('ajax error args', arguments);
         // Force new token autoobtaining if old token returns 401.
         if (jqxhr.status === 401) {
           auth.tokenCheck(true);
@@ -256,7 +269,7 @@
 
         auth.status = 'disconnected';
         // If all is ok with token - throw connectionFailed event.
-        auth.trigger('connectionFailed', { 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' });
+        auth.trigger('connectionFailed', new auth.Error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
         auth.disconnect();
       }
     });
@@ -342,9 +355,15 @@
   };
 
   auth.on('gotTokenFromPopup', function (data) {
-    oauth.configure(data);
     oauth.popup().close();
+    oauth.configure(data);
     auth.connect();
+  });
+
+  auth.on('gotErrorFromPopup', function (data) {
+    oauth.popup().close();
+    // Proxying ours Error object.
+    auth.trigger('connectionFailed', arguments[0]);
   });
 
   // connectionFailed event by other plugin
@@ -418,6 +437,8 @@
   auth.registerEvents({
 
     'gotTokenFromPopup': { self: true },
+
+    'gotErrorFromPopup': { self: true },
 
     'gotTempCreds': { other: true },
 
