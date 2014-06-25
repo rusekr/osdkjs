@@ -53,23 +53,34 @@
     return true;
   };
 
-  var isBoolean = function(value) {
+  var isBoolean = function (value) {
     return (typeof value == 'boolean');
   };
 
-  var isString = function(value) {
+  var isString = function (value) {
     return (typeof value == 'string');
   };
 
-  var isNull = function(value) {
+  var isNull = function (value) {
     return ((value === undefined) || (value === null));
   };
 
-  var isEmpty = function(value) {
+  var isEmpty = function (value) {
     function fnIsNull(value) {
       return ((value === undefined) || (value === null));
     }
     return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
+  };
+
+  /*
+   * Pad number with leading zeroes
+   */
+  var pad = function (num, size) {
+    var s = num + "";
+    while (s.length < size) {
+      s = "0" + s;
+    }
+    return s;
   };
 
   /*
@@ -239,8 +250,9 @@
         if (!this.debug) {
           return;
         }
+        var d = new Date();
 
-        var arr = ['oSDK:'];
+        var arr = ['oSDK:',d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3)  , ':'];
         if (this.oSDKModule && this.name != 'utils') {
           arr.push(this.name);
         }
@@ -842,6 +854,8 @@
   utils.isNull = isNull;
 
   utils.isEmpty = isEmpty;
+
+  utils.pad = pad;
 
   utils.uuid = uuid;
 
