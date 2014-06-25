@@ -16,8 +16,9 @@
   // Status (disconnected, connecting, connected, disconnecting)
   auth.status = 'disconnected';
 
-  var client = {
+  var user = {
     id: null,
+    login: null,
     domain: null
   };
 
@@ -75,7 +76,7 @@
 
           // If we are in popup TODO: identify window opener.
           if(window.opener) {
-            window.opener.oSDK.auth.trigger('gotErrorFromPopup', new auth.Error({
+            window.opener.oSDK.utils.auth.trigger('gotErrorFromPopup', new auth.Error({
               message: error,
               data: {
                 description: error_description
@@ -102,7 +103,7 @@
           });
 
           if(window.opener && window.opener.oSDK) {
-            window.opener.oSDK.auth.trigger('gotTokenFromPopup', {
+            window.opener.oSDK.utils.auth.trigger('gotTokenFromPopup', {
               access_token: config.access_token,
               expires_in: config.expires_in,
               expires_start: config.expires_start
@@ -236,9 +237,10 @@
           auth.disconnect();
         } else {
 
-          // Filling user client sturcture
-          client.id = data.id = data.username.split(':')[1];
-          client.domain = data.domain = client.id.split('@')[1];
+          // Filling User client sturcture
+          user.id = data.id = data.username.split(':')[1];
+          user.domain = data.domain = user.id.split('@')[1];
+          user.login = data.login = user.id.split('@')[0];
 
           // Array of mixed uris to object of grouped by service
           if(auth.utils.isArray(data.uris)) {
@@ -257,7 +259,9 @@
           auth.trigger(['gotTempCreds'], { 'data': data });
 
           auth.status = 'connected';
-          auth.trigger('connected', {});
+          auth.trigger('connected', {
+            user: user
+          });
         }
       },
       error: function(jqxhr) {
@@ -345,14 +349,27 @@
     return false;
   };
 
-  auth.client = {
-    id: function () {
-      return client.id;
+  auth.user = {};
+  Object.defineProperties(auth.user, {
+    id: {
+      enumerable: true,
+      get: function () {
+        return user.id;
+      }
     },
-    domain: function () {
-      return client.domain;
+    domain: {
+      enumerable: true,
+      get: function () {
+        return user.domain;
+      }
+    },
+    login: {
+      enumerable: true,
+      get: function () {
+        return user.login;
+      }
     }
-  };
+  });
 
   auth.on('gotTokenFromPopup', function (data) {
     oauth.popup().close();
@@ -392,6 +409,9 @@
 
   });
 
+  // Needed for main window->popup message passing
+  auth.utils.auth = auth;
+
   auth.registerMethods({
     /**
      * Initiates oSDK connection to all internal services.
@@ -420,18 +440,12 @@
     'isAuthorized': auth.isAuthorized // TODO: May be use oSDK's status 'Connected' instead.
   });
 
-  auth.registerNamespaces({
-    'auth': auth, // Needed for main window-popup message passing
-
-    'client': auth.client
-  });
-
   auth.registerObjects({
     /**
      * @class oSDK.User
      * @private
      */
-    'User': auth.client
+    'User': auth.user
   });
 
   auth.registerEvents({

@@ -184,7 +184,7 @@
    */
   var Module = function oSDKModule(name) {
     var self = this;
-    var debugInt = true; // Per-module debug
+    var debugInt = true; // Per-module debug.
     var nameInt = name;
 
     var eventSkel = function (initObject) {
@@ -199,7 +199,8 @@
       return extend({
         id: null,
         handler: null,
-        module: null
+        module: null,
+        data: {} // Cumulative data to fire with.
       }, initObject);
     };
 
@@ -610,6 +611,8 @@
           // Fired = true for ours emitter // TODO: if emitters > 1, emitters for client exist, exist other modules emitters which are not fired
           events[eventType].emittersObject[self.name].fired = true;
 
+          extend(listener.data, configObject.data);
+
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
           if(listener.module == 'client' && events[eventType].emittersObject[self.name].client == 'last') {
@@ -622,27 +625,31 @@
           }
 
           if(notFiredModuleExists) {
-            self.log('NOT Firing', eventType, 'with event data', configObject.data, 'for client listener', listener);
+            self.log('NOT Firing', eventType, 'with event data', listener.data, 'for client listener', listener);
             return;
           }
 
           // Just firing with transparent arguments if developer used arguments in trigger config object or with own data object
           var fireArgs = [];
-          if(configObject.data.arguments) {
-            if (isArray(configObject.data.arguments)) {
-              fireArgs = configObject.data.arguments;
-            } else if (isObject(configObject.data.arguments)) {
-              fireArgs = Array.prototype.slice.call(configObject.data.arguments, 0);
+          if(listener.data.arguments) {
+            if (isArray(listener.data.arguments)) {
+              fireArgs = listener.data.arguments;
+            } else if (isObject(listener.data.arguments)) {
+              fireArgs = Array.prototype.slice.call(listener.data.arguments, 0);
             } else {
               throw new self.Error('Unknown type of arguments to pass.');
             }
           } else {
-            fireArgs.push(configObject.data);
+            fireArgs.push(listener.data);
           }
 
-          self.log('Firing', eventType, 'with event data', configObject.data, 'as arguments',fireArgs , 'for listener', listener);
+          self.log('Firing', eventType, 'with event data', listener.data, 'as arguments',fireArgs , 'for listener', listener);
 
           listener.handler.apply(configObject.context, fireArgs);
+
+          if(!notFiredModuleExists) {
+            listener.data = {};
+          }
 
           // Cleaning self emitters
           each(events[eventType].emitters, function (emitter) {
