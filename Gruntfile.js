@@ -56,7 +56,7 @@ module.exports = function(grunt) {
           'src/osdk.module.test.js'
         ],
         dest: 'build/<%= pkg.name %>.js'
-      },
+      }
     },
     uglify: {
       options: {
@@ -65,7 +65,7 @@ module.exports = function(grunt) {
       dist: {
         src: '<%= concat.dist.dest %>',
         dest: 'build/<%= pkg.name %>.min.js'
-      },
+      }
     },
     jsdoc: {
       dist: {
@@ -74,9 +74,9 @@ module.exports = function(grunt) {
           destination: 'build/doc',
           private: false,
           template: 'jsdoc/templates/teligent',
-          tutorials: 'jsdoc/tutorials'
-        },
-      },
+          tutorials: 'jsdoc/tutorials',
+        }
+      }
     },
     copy: {
       main: {
@@ -87,8 +87,8 @@ module.exports = function(grunt) {
             src: ['**'],
             dest: 'build/doc/'
           }
-        ],
-      },
+        ]
+      }
     },
     jshint: {
       all: [
