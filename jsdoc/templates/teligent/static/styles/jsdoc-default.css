@@ -48,7 +48,7 @@ header
 section
 {
 	display: block;
-	
+
 	background-color: #fff;
 	padding: 12px 24px;
     border-bottom: 1px solid #ccc;
@@ -133,7 +133,8 @@ h2
 	font-size: 170%;
 	font-weight: bold;
 	letter-spacing: -0.01em;
-	margin: 6px 0 3px 0;
+	/*margin: 6px 0 3px 0;*/
+  margin: 28px 0 28px 0;
 }
 
 h3
