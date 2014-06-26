@@ -569,6 +569,10 @@
         if(!configObject.data.type) {
           configObject.data.type = eventType;
         }
+        // Subtype for some events
+        if(!configObject.data.subType) {
+          configObject.data.subType = false;
+        }
         if(!configObject.data.module) {
           configObject.data.module = self.name;
         }
@@ -834,8 +838,10 @@
 
   var utils = new Module('utils');
 
+  //Module.prototype.utils = utils;
   Object.defineProperties(Module.prototype, {
     utils: {
+      enumerable: true,
       get: function () {
         return utils;
       }
@@ -1248,7 +1254,7 @@
 
   utils.Module = Module;
 
-  // Dedicated for osdk window.onbeforeunload event handler TODO: to test if it completes for example kill all sip sessions before closing browser
+  // Dedicated for osdk window.onbeforeunload event handler.
   window.addEventListener('beforeunload', function () {
     utils.info('Beforeunload start');
     utils.trigger('beforeunload', { arguments: arguments });
@@ -1259,22 +1265,24 @@
     utils.trigger('windowerror', { arguments: arguments });
   }, false);
 
-  // Dedicated for osdk DOMContentLoaded event
+  // Dedicated for osdk DOMContentLoaded event.
   document.addEventListener("DOMContentLoaded", function () {
     utils.trigger('DOMContentLoaded', { arguments: arguments });
   }, false);
 
-  // For creation of module objects
+  // For creation of module objects.
   utils.registerNamespaces({
     utils: utils
   });
 
-  // Own system listeners wrappers TODO: note this events in module developers guide
+  // Own system listeners wrappers TODO: note this events in module developers guide.
   utils.registerEvents({
     'windowerror': { self: true, other: true },
     'beforeunload': { self: true, other: true },
     'DOMContentLoaded': { self: true, other: true },
-    'mergedUserConfig': { self: true, other: true }
+    'mergedUserConfig': { self: true, other: true },
+    // Transit event for use in cross-oSDK communications like between popup and main window oSDKs. Needs subType in event data for identification of real event.
+    'transitEvent': { other: true }
   });
 
 })(oSDK);

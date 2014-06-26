@@ -76,12 +76,14 @@
 
           // If we are in popup TODO: identify window opener.
           if(window.opener) {
-            window.opener.oSDK.utils.auth.trigger('gotErrorFromPopup', new auth.Error({
+            var popupError = new auth.Error({
               message: error,
               data: {
                 description: error_description
               }
-            }));
+            });
+            popupError.subType = 'gotErrorFromPopup';
+            window.opener.oSDK.utils.trigger('transitEvent', popupError);
           } else {
             // Removing potential connection trigger.
             if (auth.utils.storage.getItem('connectAfterRedirect')) {
@@ -103,10 +105,13 @@
           });
 
           if(window.opener && window.opener.oSDK) {
-            window.opener.oSDK.utils.auth.trigger('gotTokenFromPopup', {
-              access_token: config.access_token,
-              expires_in: config.expires_in,
-              expires_start: config.expires_start
+            window.opener.oSDK.utils.trigger('transitEvent', {
+              subType: 'gotTokenFromPopup',
+              data: {
+                access_token: config.access_token,
+                expires_in: config.expires_in,
+                expires_start: config.expires_start
+              }
             });
           }
 
@@ -371,16 +376,16 @@
     }
   });
 
-  auth.on('gotTokenFromPopup', function (data) {
-    oauth.popup().close();
-    oauth.configure(data);
-    auth.connect();
-  });
-
-  auth.on('gotErrorFromPopup', function (data) {
-    oauth.popup().close();
-    // Proxying ours Error object.
-    auth.trigger('connectionFailed', arguments[0]);
+  auth.on('transitEvent', function (event) {
+    if (event.subType == 'gotTokenFromPopup') {
+      oauth.popup().close();
+      oauth.configure(event.data);
+      auth.connect();
+    } else if (event.subType == 'gotErrorFromPopup') {
+      oauth.popup().close();
+      // Proxying ours Error object.
+      auth.trigger('connectionFailed', event);
+    }
   });
 
   // connectionFailed event by other plugin
@@ -395,22 +400,7 @@
     auth.tokenCheck(false);
    });
 
-  // Before browser page closed action
-  auth.on('beforeunload', function (event) {
-    // TODO: handle gracefully auth redirection page unload.
-
-    // TODO: before closing the popup send event to main window about auth failure.
-    // trying to quit gracefully
-//       if(rtcSession && rtcSession.terminate) {
-//         rtcSession.terminate();
-//       }
-
-//       instance.stop();
-
-  });
-
-  // Needed for main window->popup message passing
-  auth.utils.auth = auth;
+  // Registering methods in oSDK.
 
   auth.registerMethods({
     /**
@@ -450,10 +440,6 @@
 
   auth.registerEvents({
 
-    'gotTokenFromPopup': { self: true },
-
-    'gotErrorFromPopup': { self: true },
-
     'gotTempCreds': { other: true },
 
     /**
@@ -468,12 +454,23 @@
     'connecting': { other: true, client: true },
 
     /**
+    * @memberof ConnectionAPI
+    * @typedef ConnectionAPI~ConnectedEventObject
+    * @type object
+    * @property {object} user Object with logged in user identification parameters.
+    * @property {string} user.id Current user's full ID.
+    * @property {string} user.login Current user's login part of full ID.
+    * @property {string} user.domain Current user's domain part of full ID.
+    */
+
+    /**
     * Dispatched when all built in oSDK modules successfully connected to openSDP network.
     * <p>
-    * This event has no properties for now.
+    *
     *
     * @memberof ConnectionAPI
     * @event connected
+    * @param {ConnectionAPI~ConnectedEventObject} event The event object associated with this event.
     *
     */
     'connected': { other: true, client: 'last' },
