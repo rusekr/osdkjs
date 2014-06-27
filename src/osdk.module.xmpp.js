@@ -117,7 +117,6 @@
             }
           }
           if (account) {
-            if (module.utils.isValidLogin(account) && !module.utils.isValidAccount(account)) account = account + '@' + oSDK.client.domain();
             var index = generateLink(account);
             if (typeof link[index] != 'undefined' && list[link[index]] != 'undefined') {
               return list[link[index]];
