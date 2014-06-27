@@ -5,6 +5,16 @@
 (function (oSDK) {
   "use strict";
 
+  // Implanting oSDK version string
+  Object.defineProperties(oSDK, {
+    version: {
+      enumerable: true,
+      writable: false,
+      configurable: false,
+      value: '<%= pkg.version %>'
+    }
+  });
+
   // Store objects
 
   var modules = {};
