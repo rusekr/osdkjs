@@ -980,12 +980,12 @@
 
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
-    var r  = new RegExp('.*(\\\?|&)' + name + '=(.*?)(&|$).*');
+    var r  = new RegExp('.*(\\\?|&)' + name + '=(.*?)(&|#|$).*');
     if (window.location.href.match(r))
     {
       return decodeURIComponent(window.location.href.replace(r, '$2'));
     }
-    return null;
+    return false;
   };
 
   // Working with localStorage
