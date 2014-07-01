@@ -712,10 +712,11 @@
     };
     self.config = self.constructor.prototype.config.bind(self);
 
-    /**
+    /*
      * Method registerEvents.
-     * @alias <moduleName>.registerEvents.
+     * @alias <moduleName>.registerEvents
      * @param eventsObject Object.
+     *
      * Configurated by eventsObject.
      * Keys: events names.
      * Every event configured by it's own configObject.
@@ -979,9 +980,10 @@
 
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
-    if (window.location.href.match(/(\?|&)error=(.*?)(&|$)/))
+    var r  = new RegExp('.*(\\\?|&)' + name + '=(.*?)(&|$).*');
+    if (window.location.href.match(r))
     {
-      return decodeURIComponent(window.location.href.replace(/.*(\?|&)error=(.*?)(&|$).*/, '$2'));
+      return decodeURIComponent(window.location.href.replace(r, '$2'));
     }
     return null;
   };
