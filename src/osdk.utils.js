@@ -323,7 +323,7 @@
        */
       this.htmlMessage = null;
       /**
-       * Custom error data. May be failed module specific data.
+       * Custom error data. In case of failed module - failure specific data.
        *
        * @alias data
        * @memberof Error
