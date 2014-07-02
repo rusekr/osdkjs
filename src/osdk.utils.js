@@ -279,7 +279,7 @@
     /**
     * oSDK error object prototype
     *
-    * @class Error
+    * @constructor Error
     *
     */
     self.constructor.prototype.Error = function Error (eobj) {
@@ -323,7 +323,7 @@
        */
       this.htmlMessage = null;
       /**
-       * Custom error data.
+       * Custom error data. May be failed module specific data.
        *
        * @alias data
        * @memberof Error

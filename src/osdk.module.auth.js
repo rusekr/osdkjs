@@ -498,20 +498,13 @@
     'disconnected': { other: true, client: 'last' },
 
     /**
-     * @memberof ConnectionAPI
-     * @typedef ConnectionAPI~ConnectionFailedEventObject
-     * @type object
-     * @property {object} data Failed module specific data.
-     */
-
-    /**
     * Dispatched when any of built in oSDK modules failed to connect to openSDP network.
     * <p>
     * Modules successed to connect in case of this error start gracefully disconnecting from openSDP network.
     *
     * @memberof ConnectionAPI
     * @event connectionFailed
-    * @param {ConnectionAPI~ConnectionFailedEventObject} event The event object associated with this event.
+    * @param {Error} event The event object associated with this event.
     *
     */
     'connectionFailed': { client: true, other: true, cancels: 'connected' }
