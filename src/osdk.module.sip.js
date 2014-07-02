@@ -967,6 +967,17 @@
     'connectionFailed': { client: true, other: true, cancels: 'connected' }
   });
 
+  // Expand user capabilities (add "instantMessaging")
+
+  if (typeof sip.factory.user != 'undefined') {
+
+    var fUser = new sip.factory.user();
+
+    fUser.expandCapabilities('audioCall', false, false, 'sip');
+    fUser.expandCapabilities('videoCall', false, false, 'sip');
+
+  }
+
   sip.registerConfig(defaultConfig);
 
 

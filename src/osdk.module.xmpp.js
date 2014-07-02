@@ -19,11 +19,18 @@
    * @namespace MessagingAPI
    */
 
-  // Exemplar of oSDK XMPP module
+  /*
+   * Exemplar of oSDK XMPP module
+   * xmpp - inner
+   * module - outer
+   */
 
   var xmpp, module;
 
-  // Exemplar of text message
+  /*
+   * Report about text message
+   * TODO
+   */
 
   function SDKTextMessage(params) {
 
@@ -71,7 +78,15 @@
 
   }
 
-  // Some list, maybe: xmpp roster, list of contacts, incoming requests, outgoing requests, accepted requests, rejected requests
+  /*
+   * Some list, maybe:
+   * xmpp roster
+   * list of contacts
+   * incoming requests
+   * outgoing requests
+   * accepted requests
+   * rejected requests
+   */
 
   function SDKList() {
 
@@ -206,7 +221,7 @@
 
     // Logged user
 
-    this.client = oSDK.user.create(params.login + '@' + params.domain, {
+    this.client = oSDK.user(params.login + '@' + params.domain, {
       history: false
     });
 
@@ -351,6 +366,14 @@
       } };
     };
 
+    // Expand user capabilities (add "instantMessaging")
+
+    if (typeof module.factory.user != 'undefined') {
+
+      (new module.factory.user()).expandCapabilities('instantMessaging', false, false, 'xmpp');
+
+    }
+
     // Register config
 
     module.registerConfig(this.config());
@@ -477,17 +500,6 @@
 
     this.registerMethods = module.registerMethods;
 
-    // Extend {Object} User
-
-    oSDK.user.extend({
-      // Properties
-      group: 'General',
-      status: this.OSDK_PRESENCE_TYPE_UNAVAILABLE,
-      subscription: this.OSDK_SUBSCRIPTION_NONE,
-      ask: false,
-      picture: false
-    });
-
     // Inner commands
 
     this.commands = {
@@ -546,7 +558,7 @@
       },
       fnIncomingMessage: function(packet) {
         module.info('XMPP HANDLER(incoming message)');
-        var user = oSDK.user.create(packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain());
+        var user = oSDK.user(packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain());
         var message = new SDKTextMessage({
           from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
           to: packet.getToJID().getNode() + '@' + packet.getToJID().getDomain(),
@@ -557,7 +569,7 @@
       },
       fnOutgoingMessage: function(packet) {
         module.info('XMPP HANDLER(outgoing message)');
-        var user = oSDK.user.create(storage.message.to);
+        var user = oSDK.user(storage.message.to);
         var message = new SDKTextMessage({
           from: storage.message.from,
           to: storage.message.to,
@@ -627,7 +639,7 @@
                   break;
                 // SUBSCRIBE
                 case self.OSDK_PRESENCE_TYPE_SUBSCRIBE :
-                  user = oSDK.user.create(data.from); user.ask = self.OSDK_PRESENCE_TYPE_SUBSCRIBE;
+                  user = oSDK.user(data.from); user.ask = self.OSDK_PRESENCE_TYPE_SUBSCRIBE;
                   request = storage.requests.wasAccepted.get(data.from);
                   if (request) {
                     switch(request.ask) {
@@ -1136,7 +1148,7 @@
 
               if (jid != storage.client.account) {
 
-                var user = oSDK.user.create(jid);
+                var user = oSDK.user(jid);
 
                 var ask = nodes.childNodes[i].getAttribute('ask');
                 var subscription = nodes.childNodes[i].getAttribute('subscription');
@@ -1267,7 +1279,7 @@
       if (module.utils.isEmpty(jid)) error = '02';
       if (!module.utils.isString(jid)) error = '03';
       if (!module.utils.isValidLogin(jid) && !module.utils.isValidAccount(jid)) error = '04';
-      if (!module.utils.isValidAccount(jid)) jid = jid + '@' + oSDK.client.domain();
+      // if (!module.utils.isValidAccount(jid)) jid = jid + '@' + oSDK.client.domain();
       if (jid == storage.client.account) error = '05';
       request = storage.requests.incoming.get(jid);
       if (request) {
@@ -1321,7 +1333,7 @@
           to: jid,
           type: xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE
         });
-        var usr = oSDK.user.create(jid);
+        var usr = oSDK.user(jid);
         usr.ask = xmpp.OSDK_PRESENCE_TYPE_SUBSCRIBE;
         usr.subscription = xmpp.OSDK_SUBSCRIPTION_NONE;
         module.trigger('outgoingRequest', {contact: usr});
