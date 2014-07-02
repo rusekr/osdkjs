@@ -2,4 +2,5 @@ code {
   border: 1px solid grey;
   border-radius: 5px;
   background: #F0F0F0;
+  overflow-x: auto;
 }
