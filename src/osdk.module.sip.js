@@ -202,7 +202,8 @@
   }
 
   /**
-   * Media session object
+   * Media session object. With this object you can control associated audio or video call. Each call is represented with separate <code>MediaSession</code> object.
+   *
    * @constructor MediaSession
    */
   function MediaSession (JsSIPrtcSessionEvent) {
@@ -384,7 +385,7 @@
     */
 
     /**
-    * Dispatched when current SIP session in progress TODO: get from JsSIP doc.
+    * Dispatched when current SIP session receiving or generating a 1XX SIP class response (>100) to the INVITE request.
     *
     * @memberof MediaSession
     * @event MediaSession#progress
@@ -767,14 +768,13 @@
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
-  //
+  // TODO
   sip.audioCall = function (userID) {
-
-
 
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
+  // TODO:
   sip.videoCall = function () {
 
   };
@@ -808,8 +808,9 @@
      */
     'call': sip.call,
 
-    /**
+    /** TODO: incomplete for public
      * This method used to start audio call to another user.
+     * @private
      *
      * @memberof MediaAPI
      * @method oSDK.audioCall
@@ -818,8 +819,10 @@
      */
     'audioCall': sip.audioCall,
 
-    /**
+    /** TODO: incomplete for public
      * This method used to start video call to another user.
+     *
+     * @private
      *
      * @memberof MediaAPI
      * @method oSDK.videoCall
@@ -871,7 +874,9 @@
 
     /**
     * Dispatched when oSDK got incoming audio call (both sides have only audio). For use with oSDK.audioCall method.
+    * TODO: incomplete for public
     *
+    * @private
     * @memberof MediaAPI
     * @event gotIncomingAudioCall
     * @param {MediaSession} event The event object associated with this event.
@@ -881,7 +886,9 @@
 
     /**
     * Dispatched when oSDK got incoming video call (both sides have audio and video).  For use with oSDK.videoCall method.
+    * TODO: incomplete for public
     *
+    * @private
     * @memberof MediaAPI
     * @event gotIncomingVideoCall
     * @param {MediaSession} event The event object associated with this event.
@@ -904,7 +911,9 @@
     *
     * @memberof CapabilitiesAPI
     * @event gotMediaCapabilities
-    * @param {oSDK~MediaAPI#MediaCapabilitiesObject} event The event object associated with this event.
+    * @param {object} event The event object associated with this event.
+    * @param {boolean} event.audio User's browser allows capturing audio.
+    * @param {boolean} event.video User's browser allows capturing video.
     *
     */
     'gotMediaCapabilities': { client: true, other: true },

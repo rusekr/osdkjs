@@ -27,8 +27,10 @@
     * Dispatched when some oSDK module throws unhandled exception.
     * <p>
     *
-    * @event oSDK~gotError
-    * @param {oSDK~ErrorObject} event The event object associated with this event.
+    * @memberof CoreAPI
+    *
+    * @event gotError
+    * @param {Error} event The event object associated with this event.
     *
     */
     'gotError': { other: true, client: true } // Error event for listen
