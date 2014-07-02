@@ -358,7 +358,7 @@
     });
 
     /**
-    * Dispatched when current SIP session successfully started.
+    * Dispatched when current call answered.
     *
     * @memberof MediaSession
     * @event MediaSession#started
@@ -367,7 +367,7 @@
     */
 
     /**
-    * Dispatched when current SIP session successfully ended (terminated).
+    * Dispatched when established call ended.
     *
     * @memberof MediaSession
     * @event MediaSession#ended
@@ -376,7 +376,7 @@
     */
 
     /**
-    * Dispatched when current SIP session abnormally terminated or aborted.
+    * Dispatched when current call was unable to establish.
     *
     * @memberof MediaSession
     * @event MediaSession#failed
@@ -385,7 +385,7 @@
     */
 
     /**
-    * Dispatched when current SIP session receiving or generating a 1XX SIP class response (>100) to the INVITE request.
+    * Dispatched when current media session receiving or generating a 1XX SIP class response (>100) to the INVITE request.
     *
     * @memberof MediaSession
     * @event MediaSession#progress
@@ -394,7 +394,7 @@
     */
 
     /**
-    * Dispatched when current SIP session got DTMF signal.
+    * Dispatched when current media session got DTMF signal.
     *
     * @memberof MediaSession
     * @event MediaSession#newDTMF
