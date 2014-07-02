@@ -980,7 +980,9 @@
 
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
-    var r  = new RegExp('.*(?|&)' + name + '=(.*?)(&|#|$).*');
+    // Jshint tries to check even regexps and here goes my anger!
+    var r  = new RegExp(".*(\\\?|&)" + name + "=(.*?)(&|#|$).*"); // jshint ignore: line
+
     if (window.location.href.match(r))
     {
       return decodeURIComponent(window.location.href.replace(r, '$2'));
