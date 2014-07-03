@@ -1592,25 +1592,12 @@
     this.setStatusXAvailable = function(params) {
       userCapabilities = {
         instantMessaging: false,
-        audioCall: true,
-        videoCall: true,
-        fileTransfer: false
-      };
-      storage.client.capabilities.setUserParams(userCapabilities);
-      lastClientParams.status = 'x-available';
-      storage.client.status = lastClientParams.status;
-      self.thatICanToAll(params || {});
-    };
-
-    this.setStatusInvisible = function(params) {
-      userCapabilities = {
-        instantMessaging: false,
         audioCall: false,
         videoCall: false,
         fileTransfer: false
       };
       storage.client.capabilities.setUserParams(userCapabilities);
-      lastClientParams.status = 'invisible';
+      lastClientParams.status = 'x-available';
       storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
@@ -1994,22 +1981,6 @@
        * @returns {bool} True or False
        */
       "setStatusXAvailable": xmpp.setStatusXAvailable,
-
-      /**
-       * Set not specified status 'invisible' to current auth client and set:<br />
-       * Client.capability.instantMessaging to false<br />
-       * Client.capability.audioCall to false<br />
-       * Client.capability.videoCall to false<br />
-       * Client.capability.fileTransfer to false
-       *
-       * @memberof PresenceAPI
-       * @method oSDK.setStatusXAvailable
-       * @param {object} Callbacks
-       * @param {function} Callbacks.onError
-       * @param {function} Callbacks.onSuccess
-       * @returns {bool} True or False
-       */
-      "setStatusInvisible": xmpp.setStatusInvisible,
 
       /**
        * Send text message
