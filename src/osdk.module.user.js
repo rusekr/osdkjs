@@ -237,7 +237,7 @@
   }
 
   // Register protected methods
-  
+
   module.registerObjects({
 
     user: {
@@ -250,7 +250,7 @@
 
         if (!varName || utils.isNull(varValue)) return false;
 
-        listOfRegisteredParamsToUser[name].push({
+        listOfRegisteredParamsToUser.push({
           name: varName,
           value: varValue,
           module: ((moduleName) ? moduleName : 'unknown')

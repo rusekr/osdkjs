@@ -221,12 +221,7 @@
 
     // Logged user
 
-    this.client = oSDK.user(params.login + '@' + params.domain, {
-      history: false
-    });
-
-    this.client.type = null;
-    this.client.status = null;
+    this.client = oSDK.user(params.login + '@' + params.domain, { history: false });
 
     this.client.capabilities.setTechParams({
       audioCall: xmpp.techCapabilities().audioCall,
@@ -235,7 +230,7 @@
 
     this.client.capabilities.setUserParams(xmpp.userCapabilities());
 
-    module.log('Create new authorized client', this.client);
+    module.log('Create new authorized client: ', this.client);
 
     // Roster
 
@@ -259,6 +254,7 @@
     // Flags of some statuses
 
     this.logged = false;
+
     this.status = null;
 
     this.confirm = null;
@@ -370,7 +366,12 @@
 
     if (typeof module.factory.user != 'undefined') {
 
-      (new module.factory.user()).expandCapabilities('instantMessaging', false, false, 'xmpp');
+      var oSDKMUser = new module.factory.user();
+
+      oSDKMUser.expandProperties('ask', false, 'xmpp');
+      oSDKMUser.expandProperties('subscription', false, 'xmpp');
+
+      oSDKMUser.expandCapabilities('instantMessaging', false, false, 'xmpp');
 
     }
 
@@ -400,40 +401,13 @@
         'gotNewRoster': {client: true},
 
         /**
-         * Dispatched when element of roster became available
-         *
-         * @memberof PresenceAPI
-         * @event contactIsAvailable
-         * @returns {object} User
-         */
-        'contactIsAvailable': {client: true},
-
-        /**
-         * Dispatched when element of roster became unavailable
-         *
-         * @memberof PresenceAPI
-         * @event contactIsUnavailable
-         * @returns {object} User
-         */
-        'contactIsUnavailable': {client: true},
-
-        /**
-         * Dispatched when contact changed its status
+         * Dispatched when contact changed its status or capabilities
          *
          * @memberof PresenceAPI
          * @event contactStatusChanged
          * @returns {object} User
          */
         'contactStatusChanged': {client: true},
-
-        /**
-         * Dispatched when contact changed its capabilities
-         *
-         * @memberof PresenceAPI
-         * @event contactCapabilitiesChanged
-         * @returns {object} User
-         */
-        'contactCapabilitiesChanged': {client: true},
 
         /**
          * Dispatched when XMPP module accepted new auth request from other user
@@ -508,7 +482,6 @@
         if (p.data.status) {
           if (contact) {
             contact.status = p.data.status;
-            module.trigger('contactStatusChanged', {contact: contact});
           }
         }
         if (p.data.tech || p.data.user) {
@@ -519,9 +492,9 @@
             if (p.data.user) {
               contact.capabilities.setUserParams(p.data.user);
             }
-            module.trigger('contactCapabilitiesChanged', {contact: contact});
           }
         }
+        module.trigger('contactStatusChanged', {contact: contact});
       },
       sendMeWhatYouCan: function(p) {
         self.thatICan(p.info.from);
@@ -531,6 +504,7 @@
     // XMPP handler's
 
     this.handlers = {
+
       fnIQ: function(iq) {
         module.info('XMPP HANDLER(iq)');
         if (connection.connected()) {
@@ -539,6 +513,7 @@
         }
         return false;
       },
+
       fnIQV: function(iq) {
         module.info('XMPP HANDLER(iq version)');
         if (connection.connected()) {
@@ -547,6 +522,7 @@
         }
         return false;
       },
+
       fnIQT: function(iq) {
         module.info('XMPP HANDLER(iq time)');
         if (connection.connected()) {
@@ -556,22 +532,25 @@
         }
         return false;
       },
+
       fnIncomingMessage: function(packet) {
         module.info('XMPP HANDLER(incoming message)');
-        var user = oSDK.user(packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain());
+        var account = packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain();
+        var user = oSDK.user(account);
         var message = new SDKTextMessage({
           from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
-          to: packet.getToJID().getNode() + '@' + packet.getToJID().getDomain(),
+          to: xmpp.getClient().account,
           message: packet.getBody().htmlEnc()
         });
         user.history.push(message);
         module.trigger('incomingMessage', message);
       },
+
       fnOutgoingMessage: function(packet) {
         module.info('XMPP HANDLER(outgoing message)');
         var user = oSDK.user(storage.message.to);
         var message = new SDKTextMessage({
-          from: storage.message.from,
+          from: xmpp.getClient().account,
           to: storage.message.to,
           message: packet.getBody().htmlEnc()
         });
@@ -590,9 +569,10 @@
         };
         module.trigger('outgoingMessage', message);
       },
+
       fnIncomingPresence: function(packet) {
-        var data = self.getPresenceData(packet), user, contact, request;
         module.info('XMPP HANDLER(incoming presence)');
+        var data = self.getPresenceData(packet), user, contact, request;
         if (!data) {
           /* TODO */
         } else {
@@ -605,41 +585,37 @@
               switch(data.type) {
                 // AVAILABLE
                 case xmpp.OSDK_PRESENCE_TYPE_AVAILABLE :
-                  module.log(storage.contacts.get(data.from).account + '# type changed to online');
-                  storage.contacts.get(data.from).type = 'online';
-                  storage.contacts.get(data.from).status = 'available';
-                  module.trigger('contactIsAvailable', {contact: storage.contacts.get(data.from)});
-                  // module.trigger('contactStatusChanged', {contact: storage.contacts.get(data.from)});
+                  contact = storage.contacts.get(data.from);
+                  contact.status = 'online';
+                  module.trigger('contactStatusChanged', {contact: contact});
                   if (!data.show && !data.status && !data.priority) {
-                    self.thatICan(data.from);
+                    self.thatICan(contact.account);
                   }
                   break;
                 // UNAVAILABLE
                 case xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE :
-                  module.log(storage.contacts.get(data.from).account + '# type changed to offline');
                   contact = storage.contacts.get(data.from);
                   if (contact) {
-                    storage.contacts.get(data.from).type = 'offline';
-                    storage.contacts.get(data.from).status = 'unavailable';
-                    storage.contacts.get(data.from).capabilities.setTechParams({
+                    contact.status = 'offline';
+                    contact.capabilities.setTechParams({
                       instantMessaging: false,
                       audioCall: false,
                       videoCall: false,
                       fileTransfer: false
                     });
-                    storage.contacts.get(data.from).capabilities.setUserParams({
+                    contact.capabilities.setUserParams({
                       instantMessaging: false,
                       audioCall: false,
                       videoCall: false,
                       fileTransfer: false
                     });
-                    module.trigger('contactIsUnavailable', {contact: storage.contacts.get(data.from)});
+                    module.trigger('contactStatusChanged', {contact: contact});
                   }
-                  // module.trigger('contactStatusChanged', {contact: storage.contacts.get(data.from)});
                   break;
                 // SUBSCRIBE
                 case self.OSDK_PRESENCE_TYPE_SUBSCRIBE :
-                  user = oSDK.user(data.from); user.ask = self.OSDK_PRESENCE_TYPE_SUBSCRIBE;
+                  user = oSDK.user(data.from);
+                  user.ask = self.OSDK_PRESENCE_TYPE_SUBSCRIBE;
                   request = storage.requests.wasAccepted.get(data.from);
                   if (request) {
                     switch(request.ask) {
@@ -653,7 +629,6 @@
                             self.thatICan(data.from);
                           }
                         });
-
                         return true;
                     }
                   }
@@ -688,7 +663,7 @@
                           self.getRoster({
                             "onSuccess": function(params) {
                               if (storage.confirm != user.account) {
-                                module.trigger('requestWasAccepted', {contact: user});
+                                module.trigger('requestWasAccepted', {contact: storage.contacts.get(user.account)});
                               } else {
                                 storage.confirm = null;
                               }
@@ -734,10 +709,7 @@
                           });
                           break;
                         case self.OSDK_PRESENCE_TYPE_UNSUBSCRIBE :
-                          /*
-                          this.deleteContact(data.from);
-                          this.getRoster();
-                          */
+                          /* TODO */
                           break;
                       }
                     } else {
@@ -751,9 +723,14 @@
               if (data.status && utils.isObject(data.status) && data.status.command && data.status.command == 'thatICan') {
                 /* TODO */
               } else {
-                var show = self.decodeStatus(data.show).real;
-                storage.contacts.get(data.from).status = show;
-                module.trigger('contactStatusChanged', {contact: storage.contacts.get(data.from)});
+                var show = self.decodeStatus(data.show);
+                contact = storage.contacts.get(data.from);
+                if (show.unreal) {
+                  contact.status = show.unreal;
+                } else {
+                  contact.status = show.real;
+                }
+                module.trigger('contactStatusChanged', {contact: contact});
               }
             }
             if (data.status && utils.isObject(data.status) && data.status.command) {
@@ -788,22 +765,20 @@
         }
       },
       fnIncomingPacket: function(packet) {
-        module.info('XMPP HANDLER(incoming packet)');
+        /* module.info('XMPP HANDLER(incoming packet)'); */
       },
       fnOutgoingPacket: function(packet) {
-        module.info('XMPP HANDLER(outgoing packet)');
+        /* module.info('XMPP HANDLER(outgoing packet)'); */
       },
       fnOnConnect: function() {
         module.info('XMPP HANDLER(connect)');
         var clientParams = xmpp.lastClientParams();
-        if (!clientParams.type) clientParams.type = 'online';
-        if (!clientParams.status) clientParams.status = 'available';
-        storage.client.type = clientParams.type;
+        if (!clientParams.status) clientParams.status = 'online';
         storage.client.status = clientParams.status;
         techCapabilities.instantMessaging = true;
         storage.client.capabilities.setTechParams({instantMessaging: techCapabilities.instantMessaging});
         switch(clientParams.status) {
-          case 'available' :
+          case 'online' :
             userCapabilities.instantMessaging = true;
             userCapabilities.audioCall = true;
             userCapabilities.videoCall = true;
@@ -908,7 +883,6 @@
       var handlers = ((utils.isObject(params)) ? params : {});
       handlers.onError = ((typeof params.onError == 'function') ? params.onError : empty);
       handlers.onSuccess = ((typeof params.onSuccess == 'function') ? params.onSuccess : empty);
-      handlers.onComplete = ((typeof params.onComplete == 'function') ? params.onComplete : empty);
       return handlers;
     };
 
@@ -960,8 +934,6 @@
 
           handlers.onSuccess();
 
-          handlers.onComplete();
-
           return true;
 
         } catch(eSendPresence) {
@@ -1005,8 +977,6 @@
 
         handlers.onSuccess();
 
-        handlers.onComplete();
-
         return true;
 
       } else {
@@ -1046,7 +1016,6 @@
           onError: handlers.onError
         });
         handlers.onSuccess();
-        handlers.onComplete();
       } else {
         handlers.onError();
         return false;
@@ -1078,19 +1047,26 @@
         thatICan.user = storage.client.capabilities.getUserParams();
         thatICan.status = storage.client.status;
 
-        this.sendPresence({
+        var status = self.encodeStatus(storage.client.status);
+
+        var data = {
           to: to,
-          show: self.encodeStatus(storage.client.status).real,
           data: {
             command: 'thatICan',
             thatICan: thatICan
           },
           onError: handlers.onError
-        });
+        };
+
+        if (status.real) {
+          data.show = status.real;
+        } else {
+          data.show = 'chat';
+        }
+
+        this.sendPresence(data);
 
         handlers.onSuccess();
-
-        handlers.onComplete();
 
       } else {
 
@@ -1191,8 +1167,7 @@
                   user.subscription = false;
                 }
 
-                user.type = 'offline';
-                user.status = 'unavailable';
+                user.status = 'offline';
 
                 storage.roster.put(user);
 
@@ -1228,9 +1203,6 @@
 
               }
 
-              module.log('Contacts: ', storage.contacts.get());
-              module.log('Outgoing requests: ', storage.requests.outgoing.get());
-
             }
 
             var data = {
@@ -1254,8 +1226,6 @@
           }
 
         });
-
-        handlers.onComplete();
 
         return true;
 
@@ -1370,7 +1340,6 @@
           });
           self.deleteContact(contact.account, {
             "onError": handlers.onError,
-            "onComplete": handlers.onComplete,
             "onSuccess": function(params) {
               self.getRoster(handlers);
             }
@@ -1402,7 +1371,6 @@
           error_handler: handlers.onError,
           result_handler: handlers.onSuccess
         });
-        handlers.onComplete();
       }
       return true;
     };
@@ -1430,7 +1398,6 @@
         });
         self.getRoster({
           "onError": handlers.onError,
-          "onComplete": handlers.onComplete,
           "onSuccess": function(params) {
             self.thatICan(request.account);
             handlers.onSuccess(params);
@@ -1468,26 +1435,14 @@
       };
       if (utils.isString(status)) {
         switch(status) {
-          case 'chat' :
-            result.real = 'chat';
-            break;
-          case 'available' :
+          case 'online' :
             result.real = 'chat';
             break;
           case 'away' :
             result.real = 'away';
             break;
-          case 'absence' :
-            result.real = 'away';
-            break;
-          case 'dnd' :
-            result.real = 'dnd';
-            break;
           case 'do not disturb' :
             result.real = 'dnd';
-            break;
-          case 'xa' :
-            result.real = 'xa';
             break;
           case 'x-available' :
             result.real = 'xa';
@@ -1507,28 +1462,20 @@
       };
       if (utils.isString(status)) {
         switch(status) {
-          case 'available' :
-            result.real = 'available';
-            break;
           case 'chat' :
-            result.real = 'available';
+            result.real = 'online';
             break;
           case 'away' :
             result.real = 'away';
             break;
-          case 'do not disturb' :
-            result.real = 'do not disturb';
-            break;
           case 'dnd' :
             result.real = 'do not disturb';
-            break;
-          case 'x-available' :
-            result.real = 'x-available';
             break;
           case 'xa' :
             result.real = 'x-available';
             break;
           default :
+            result.real = 'online';
             result.unreal = status;
             break;
         }
@@ -1548,10 +1495,10 @@
         case 1 :
           argument = arguments[0];
           if (utils.isString(argument)) {
-            params.status = xmpp.encodeStatus(argument);
+            params.status = argument;
           } else {
             if (utils.isObject(argument)) {
-              if (typeof argument.status != 'undefined' && utils.isString(argument.status)) params.status = xmpp.encodeStatus(argument.status);
+              if (typeof argument.status != 'undefined' && utils.isString(argument.status)) params.status = argument.status;
               if (typeof argument.instantMessaging != 'undefined' && utils.isBoolean(argument.instantMessaging)) params.instantMessaging = argument.instantMessaging;
               if (typeof argument.audioCall != 'undefined' && utils.isBoolean(argument.audioCall)) params.audioCall = argument.audioCall;
               if (typeof argument.videoCall != 'undefined' && utils.isBoolean(argument.videoCall)) params.videoCall = argument.videoCall;
@@ -1567,7 +1514,7 @@
           break;
         case 2 :
           if (utils.isString(arguments[0])) {
-            params.status = xmpp.encodeStatus(arguments[0]);
+            params.status = arguments[0];
           }
           if (utils.isObject(arguments[1])) {
             argument = arguments[1];
@@ -1590,12 +1537,7 @@
       } else {
         var presence = {data: {}}, data = false;
         if (typeof params.status != 'undefined') {
-          if (params.status.real) {
-            storage.client.status = params.status.real;
-          }
-          if (params.status.unreal) {
-            storage.client.status = params.status.unreal;
-          }
+          storage.client.status = params.status;
         }
         lastClientParams.status = storage.client.status;
         userCapabilities.instantMessaging = params.instantMessaging;
@@ -1608,7 +1550,7 @@
       return true;
     };
 
-    this.setStatusAvailable = function(params) {
+    this.setStatusOnline = function(params) {
       userCapabilities = {
         instantMessaging: true,
         audioCall: true,
@@ -1616,7 +1558,7 @@
         fileTransfer: false
       };
       storage.client.capabilities.setUserParams(userCapabilities);
-      lastClientParams.status = 'available';
+      lastClientParams.status = 'online';
       storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
@@ -1650,12 +1592,25 @@
     this.setStatusXAvailable = function(params) {
       userCapabilities = {
         instantMessaging: false,
+        audioCall: true,
+        videoCall: true,
+        fileTransfer: false
+      };
+      storage.client.capabilities.setUserParams(userCapabilities);
+      lastClientParams.status = 'x-available';
+      storage.client.status = lastClientParams.status;
+      self.thatICanToAll(params || {});
+    };
+
+    this.setStatusInvisible = function(params) {
+      userCapabilities = {
+        instantMessaging: false,
         audioCall: false,
         videoCall: false,
         fileTransfer: false
       };
       storage.client.capabilities.setUserParams(userCapabilities);
-      lastClientParams.status = 'x-available';
+      lastClientParams.status = 'invisible';
       storage.client.status = lastClientParams.status;
       self.thatICanToAll(params || {});
     };
@@ -1990,7 +1945,7 @@
        * @param {function} Callbacks.onSuccess
        * @returns {bool} True or False
        */
-      "setStatusAvailable": xmpp.setStatusAvailable,
+      "setStatusOnline": xmpp.setStatusOnline,
 
       /**
        * Set status 'away' (XMPP.away) to current auth client and set:<br />
@@ -2027,6 +1982,22 @@
       /**
        * Set status 'x-available' (XMPP.xa) to current auth client and set:<br />
        * Client.capability.instantMessaging to false<br />
+       * Client.capability.audioCall to true<br />
+       * Client.capability.videoCall to true<br />
+       * Client.capability.fileTransfer to false
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.setStatusXAvailable
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @returns {bool} True or False
+       */
+      "setStatusXAvailable": xmpp.setStatusXAvailable,
+
+      /**
+       * Set not specified status 'invisible' to current auth client and set:<br />
+       * Client.capability.instantMessaging to false<br />
        * Client.capability.audioCall to false<br />
        * Client.capability.videoCall to false<br />
        * Client.capability.fileTransfer to false
@@ -2038,7 +2009,7 @@
        * @param {function} Callbacks.onSuccess
        * @returns {bool} True or False
        */
-      "setStatusXAvailable": xmpp.setStatusXAvailable,
+      "setStatusInvisible": xmpp.setStatusInvisible,
 
       /**
        * Send text message
