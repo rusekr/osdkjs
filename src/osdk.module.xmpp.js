@@ -596,16 +596,18 @@
                 // AVAILABLE
                 case xmpp.OSDK_PRESENCE_TYPE_AVAILABLE :
                   contact = storage.contacts.get(data.from);
-                  contact.status = 'online';
-                  module.trigger('contactStatusChanged', {contact: contact});
-                  if (!data.show && !data.status && !data.priority) {
-                    self.thatICan(contact.account);
+                  if (contact.status == 'offline') {
+                    contact.status = 'online';
+                    module.trigger('contactStatusChanged', {contact: contact});
+                    if (!data.show && !data.status && !data.priority) {
+                      self.thatICan(contact.account);
+                    }
                   }
                   break;
                 // UNAVAILABLE
                 case xmpp.OSDK_PRESENCE_TYPE_UNAVAILABLE :
                   contact = storage.contacts.get(data.from);
-                  if (contact) {
+                  if (contact && contact.status != 'offline') {
                     contact.status = 'offline';
                     contact.capabilities.setTechParams({
                       instantMessaging: false,
@@ -731,6 +733,7 @@
             }
             if (data.show || data.status) {
               contact = storage.contacts.get(data.from);
+              var oldStatus = contact.status;
               if (data.show) {
                 var show = self.decodeStatus(data.show);
                 if (show.unreal) {
@@ -742,7 +745,9 @@
               if (data.status) {
                 contact.signature = data.status;
               }
-              module.trigger('contactStatusChanged', {contact: contact});
+              if (data.status || oldStatus != contact.status) {
+                module.trigger('contactStatusChanged', {contact: contact});
+              }
             }
             if (data.data) {
               module.trigger('receivedData', {
@@ -1324,8 +1329,7 @@
       if (!connection.connected()) error = '01';
       if (module.utils.isEmpty(jid)) error = '02';
       if (!module.utils.isString(jid)) error = '03';
-      if (!module.utils.isValidLogin(jid) && !module.utils.isValidAccount(jid)) error = '04';
-      // if (!module.utils.isValidAccount(jid)) jid = jid + '@' + oSDK.client.domain();
+      if (!module.utils.isValidAccount(jid)) error = '04';
       if (jid == storage.client.account) error = '05';
       request = storage.requests.incoming.get(jid);
       if (request) {
@@ -1684,7 +1688,7 @@
 
     this.setStatusXAvailable = function(params) {
       userCapabilities = {
-        instantMessaging: false,
+        instantMessaging: true,
         audioCall: false,
         videoCall: false,
         fileTransfer: false
