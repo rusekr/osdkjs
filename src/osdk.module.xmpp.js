@@ -370,6 +370,7 @@
 
       oSDKMUser.expandProperties('ask', false, 'xmpp');
       oSDKMUser.expandProperties('subscription', false, 'xmpp');
+      oSDKMUser.expandProperties('signature', false, 'xmpp');
 
       oSDKMUser.expandCapabilities('instantMessaging', false, false, 'xmpp');
 
@@ -405,7 +406,7 @@
          *
          * @memberof PresenceAPI
          * @event contactStatusChanged
-         * @returns {object} User
+         * @returns {object} SDKUser
          */
         'contactStatusChanged': {client: true},
 
@@ -414,7 +415,7 @@
          *
          * @memberof PresenceAPI
          * @event incomingRequest
-         * @param {object} User
+         * @param {object} SDKUser
          */
         'incomingRequest': {client: true},
 
@@ -423,7 +424,7 @@
          *
          * @memberof PresenceAPI
          * @event outgoingRequest
-         * @param {object} User
+         * @param {object} SDKUser
          */
         'outgoingRequest': {client: true},
 
@@ -432,7 +433,7 @@
          *
          * @memberof MessagingAPI
          * @event incomingMessage
-         * @param {object} Message
+         * @param {object} SDKTextMessage
          */
         'incomingMessage': {client: true},
 
@@ -441,7 +442,7 @@
          *
          * @memberof MessagingAPI
          * @event outgoingMessage
-         * @param {object} Message
+         * @param {object} SDKTextMessage
          */
         'outgoingMessage': {client: true},
 
@@ -450,7 +451,7 @@
          *
          * @memberof PresenceAPI
          * @event requestWasAccepted
-         * @param {object} User
+         * @param {object} SDKUser
          */
         'requestWasAccepted': {client: true},
 
@@ -459,9 +460,18 @@
          *
          * @memberof PresenceAPI
          * @event requestWasRejected
-         * @param {object} User
+         * @param {object} SDKUser
          */
-        'requestWasRejected': {client: true}
+        'requestWasRejected': {client: true},
+
+        /**
+         * Dispatched when received free data from other contact
+         *
+         * @memberof PresenceAPI
+         * @event receivedData
+         * @param {object}
+         */
+        'receivedData': {client: true}
 
       };
     };
@@ -719,32 +729,40 @@
                   break;
               }
             }
-            if (data.show) {
-              if (data.status && utils.isObject(data.status) && data.status.command && data.status.command == 'thatICan') {
-                /* TODO */
-              } else {
+            if (data.show || data.status) {
+              contact = storage.contacts.get(data.from);
+              if (data.show) {
                 var show = self.decodeStatus(data.show);
-                contact = storage.contacts.get(data.from);
                 if (show.unreal) {
                   contact.status = show.unreal;
                 } else {
                   contact.status = show.real;
                 }
-                module.trigger('contactStatusChanged', {contact: contact});
               }
+              if (data.status) {
+                contact.signature = data.status;
+              }
+              module.trigger('contactStatusChanged', {contact: contact});
             }
-            if (data.status && utils.isObject(data.status) && data.status.command) {
-              if (typeof self.commands[data.status.command] == 'function') {
-                var params = {
+            if (data.data) {
+              module.trigger('receivedData', {
+                from: data.from,
+                to: storage.client.account,
+                data: data.data
+              });
+            }
+            if (data.command) {
+              var commandName = data.command.name;
+              var commandData = data.command.data;
+              if (typeof self.commands[commandName] == 'function') {
+                self.commands[commandName]({
                   info: {
-                    command: data.status.command,
+                    command: commandName,
                     from: data.from,
                     to: data.to
                   },
-                  data: data.status[data.status.command]
-                };
-                self.commands[data.status.command](params);
-                return true;
+                  data: commandData
+                });
               }
             }
           }
@@ -889,23 +907,41 @@
     // Get presence data
 
     this.getPresenceData = function(packet) {
-      var status = ((packet.getStatus()) ? packet.getStatus() : false);
-      if (status !== false) {
-        try {
-          // {Object} in status
-          status = module.utils.jsonDecode(status);
-        } catch(eIsNotObject) {
-          // {String} in status
+      var command = false, data = false;
+      try {
+        if (packet.doc.childNodes[0].childNodes.length) {
+          var nodes = packet.doc.childNodes[0].childNodes, len = packet.doc.childNodes[0].childNodes.length, i;
+          for (i = 0; i != len; i ++) {
+            if (nodes[i].nodeName == 'osdk') {
+              var ns = nodes[i].childNodes, l = nodes[i].childNodes.length, t;
+              for (t = 0; t != l; t ++) {
+                var nn = ns[t].nodeName;
+                switch (nn.toLowerCase()) {
+                  case 'command' :
+                    command = {
+                      name: ns[t].getAttribute('name'),
+                      data: utils.jsonDecode(ns[t].innerHTML)
+                    };
+                    break;
+                  case 'json' :
+                    data = utils.jsonDecode(ns[t].innerHTML);
+                    break;
+                }
+              }
+            }
+          }
         }
-      }
+      } catch (eTryToGetPresenceData) { /* --- */ }
       try {
         return {
           from: (packet.getFromJID()._node + '@' + packet.getFromJID()._domain).toLowerCase(),
           to: (packet.getToJID()._node + '@' + packet.getToJID()._domain).toLowerCase(),
           type: packet.getType() || 'available',
           show: packet.getShow() || false,
-          status: status,
-          priority: packet.getPriority() || false
+          status: packet.getStatus() || false,
+          priority: packet.getPriority() || false,
+          data: data,
+          command: command
         };
       } catch (eConvertPresenceData) { return false; }
     };
@@ -925,8 +961,46 @@
         if (params.to) presence.setTo(params.to);
         if (params.type) presence.setType(params.type);
         if (params.show) presence.setShow(params.show);
-        if (params.data) presence.setStatus(utils.jsonEncode(params.data));
+        if (params.status) presence.setStatus(params.status);
         if (params.priority) presence.setPriority(params.priority);
+
+        if (params.command || params.data) {
+
+          var oSDKNode = presence.buildNode('osdk');
+
+          if (params.command) {
+
+            if (params.command.name) {
+
+              var command = presence.buildNode('command');
+
+              command.setAttribute('name', params.command.name);
+
+              if (params.command.data) {
+
+                command.innerHTML = utils.jsonEncode(params.command.data);
+
+              }
+
+              oSDKNode.appendChild(command);
+
+            }
+
+          }
+
+          if (params.data) {
+
+            var json = presence.buildNode('json');
+
+            json.innerHTML = utils.jsonEncode(params.data);
+
+            oSDKNode.appendChild(json);
+
+          }
+
+          presence.appendNode(oSDKNode);
+
+        }
 
         try {
 
@@ -958,8 +1032,10 @@
       var data = params || {};
       for (i = 0; i != contacts.length; i ++) {
         data.to = contacts[i].account;
-        if (!this.sendPresence(data)) {
-          return false;
+        if (contacts[i].status != 'offline') {
+          if (!this.sendPresence(data)) {
+            return false;
+          }
         }
       }
       return true;
@@ -1010,8 +1086,8 @@
       if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
         this.sendPresence({
           to: to,
-          data: {
-            command: 'sendMeWhatYouCan'
+          command: {
+            name: 'sendMeWhatYouCan'
           },
           onError: handlers.onError
         });
@@ -1040,7 +1116,7 @@
 
       var contact = storage.contacts.get(to);
 
-      if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_FROM || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
+      if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_FROM || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) && contact.status != 'offline') {
 
         var thatICan = {};
         thatICan.tech = storage.client.capabilities.getTechParams();
@@ -1051,9 +1127,9 @@
 
         var data = {
           to: to,
-          data: {
-            command: 'thatICan',
-            thatICan: thatICan
+          command: {
+            name: 'thatICan',
+            data: thatICan
           },
           onError: handlers.onError
         };
@@ -1483,6 +1559,14 @@
       return result;
     };
 
+    // Send free date to other contact
+
+    this.sendData = function(to, data, params) {
+      if (!utils.isObject(data)) data = {data: data};
+      self.sendPresence({to: to, data: data}, params);
+      return true;
+    };
+
     // Set status & capabilities, system or not
 
     this.setStatus = function() {
@@ -1713,8 +1797,8 @@
       connection.registerHandler('message_out', xmpp.handlers.fnOutgoingMessage);
       connection.registerHandler('presence_in', xmpp.handlers.fnIncomingPresence);
       connection.registerHandler('presence_out', xmpp.handlers.fnOutgoingPresence);
-      // connection.registerHandler('packet_in', xmpp.handlers.fnIncomingPacket);
-      // connection.registerHandler('packet_out', xmpp.handlers.fnOutgoingPacket);
+      connection.registerHandler('packet_in', xmpp.handlers.fnIncomingPacket);
+      connection.registerHandler('packet_out', xmpp.handlers.fnOutgoingPacket);
       connection.registerIQGet('query', NS_VERSION, xmpp.handlers.fnIQV);
       connection.registerIQGet('query', NS_TIME, xmpp.handlers.fnIQV);
       // Connect and login
@@ -1771,7 +1855,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.getClient
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getClient": xmpp.getClient,
 
@@ -1793,7 +1877,7 @@
        * @memberof RosterAPI
        * @method oSDK.getContact
        * @param {string} User.account
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getContact": xmpp.getContact,
 
@@ -1812,7 +1896,7 @@
        * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequest
        * @param {string} User.account
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getAcceptedRequest": xmpp.getAcceptedRequest,
 
@@ -1822,7 +1906,7 @@
        * @memberof PresenceAPI
        * @method oSDK.getRejectedRequest
        * @param {string} User.account
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getRejectedRequest": xmpp.getRejectedRequest,
 
@@ -1832,7 +1916,7 @@
        * @memberof PresenceAPI
        * @method oSDK.getIncomingRequest
        * @param {string} User.account
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getIncomingRequest": xmpp.getIncomingRequest,
 
@@ -1842,7 +1926,7 @@
        * @memberof PresenceAPI
        * @method oSDK.getOutgoingRequest
        * @param {string} User.account
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "getOutgoingRequest": xmpp.getOutgoingRequest,
 
@@ -1887,7 +1971,7 @@
        *
        * @memberof PresenceAPI
        * @method oSDK.acceptRequest
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "acceptRequest": xmpp.acceptRequest,
 
@@ -1896,9 +1980,23 @@
        *
        * @memberof PresenceAPI
        * @method oSDK.rejectRequest
-       * @returns {object} User
+       * @returns {object} SDKUser
        */
       "rejectRequest": xmpp.rejectRequest,
+
+      /**
+       * Send your data to other contact
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.sendData
+       * @param {string} to - contact account
+       * @param {object} data - your data
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @returns {boolean} true
+       */
+      "sendData": xmpp.sendData,
 
       /**
        * Set status or/and capabilities to current auth client
