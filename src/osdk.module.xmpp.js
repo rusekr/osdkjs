@@ -1359,7 +1359,6 @@
         switch(request.ask) {
           case self.OSDK_ROSTER_ASK_SUBSCRIBE :
             handlers.onSuccess();
-            handlers.onComplete();
             return true;
           case self.OSDK_ROSTER_ASK_UNSUBSCRIBE :
             /* Auto response from presence controller */
@@ -1566,6 +1565,17 @@
       return true;
     };
 
+    this.sendDataToAll = function(data, params) {
+      if (!utils.isObject(data)) data = {data: data};
+      var contacts = storage.contacts.get(), len = storage.contacts.len(), i;
+      for (i = 0; i != len; i ++) {
+        if ((contacts[i].subscription == self.OSDK_SUBSCRIPTION_FROM || contacts[i].subscription == self.OSDK_SUBSCRIPTION_BOTH) && contacts[i].status != 'offline') {
+          self.sendPresence({to: contacts[i].account, data: data}, params);
+        }
+      }
+      return true;
+    };
+
     // Set status & capabilities, system or not
 
     this.setStatus = function() {
@@ -1728,8 +1738,6 @@
       message.setTo(new JSJaCJID(jid));
       message.setBody(msg);
       connection.send(message);
-
-      handlers.onComplete();
 
     };
 
@@ -1996,6 +2004,19 @@
        * @returns {boolean} true
        */
       "sendData": xmpp.sendData,
+
+      /**
+       * Send your data to all contacts from contacts list
+       *
+       * @memberof PresenceAPI
+       * @method oSDK.sendDataToAll
+       * @param {object} data - your data
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       * @returns {boolean} true
+       */
+      "sendDataToAll": xmpp.sendDataToAll,
 
       /**
        * Set status or/and capabilities to current auth client
