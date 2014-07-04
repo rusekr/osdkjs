@@ -1343,7 +1343,6 @@
             });
             self.getRoster({
               "onError": handlers.onError,
-              "onComplete": handlers.onComplete,
               "onSuccess": function(params) {
                 self.thatICan(jid);
                 handlers.onSuccess(params);
