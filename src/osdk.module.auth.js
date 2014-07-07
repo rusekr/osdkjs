@@ -70,12 +70,20 @@
       },
       // Checks hash for token, returns true if token found, return false otherwise, if error throws it
       checkUrl: function () {
+
+        var isOSDKPopup = window.opener && window.opener.oSDK;
+        // If we are in popup.
+        if(isOSDKPopup) {
+          document.body.innerHTML = '<div style="text-align: center;" >Closing popup.</div>';
+        }
+
+        // If we got error.
         var error = auth.utils.getUrlParameter('error');
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
 
           // If we are in popup TODO: identify window opener.
-          if(window.opener) {
+          if(isOSDKPopup) {
             var popupError = new auth.Error({
               message: error,
               data: {
@@ -84,17 +92,21 @@
             });
             popupError.subType = 'gotErrorFromPopup';
             window.opener.oSDK.utils.trigger('transitEvent', popupError);
+
           } else {
             // Removing potential connection trigger.
             if (auth.utils.storage.getItem('connectAfterRedirect')) {
-              auth.utils.storage.getItem('connectAfterRedirect');
+              auth.utils.storage.removeItem('connectAfterRedirect');
             }
 
             auth.trigger(['connectionFailed'], new auth.Error({ 'message': error + ': ' + error_description, 'ecode': 'auth0010' }));
             auth.disconnect();
           }
+
+          return false;
         }
 
+        // If we got token.
         var token = auth.utils.hash.getItem('access_token');
         if(token) {
           // Configuring us
@@ -104,7 +116,7 @@
               expires_start: new Date().getTime()
           });
 
-          if(window.opener && window.opener.oSDK) {
+          if(isOSDKPopup) {
             window.opener.oSDK.utils.trigger('transitEvent', {
               subType: 'gotTokenFromPopup',
               data: {
@@ -378,13 +390,19 @@
 
   auth.on('transitEvent', function (event) {
     if (event.subType == 'gotTokenFromPopup') {
+      oauth.popup().addEventListener('unload', function () {
+        auth.log('auth popup closed');
+        oauth.configure(event.data);
+        auth.connect();
+      }, false);
       oauth.popup().close();
-      oauth.configure(event.data);
-      auth.connect();
     } else if (event.subType == 'gotErrorFromPopup') {
+      oauth.popup().addEventListener('unload', function () {
+        // Proxying ours Error object.
+        auth.trigger('connectionFailed', event);
+      });
       oauth.popup().close();
-      // Proxying ours Error object.
-      auth.trigger('connectionFailed', event);
+
     }
   });
 

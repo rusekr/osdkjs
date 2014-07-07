@@ -540,21 +540,27 @@
       }
 
       var configObject = {
-        type: [], // Event type(s) to trigger
-        data: {}, // Parameter(s) to pass with event(s)
-        context: self // Context in which trigger event(s)
+        type: [], // Event type(s) to trigger.
+        data: {}, // Parameter(s) to pass with event(s).
+        context: self, // Context in which trigger event(s).
+        arguments: false
       };
 
       if (!isArray(arguments[0]) && !isString(arguments[0]) && !isObject(arguments[0])) {
         // Not enough arguments
         throw new self.Error('Insufficient or wrong arguments to trigger event.');
       } else if (isString(arguments[0]) || isArray(arguments[0])) {
-        // First argument is string or array
+        // If first argument is string or array then.
+        // First argument is event type or array of event types.
         configObject.type = [].concat(arguments[0]);
+        // Second argument is event data.
         configObject.data = isObject(arguments[1])?arguments[1]:{};
-
+        // Third argument is context
+        if (arguments[2]) {
+          configObject.context = arguments[2];
+        }
       } else {
-        // First argument is object
+        // First argument is object then assume that it is configObject compatible.
         extend(configObject, arguments[0]);
       }
       // TODO: group data of bound events
@@ -686,7 +692,7 @@
         var i = 0;
         if (isObject(parameter)) {
           for (; i < subParameter.length; i++) {
-            self.log('config searching', parameter, subParameter[i]);
+            //self.log('config searching', parameter, subParameter[i]);
             if (!ownProperty(parameter, subParameter[i])) {
               parameter = undefined;
               break;
@@ -982,7 +988,7 @@
   // Get url parameter value from query string
   utils.getUrlParameter = function (name) {
     // Jshint tries to check even regexps and here goes my anger!
-    var r  = new RegExp(".*(\\\?|&)" + name + "=(.*?)(&|#|$).*"); // jshint ignore: line
+    var r  = new RegExp(".*(\\?|&)" + name + "=(.*?)(&|#|$).*");
 
     if (window.location.href.match(r))
     {
@@ -1272,7 +1278,7 @@
   // Dedicated for osdk window.onbeforeunload event handler.
   window.addEventListener('beforeunload', function () {
     utils.info('Beforeunload start');
-    utils.trigger('beforeunload', { arguments: arguments });
+    utils.trigger('windowbeforeunload', { arguments: arguments });
     utils.info('Beforeunload end');
   }, false);
 
@@ -1293,7 +1299,7 @@
   // Own system listeners wrappers TODO: note this events in module developers guide.
   utils.registerEvents({
     'windowerror': { self: true, other: true },
-    'beforeunload': { self: true, other: true },
+    'windowbeforeunload': { self: true, other: true },
     'DOMContentLoaded': { self: true, other: true },
     'mergedUserConfig': { self: true, other: true },
     // Transit event for use in cross-oSDK communications like between popup and main window oSDKs. Needs subType in event data for identification of real event.
