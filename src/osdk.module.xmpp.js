@@ -1320,6 +1320,44 @@
 
     };
 
+    // Add to roster contact with subscription "none"
+
+    this.addToRoster = function(jid, params) {
+
+      var handlers = self.getHandlers(params), error = false, contact, request;
+
+      if (!connection.connected()) error = '01';
+      if (module.utils.isEmpty(jid)) error = '02';
+      if (!module.utils.isString(jid)) error = '03';
+      if (!module.utils.isValidAccount(jid)) error = '04';
+      if (jid == storage.client.account) error = '05';
+
+      request = storage.requests.incoming.get(jid);
+      if (request) error = '06';
+
+      request = storage.requests.outgoing.get(jid);
+      if (request) error = '07';
+
+      contact = storage.contacts.get(jid);
+      if (contact) error = '08';
+
+      if (error) {
+        handlers.onError(error);
+        return false;
+      }
+
+      var iq = new JSJaCIQ(); iq.setType('set');
+      var query = iq.setQuery('jabber:iq:roster');
+      var item = query.appendChild(iq.buildNode('item', { 'xmlns': 'jabber:iq:roster', 'jid': jid })); item.setAttribute('subscription', 'none');
+
+      connection.send(iq);
+
+      self.getRoster(handlers);
+
+      return true;
+
+    };
+
     // Add & Remove (|| delete) Contact
 
     this.addContact = function(jid, params) {
@@ -1370,7 +1408,7 @@
         }
       }
       contact = storage.contacts.get(jid);
-      if (contact) {
+      if (contact && (contact.ask || contact.subscription != 'none')) {
         if (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) error = '06';
       }
       if (error) {
@@ -2116,6 +2154,18 @@
        * @param {function} callbacks.onSuccess - Success handler
        */
       "sendMessage": xmpp.sendMessage,
+
+      /**
+       * Add contact to roster without subscription request
+       *
+       * @memberof RosterAPI
+       * @method oSDK.addToRoster
+       * @param {string} User.account
+       * @param {object} Callbacks
+       * @param {function} Callbacks.onError
+       * @param {function} Callbacks.onSuccess
+       */
+      "addToRoster": xmpp.addToRoster,
 
       /**
        * Add contact to roster

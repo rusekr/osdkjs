@@ -286,7 +286,7 @@
   module.registerMethods({
 
     user: function(account, params){
-
+      
       if (account && utils.isString(account) && utils.isValidAccount(account)) {
 
           account = account.toLowerCase();
