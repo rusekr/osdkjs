@@ -1207,8 +1207,12 @@
 
                 var user = oSDK.user(jid);
 
+                user.status = 'offline';
+
                 var ask = nodes.childNodes[i].getAttribute('ask');
                 var subscription = nodes.childNodes[i].getAttribute('subscription');
+
+                user.ask = false;
 
                 if (ask) {
                   switch(ask) {
@@ -1222,9 +1226,9 @@
                       user.ask = false;
                       break;
                   }
-                } else {
-                  user.ask = false;
                 }
+
+                user.subscription = false;
 
                 if (subscription) {
                   switch (subscription) {
@@ -1244,13 +1248,9 @@
                       user.subscription = false;
                       break;
                   }
-                } else {
-                  user.subscription = false;
                 }
 
-                user.status = 'offline';
-
-                storage.roster.put(user);
+                if (user) storage.roster.put(user);
 
               }
 
