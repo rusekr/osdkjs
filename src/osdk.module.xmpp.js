@@ -43,20 +43,20 @@
     this.incoming = false;
     this.outgoing = false;
 
-    if (typeof params.from != 'undefined' && module.utils.isValidAccount(params.from)) this.from = params.from;
-    if (typeof params.to != 'undefined' && module.utils.isValidAccount(params.to)) this.to = params.to;
+    if (typeof params.from != 'undefined' && module.utils.isValidID(params.from)) this.from = params.from;
+    if (typeof params.to != 'undefined' && module.utils.isValidID(params.to)) this.to = params.to;
     if (typeof params.subject != 'undefined' && module.utils.isString(params.subject)) this.subject = params.subject;
     if (typeof params.message != 'undefined' && module.utils.isString(params.message)) this.message = params.message;
 
     if (this.from || this.to) {
       if (this.from) {
-        if (oSDK.getClient().account == this.from) {
+        if (oSDK.getClient().id == this.from) {
           this.incoming = false;
           this.outgoing = true;
         }
       }
       if (this.to) {
-        if (oSDK.getClient().account == this.to) {
+        if (oSDK.getClient().id == this.to) {
           this.incoming = true;
           this.outgoing = false;
         }
@@ -98,8 +98,8 @@
       if (module.utils.isString(data)) {
         return '__' + module.utils.md5(data);
       } else {
-        if (module.utils.isObject(data) && data.account) {
-          return '__' + module.utils.md5(data.account);
+        if (module.utils.isObject(data) && data.id) {
+          return '__' + module.utils.md5(data.id);
         }
       }
       return false;
@@ -111,7 +111,7 @@
 
     this.put = function(elm) {
       list.push(elm); len = list.length;
-      var index = generateLink(elm.account);
+      var index = generateLink(elm.id);
       link[index] = len - 1;
       return self;
     };
@@ -120,19 +120,19 @@
       if (typeof num == 'undefined') {
         return list;
       } else {
-        var account = false;
+        var id = false;
         if (module.utils.isNumber(num) && typeof list[num] != 'undefined') {
           return list[num];
         } else {
           if (module.utils.isString(num)) {
-            account = num;
+            id = num;
           } else {
-            if (module.utils.isObject(num) && num.account) {
-              account = num.account;
+            if (module.utils.isObject(num) && num.id) {
+              id = num.id;
             }
           }
-          if (account) {
-            var index = generateLink(account);
+          if (id) {
+            var index = generateLink(id);
             if (typeof link[index] != 'undefined' && list[link[index]] != 'undefined') {
               return list[link[index]];
             }
@@ -144,8 +144,8 @@
 
     this.rem = function(dat) {
       var jid = false;
-      if (module.utils.isObject(dat) && dat.account) {
-        jid = dat.account;
+      if (module.utils.isObject(dat) && dat.id) {
+        jid = dat.id;
       } else {
         if (module.utils.isString(dat)) {
           jid = dat;
@@ -154,8 +154,8 @@
       if (!jid) return false;
       var i, len = list.length, tempList = [], tempLink = {}, index;
       for (i = 0; i != len; i ++) {
-        if (list[i].account != jid) {
-          index = generateLink(list[i].account);
+        if (list[i].id != jid) {
+          index = generateLink(list[i].id);
           tempList.push(list[i]);
           tempLink[index] = tempList.length - 1;
         }
@@ -199,7 +199,7 @@
       var i,t, il = list.length, tl = data.length;
       for (i = 0; i != il; i ++) {
         for (t = 0; t != tl; t ++) {
-          if (list[i].account == data[t].account) {
+          if (list[i].id == data[t].id) {
             list[i].type = data[t].type;
             list[i].status = data[t].status;
             list[i].capabilities.setTechParams(data[t].capabilities.getTechParams());
@@ -545,11 +545,11 @@
 
       fnIncomingMessage: function(packet) {
         module.info('XMPP HANDLER(incoming message)');
-        var account = packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain();
-        var user = oSDK.user(account);
+        var id = packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain();
+        var user = oSDK.user(id);
         var message = new SDKTextMessage({
           from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
-          to: xmpp.getClient().account,
+          to: xmpp.getClient().id,
           message: packet.getBody().htmlEnc()
         });
         user.history.push(message);
@@ -560,7 +560,7 @@
         module.info('XMPP HANDLER(outgoing message)');
         var user = oSDK.user(storage.message.to);
         var message = new SDKTextMessage({
-          from: xmpp.getClient().account,
+          from: xmpp.getClient().id,
           to: storage.message.to,
           message: packet.getBody().htmlEnc()
         });
@@ -600,7 +600,7 @@
                     contact.status = 'online';
                     module.trigger('contactStatusChanged', {contact: contact});
                     if (!data.show && !data.status && !data.priority) {
-                      self.thatICan(contact.account);
+                      self.thatICan(contact.id);
                     }
                   }
                   break;
@@ -674,8 +674,8 @@
                           storage.requests.outgoing.rem(user);
                           self.getRoster({
                             "onSuccess": function(params) {
-                              if (storage.confirm != user.account) {
-                                module.trigger('requestWasAccepted', {contact: storage.contacts.get(user.account)});
+                              if (storage.confirm != user.id) {
+                                module.trigger('requestWasAccepted', {contact: storage.contacts.get(user.id)});
                               } else {
                                 storage.confirm = null;
                               }
@@ -752,7 +752,7 @@
             if (data.data) {
               module.trigger('receivedData', {
                 from: data.from,
-                to: storage.client.account,
+                to: storage.client.id,
                 data: data.data
               });
             }
@@ -896,7 +896,7 @@
 
     // Generate roster id
 
-    this.generateRosterId = function() {return 'roster_' + utils.md5(storage.client.account);};
+    this.generateRosterId = function() {return 'roster_' + utils.md5(storage.client.id);};
 
     // Get handlers
 
@@ -1036,7 +1036,7 @@
       var contacts = this.getContacts(), i;
       var data = params || {};
       for (i = 0; i != contacts.length; i ++) {
-        data.to = contacts[i].account;
+        data.to = contacts[i].id;
         if (contacts[i].status != 'offline') {
           if (!this.sendPresence(data)) {
             return false;
@@ -1075,7 +1075,7 @@
 
       for (i = 0; i != len; i ++) {
 
-        self.sendMeWhatYouCan(con[i].account, params);
+        self.sendMeWhatYouCan(con[i].id, params);
 
       }
 
@@ -1109,7 +1109,7 @@
 
       for (i = 0; i != len; i ++) {
 
-        self.thatICan(con[i].account, params);
+        self.thatICan(con[i].id, params);
 
       }
 
@@ -1203,7 +1203,7 @@
 
               var jid = nodes.childNodes[i].getAttribute('jid').toLowerCase();
 
-              if (jid != storage.client.account) {
+              if (jid != storage.client.id) {
 
                 var user = oSDK.user(jid);
 
@@ -1329,8 +1329,8 @@
       if (!connection.connected()) error = '01';
       if (module.utils.isEmpty(jid)) error = '02';
       if (!module.utils.isString(jid)) error = '03';
-      if (!module.utils.isValidAccount(jid)) error = '04';
-      if (jid == storage.client.account) error = '05';
+      if (!module.utils.isValidID(jid)) error = '04';
+      if (jid == storage.client.id) error = '05';
 
       request = storage.requests.incoming.get(jid);
       if (request) error = '06';
@@ -1367,8 +1367,8 @@
       if (!connection.connected()) error = '01';
       if (module.utils.isEmpty(jid)) error = '02';
       if (!module.utils.isString(jid)) error = '03';
-      if (!module.utils.isValidAccount(jid)) error = '04';
-      if (jid == storage.client.account) error = '05';
+      if (!module.utils.isValidID(jid)) error = '04';
+      if (jid == storage.client.id) error = '05';
       request = storage.requests.incoming.get(jid);
       if (request) {
         switch(request.ask) {
@@ -1437,8 +1437,8 @@
         return false;
       } else {
         if (module.utils.isObject(jid)) {
-          if (jid.account) {
-            contact = storage.contacts.get(jid.account);
+          if (jid.id) {
+            contact = storage.contacts.get(jid.id);
           } else {
             handlers.onError();
             return false;
@@ -1451,10 +1451,10 @@
           return false;
         } else {
           xmpp.sendPresence({
-            to: contact.account,
+            to: contact.id,
             type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBE
           });
-          self.deleteContact(contact.account, {
+          self.deleteContact(contact.id, {
             "onError": handlers.onError,
             "onSuccess": function(params) {
               self.getRoster(handlers);
@@ -1474,7 +1474,7 @@
         return false;
       } else {
         if (module.utils.isObject(jid)) {
-          jid = jid.account;
+          jid = jid.id;
         }
         var iq = new JSJaCIQ();
         var itemNode = iq.buildNode('item', {
@@ -1502,20 +1502,20 @@
         return false;
       } else {
         self.sendPresence({
-          to: request.account,
+          to: request.id,
           type: self.OSDK_PRESENCE_TYPE_SUBSCRIBED
         });
         storage.requests.accepted.put(request);
         storage.requests.incoming.rem(request);
         storage.confirm = jid;
         self.sendPresence({
-          to: request.account,
+          to: request.id,
           type: self.OSDK_PRESENCE_TYPE_SUBSCRIBE
         });
         self.getRoster({
           "onError": handlers.onError,
           "onSuccess": function(params) {
-            self.thatICan(request.account);
+            self.thatICan(request.id);
             handlers.onSuccess(params);
           }
         });
@@ -1534,12 +1534,12 @@
         return false;
       } else {
         self.sendPresence({
-          to: request.account,
+          to: request.id,
           type: self.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
         });
         storage.requests.rejected.put(request);
         storage.requests.incoming.rem(request);
-        self.deleteContact(request.account, handlers);
+        self.deleteContact(request.id, handlers);
         return true;
       }
     };
@@ -1612,7 +1612,7 @@
       var contacts = storage.contacts.get(), len = storage.contacts.len(), i;
       for (i = 0; i != len; i ++) {
         if ((contacts[i].subscription == self.OSDK_SUBSCRIPTION_FROM || contacts[i].subscription == self.OSDK_SUBSCRIPTION_BOTH) && contacts[i].status != 'offline') {
-          self.sendPresence({to: contacts[i].account, data: data}, params);
+          self.sendPresence({to: contacts[i].id, data: data}, params);
         }
       }
       return true;
@@ -1759,7 +1759,7 @@
       var jid = false;
 
       if (module.utils.isObject(to)) {
-        jid = to.account;
+        jid = to.id;
       } else {
         if (module.utils.isString(to)) {
           jid = to;
@@ -1772,7 +1772,7 @@
 
       storage.message = {
         success: handlers.onSuccess,
-        from: storage.client.account,
+        from: storage.client.id,
         to: jid
       };
 
@@ -1784,12 +1784,12 @@
     };
 
     this.getClient = function() { return storage.client; };
-    this.getContact = function(account) { return storage.contacts.get(account); };
+    this.getContact = function(id) { return storage.contacts.get(id); };
     this.getContacts = function() { return storage.contacts.get(); };
-    this.getAcceptedRequest = function(account) { return storage.requests.accepted.get(account); };
-    this.getRejectedRequest = function(account) { return storage.requests.rejected.get(account); };
-    this.getIncomingRequest = function(account) { return storage.requests.incoming.get(account); };
-    this.getOutgoingRequest = function(account) { return storage.requests.outgoing.get(account); };
+    this.getAcceptedRequest = function(id) { return storage.requests.accepted.get(id); };
+    this.getRejectedRequest = function(id) { return storage.requests.rejected.get(id); };
+    this.getIncomingRequest = function(id) { return storage.requests.incoming.get(id); };
+    this.getOutgoingRequest = function(id) { return storage.requests.outgoing.get(id); };
     this.getAcceptedRequests = function() { return storage.requests.accepted.get(); };
     this.getRejectedRequests = function() { return storage.requests.rejected.get(); };
     this.getIncomingRequests = function() { return storage.requests.incoming.get(); };
@@ -1921,11 +1921,11 @@
       "getRoster": xmpp.getRoster,
 
       /**
-       * Return contact from contacts list by User.login or User.account
+       * Return contact from contacts list by User.login or User.id
        *
        * @memberof RosterAPI
        * @method oSDK.getContact
-       * @param {string} User.account
+       * @param {string} User.id
        * @returns {object} SDKUser
        */
       "getContact": xmpp.getContact,
@@ -1940,41 +1940,41 @@
       "getContacts": xmpp.getContacts,
 
       /**
-       * Returns accepted request by login or account
+       * Returns accepted request by login or id
        *
        * @memberof PresenceAPI
        * @method oSDK.getAcceptedRequest
-       * @param {string} User.account
+       * @param {string} User.id
        * @returns {object} SDKUser
        */
       "getAcceptedRequest": xmpp.getAcceptedRequest,
 
       /**
-       * Returns rejected recuest by login or account
+       * Returns rejected recuest by login or id
        *
        * @memberof PresenceAPI
        * @method oSDK.getRejectedRequest
-       * @param {string} User.account
+       * @param {string} User.id
        * @returns {object} SDKUser
        */
       "getRejectedRequest": xmpp.getRejectedRequest,
 
       /**
-       * Returns incoming request by login or account
+       * Returns incoming request by login or id
        *
        * @memberof PresenceAPI
        * @method oSDK.getIncomingRequest
-       * @param {string} User.account
+       * @param {string} User.id
        * @returns {object} SDKUser
        */
       "getIncomingRequest": xmpp.getIncomingRequest,
 
       /**
-       * Returns outgoing request by login or account
+       * Returns outgoing request by login or id
        *
        * @memberof PresenceAPI
        * @method oSDK.getOutgoingRequest
-       * @param {string} User.account
+       * @param {string} User.id
        * @returns {object} SDKUser
        */
       "getOutgoingRequest": xmpp.getOutgoingRequest,
@@ -2038,7 +2038,7 @@
        *
        * @memberof PresenceAPI
        * @method oSDK.sendData
-       * @param {string} to - contact account
+       * @param {string} to - contact id
        * @param {object} data - your data
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
@@ -2147,7 +2147,7 @@
        *
        * @memberof MessagingAPI
        * @method oSDK.sendMessage
-       * @param {string} to - Account of contact
+       * @param {string} to - ID of contact
        * @param {string} message - Text message
        * @param {object} callbacks
        * @param {function} callbacks.onError - Erorr handler
@@ -2160,7 +2160,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.addToRoster
-       * @param {string} User.account
+       * @param {string} User.id
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
@@ -2172,7 +2172,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.addContact
-       * @param {string} User.account
+       * @param {string} User.id
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
@@ -2184,7 +2184,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.removeContact
-       * @param {string} User.account
+       * @param {string} User.id
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess

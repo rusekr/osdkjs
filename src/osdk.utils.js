@@ -890,7 +890,7 @@
   /**
    * Test to other data
    * @isValidLogin
-   * @isValidAccount
+   * @isValidID
    */
   utils.isValidLogin = function(login) {
     if (login && utils.isString(login)) {
@@ -899,10 +899,11 @@
     return false;
   };
 
-  utils.isValidAccount = function(account) {
-    if (account && utils.isString(account)) {
-      // TODO: there are many international TLDs , need to check just @ in account name
-      if (account.match(/^[-a-z0-9_]+@[a-z0-9_]+\.[a-z]{2,3}$/i)) return true;
+  utils.isValidID = function(id) {
+    if (id && utils.isString(id)) {
+      var re = /^[-\w\d\._]+@[-\w\d\._]+\.\w{2,}$/i;
+      // TODO: there are many international TLDs , need to check just @ in ID name
+      return re.test(id);
     }
     return false;
   };
