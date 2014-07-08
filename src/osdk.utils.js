@@ -463,6 +463,7 @@
 
       each(eventTypes, function (eventType) {
         if (!events[eventType]) {
+          self.log('Creating event skel for', eventType, 'by listener.');
           events[eventType] = eventSkel();
         }
         var id  = uuid();
@@ -621,9 +622,8 @@
           var cancelsEvents = events[eventType].emittersObject[self.name].cancels;
           if(events[eventType].emittersObject[self.name].cancels) {
             cancelsEvents.concat(events[eventType].emittersObject[self.name].cancels);
-
+            self.info(eventType, 'cancelling events', cancelsEvents);
             each(cancelsEvents, function cancelEvent (eventToCancel) {
-              self.info(eventType, 'cancelling events', cancelsEvents);
               eventToCancel.fired = false;
             });
           }
@@ -741,12 +741,12 @@
           throw new self.Error('Register event ' + i + ' failed!');
         }
 
-        self.log('Registering events for module: ' + self.name + '.', i, events[i]);
-
         if (events[i]) {
-          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is already taken by module(s) ' + events[i].toString() + '. Combining.');
+          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is exists. Adding emitter.');
         } else {
+          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is new. Creating by emitter.');
           events[i] = eventSkel();
+
         }
 
         // Addition of module specific emitter
