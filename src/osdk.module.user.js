@@ -10,14 +10,6 @@
    * @namespace UserAPI
    */
 
-  /**
-   * @namespace HistoryAPI
-   */
-
-  /**
-   * @namespace CapabilitiesAPI
-   */
-
   // Exemplar of inner user module
 
   var module = new oSDK.utils.Module('user');
@@ -37,6 +29,12 @@
 
   var listOfRegisteredParamsToUser = [];
 
+  /**
+   * Some user object, maybe exemplar of contact in contacts list (interpretation of XMPP roster) or current authorized client or some other elements
+   *
+   * @constructor SDKUser
+   */
+
   function SDKUser(params) {
 
     var self = this;
@@ -48,23 +46,51 @@
       self[ep.name] = ep.value;
     }
 
-    // Default status of user
+    /**
+     * Status of current exemplar of {SDKUser}
+     *
+     * @alias status
+     * @memberof SDKUser
+     * @instance
+     * @type string
+     */
     this.status = 'offline';
 
-    // History to user
     if (!params || (params && (typeof params.history == 'undefined' || params.history))) {
 
+      /**
+       * Local history to current exemplar of {SDKUser}<br />
+       * Exemplar of class {SDKHistory}
+       *
+       * @alias history
+       * @memberof SDKUser
+       * @instance SDKHistory
+       * @type object
+       */
       this.history = new SDKHistory(self);
 
     }
 
-    // Capabilities to user
-
+    /**
+     * Capabilities to current exemplar of {SDKUser}<br />
+     * Exemplar of class {SDKCapabilities}
+     *
+     * @alias capabilities
+     * @memberof SDKUser
+     * @instance SDKCapabilities
+     * @type object
+     */
     this.capabilities = new SDKCapabilities(self);
 
   }
 
   // Class SDKHistory
+
+  /**
+   * Local history to use in exemplar of SDKUser
+   *
+   * @constructor SDKHistory
+   */
 
   function SDKHistory(param) {
 
@@ -93,7 +119,14 @@
       return value;
     };
 
-    // Clear history to current user
+    /**
+     * Clear a local history for current exemplar of {SDKUser}
+     *
+     * @alias clear
+     * @memberof SDKHistory
+     * @instance
+     * @returns {boolean} true
+     */
     this.clear = function() {
       var oSDKH = getHistoryFromLS(), key = generateHistoryKey();
       oSDKH[key] = [];
@@ -101,7 +134,15 @@
       return true;
     };
 
-    // Get history
+    /**
+     * Return history list to current exemplar of {SDKUser}
+     *
+     * @alias state
+     * @memberof SDKHistory
+     * @instance
+     * @param {number} param - len of history or undefined
+     * @returns {array} list of history
+     */
     this.state = function(param) {
       var oSDKH = getHistoryFromLS(), key = generateHistoryKey();
       if (typeof oSDKH[key] == 'undefined' || !oSDKH[key].length) return [];
@@ -116,7 +157,15 @@
       return oSDKH[key];
     };
 
-      // Push to history
+    /**
+     * Insert to history
+     *
+     * @alias push
+     * @memberof SDKHistory
+     * @instance
+     * @param {object} param - some object to save in history
+     * @returns {object} inserted object
+     */
     this.push = function(params) {
       function prepareHistoryParams(params) {
         var result = params;
@@ -144,6 +193,12 @@
   // Class SDKCapabilities
 
   var listOfRegisteredParamsToCapabilities = [];
+
+  /**
+   * Capabilities to use in exemplar of SDKUser
+   *
+   * @constructor SDKCapabilities
+   */
 
   function SDKCapabilities(param) {
 
@@ -234,6 +289,59 @@
       return result;
     };
 
+    /**
+     * Return capabilities to current exemplar of {SDKUser}
+     *
+     * @alias getParams
+     * @memberof SDKCapabilities
+     * @instance
+     * @param {mixed} param - undefined to get all capabilities, string to gen some named capability, or object to get list of required capabilities
+     * @returns {mixed} boolean or object
+     */
+    this.getParams = function(param) {
+      if (utils.isNull(param)) {
+        return this.params();
+      } else {
+        if (utils.isString(param)) {
+          return this.param(param);
+        }
+        if (utils.isObject(param)) {
+          var i, len = listOfRegisteredParamsToCapabilities.length;
+          for (i = 0; i != len; i ++) {
+            var ep = listOfRegisteredParamsToCapabilities[i];
+            if (!utils.isNull(param[ep.name])) {
+              param[ep.name] = !!(params.tech[ep.name] & params.user[ep.name]);
+            }
+            return param;
+          }
+        }
+      }
+    };
+
+    /**
+     * Set once or more params of capabilities to current exemplar of {SDKUser}
+     *
+     * @alias setParams
+     * @memberof SDKCapabilities
+     * @instance
+     * @param {mixed} param - string to set once capability or object to set some list of capabilities
+     * @param {boolean} value - if param set as string, then capability, which name is {param}, be set in {value}
+     * @returns {boolean} true
+     */
+    this.setParams = function(param, value) {
+      if (utils.isNull(value) && utils.isObject(param)) {
+        var i;
+        for (i in param) {
+          params.user[i] = !!param[i];
+        }
+      } else {
+        if (!utils.isNull(value) && utils.isString(param)) {
+          params.user[param] = !!value;
+        }
+      }
+      return true;
+    };
+
   }
 
   // Register protected methods
@@ -241,8 +349,6 @@
   module.registerObjects({
 
     user: {
-
-
 
       // Uxpand list of properties on SDKUser class
 
@@ -285,8 +391,17 @@
 
   module.registerMethods({
 
+    /**
+     * Create a new exemplar of SDKUser for use in oSDK or clients code
+     *
+     * @memberof UserAPI
+     * @method oSDK.user
+     * @param {string} account - contains account to new user
+     * @param {object} params - settings to create as object or undefined
+     * @returns {object} new exemplar of SDKUser
+     */
     user: function(account, params){
-      
+
       if (account && utils.isString(account) && utils.isValidAccount(account)) {
 
           account = account.toLowerCase();
@@ -294,24 +409,52 @@
           var exemplar = new SDKUser(params);
 
           Object.defineProperties(exemplar, {
+
+            /**
+             * Account to current exemplar of {SDKUser}, contains user login and domain, is not writable, is not enumerable
+             *
+             * @memberof SDKUser
+             * @instance
+             *
+             * @type string
+             */
             "account": {
               value: account,
               writable: false,
               configurable: false,
               enumerable: false
             },
+
+            /**
+             * Login to current exemplar of {SDKUser}, is not writable, is not enumerable
+             *
+             * @memberof SDKUser
+             * @instance
+             *
+             * @type string
+             */
             "login": {
               value: account.split('@')[0],
               writable: false,
               configurable: false,
               enumerable: false
             },
+
+            /**
+             * Domain to current exemplar of {SDKUser}, is not writable, is not enumerable
+             *
+             * @memberof SDKUser
+             * @instance
+             *
+             * @type string
+             */
             "domain": {
               value: account.split('@')[1],
               writable: false,
               configurable: false,
               enumerable: false
             }
+
           });
 
           return exemplar;
