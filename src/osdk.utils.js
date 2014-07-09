@@ -398,7 +398,7 @@
         }
       }
       // For 'get' in url, for other - in body
-      if (config.type.toLowerCase() == 'get') {
+      if (config.type.toLowerCase() == 'get' && config.data && config.data !== null) {
         var delim = '?';
         if (config.url.match(/\?/)) {
           delim = '&';
