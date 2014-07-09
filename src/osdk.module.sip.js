@@ -656,8 +656,17 @@
       });
     }
 
-    // JsSIP initialization
-    sip.JsSIPUA = new JsSIP.UA(config);
+
+    try {
+      // JsSIP initialization
+      sip.JsSIPUA = new JsSIP.UA(config);
+    } catch (data) {
+      sip.trigger(['connectionFailed'], new sip.Error({
+        message: "SIP configuration error.",
+        ecode: 'sip0001',
+        data: data
+      }));
+    }
 
     // TODO: merge with other module stuff
     attachTriggers(attachableEvents, sip.JsSIPUA.on, sip.JsSIPUA);
@@ -700,30 +709,21 @@
       });
     }
 
-    try {
-      sip.initialize({
-        'ws_servers': hosts,
-        'connection_recovery': false,
-        'uri': 'sip:' + event.data.username.split(':')[1],
-        'password': event.data.password,
-        'stun_servers': [],
-        'turn_servers': turnServers,
-        'trace_sip': true,
-        'register': true,
-        'authorization_user': event.data.username.split(':')[1],
-        'use_preloaded_route': false
-        //,hack_via_tcp: true
-      });
+    sip.initialize({
+      'ws_servers': hosts,
+      'connection_recovery': false,
+      'uri': 'sip:' + event.data.username.split(':')[1],
+      'password': event.data.password,
+      'stun_servers': [],
+      'turn_servers': turnServers,
+      'trace_sip': true,
+      'register': true,
+      'authorization_user': event.data.username.split(':')[1],
+      'use_preloaded_route': false
+      //,hack_via_tcp: true
+    });
 
-      sip.start();
-
-    } catch (data) {
-      sip.trigger(['connectionFailed'], new sip.Error({
-        message: "SIP configuration error.",
-        ecode: 'sip0001',
-        data: data
-      }));
-    }
+    sip.start();
 
   });
 
