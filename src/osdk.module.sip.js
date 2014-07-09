@@ -202,7 +202,7 @@
   }
 
   /**
-   * Media session object. With this object you can control associated audio or video call. Each call is represented with separate <code>MediaSession</code> object.
+   * Media session object. Emitted as first parameter of {@link MediaAPI.html#gotMediaSession gotMediaSession} event. With this object you can control associated audio or video call. Each call is represented with separate <code>MediaSession</code> object.
    *
    * @constructor MediaSession
    */
@@ -765,6 +765,8 @@
       arguments[1] = callOptionsConverter(arguments[1]);
     }
 
+    sip.log('jssip call arguments', arguments);
+
     return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
   };
 
@@ -779,7 +781,7 @@
 
   };
 
-  sip.on('beforeunload', function (event) {
+  sip.on('windowbeforeunload', function (event) {
     sip.info('Beforeunload start');
     sessions.forEach(function (session) {
       // TODO: make sure session is opened

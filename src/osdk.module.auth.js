@@ -70,12 +70,20 @@
       },
       // Checks hash for token, returns true if token found, return false otherwise, if error throws it
       checkUrl: function () {
+
+        var isOSDKPopup = window.opener && window.opener.oSDK;
+        // If we are in popup.
+        if(isOSDKPopup) {
+          document.body.innerHTML = '<div style="text-align: center;" >Closing popup.</div>';
+        }
+
+        // If we got error.
         var error = auth.utils.getUrlParameter('error');
         if(error) {
           var error_description = auth.utils.getUrlParameter('error_description');
 
           // If we are in popup TODO: identify window opener.
-          if(window.opener) {
+          if(isOSDKPopup) {
             var popupError = new auth.Error({
               message: error,
               data: {
@@ -84,17 +92,23 @@
             });
             popupError.subType = 'gotErrorFromPopup';
             window.opener.oSDK.utils.trigger('transitEvent', popupError);
+
           } else {
             // Removing potential connection trigger.
             if (auth.utils.storage.getItem('connectAfterRedirect')) {
-              auth.utils.storage.getItem('connectAfterRedirect');
+              auth.utils.storage.removeItem('connectAfterRedirect');
             }
 
-            auth.trigger(['connectionFailed'], new auth.Error({ 'message': error + ': ' + error_description, 'ecode': 'auth0010' }));
-            auth.disconnect();
+            // Clearing token right away.
+            oauth.clearToken();
+            // May be triggered after DOMContentLoaded
+            auth.trigger(['connectionFailed', 'auth_oAuthError'], new auth.Error({ 'message': error + ': ' + error_description, 'ecode': 'auth0010' }));
           }
+
+          return false;
         }
 
+        // If we got token.
         var token = auth.utils.hash.getItem('access_token');
         if(token) {
           // Configuring us
@@ -104,7 +118,7 @@
               expires_start: new Date().getTime()
           });
 
-          if(window.opener && window.opener.oSDK) {
+          if(isOSDKPopup) {
             window.opener.oSDK.utils.trigger('transitEvent', {
               subType: 'gotTokenFromPopup',
               data: {
@@ -152,11 +166,12 @@
       },
       isTokenAlive: function () {
         var nowTime = new Date().getTime();
-        if (!config.access_token) {
+        if (auth.utils.isNull(config.access_token)) {
           // auth.utils.log('User token not found');
           return false;
         } else if (config.expires_in + config.expires_start <= nowTime) {
           // auth.utils.log('User token has expired');
+          return false;
         } else {
           // auth.utils.log('User token is alive', config);
           return true;
@@ -201,9 +216,11 @@
 
   // Connection to openSDP network
   auth.connect = function () {
+    auth.log('connect method invoked.');
 
     // Waiting for DOMContentLoaded before anything because ajax can't be sent gracefully before this event fires.
     if(!DOMReadyEventListenerAdded && !auth.utils.DOMContentLoaded) {
+      auth.log('connect method delayed for DOMContentLoaded.');
       DOMReadyEventListenerAdded = true;
       auth.on('DOMContentLoaded', function () {
         auth.connect();
@@ -211,17 +228,20 @@
       return;
     }
 
-    if(auth.status == 'connected' || auth.status == 'connecting') {
+    if(auth.status != 'disconnected') {
+      auth.log('connect method aborted: denied by status != disconnected.');
       return;
     }
     auth.status = 'connecting';
 
     // Checking user token
+    auth.log('connect method before token check.');
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect
       auth.status = 'disconnected';
       return;
     }
+    auth.log('connect method resumed after token check.');
 
     auth.trigger('connecting');
 
@@ -238,8 +258,7 @@
       success: function(data) {
         data = JSON.parse(data);
         if(data.error) {
-          auth.trigger(['connectionFailed'], new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
-          auth.disconnect();
+          auth.trigger(['connectionFailed', 'auth_connectionError'], new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
         } else {
 
           // Filling User client sturcture
@@ -278,8 +297,7 @@
 
         auth.status = 'disconnected';
         // If all is ok with token - throw connectionFailed event.
-        auth.trigger('connectionFailed', new auth.Error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
-        auth.disconnect();
+        auth.trigger(['connectionFailed', 'auth_connectionError'], new auth.Error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
       }
     });
 
@@ -307,6 +325,7 @@
 
   // Checks if oSDK can invoke connect method (if connected(and connectionFailed?) event has any listeners)
   auth.connectOnGotListener = function () {
+    auth.log('planting connectOnGotListener event.');
     var events  = auth.utils.events;
     if(events.connected && events.connected.listeners.length) {
       auth.connect();
@@ -378,18 +397,33 @@
 
   auth.on('transitEvent', function (event) {
     if (event.subType == 'gotTokenFromPopup') {
+      oauth.popup().addEventListener('unload', function () {
+        auth.log('auth popup closed');
+        oauth.configure(event.data);
+        auth.connect();
+      }, false);
       oauth.popup().close();
-      oauth.configure(event.data);
-      auth.connect();
     } else if (event.subType == 'gotErrorFromPopup') {
+      oauth.popup().addEventListener('unload', function () {
+        // Clearing token right away.
+        oauth.clearToken();
+        // Proxying ours Error object. May be triggered after DOMContentLoaded.
+        auth.trigger(['connectionFailed', 'auth_oAuthError'], event);
+      });
       oauth.popup().close();
-      // Proxying ours Error object.
-      auth.trigger('connectionFailed', event);
+
     }
   });
 
-  // connectionFailed event by other plugin
+  // connectionFailed event by other modules.
   auth.on('connectionFailed', function (data) {
+    // Gracefully disconnecting.
+    auth.disconnect();
+  });
+
+  // auth_oAuthError event by self.
+  auth.on(['auth_oAuthError', 'auth_connectionError'], function () {
+    // Gracefully disconnecting.
     auth.disconnect();
   });
 
@@ -507,7 +541,21 @@
     * @param {Error} event The event object associated with this event.
     *
     */
-    'connectionFailed': { client: true, other: true, cancels: 'connected' }
+    'connectionFailed': { client: true, other: true, cancels: 'connected' },
+
+    /*
+     * Inner events
+     */
+
+    /*
+     * Dispatched when got error in adress string of WSO2 oauth server answer.
+     */
+    'auth_oAuthError': { self: true },
+
+    /*
+     * Dispatched when got some server error.
+     */
+    'auth_connectionError': { self: true }
   });
 
   auth.registerConfig(defaultConfig);
