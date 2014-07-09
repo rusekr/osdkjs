@@ -32,15 +32,82 @@
    * TODO
    */
 
-  function SDKTextMessage(params) {
+  /**
+   * Instance of this class is used in XMPP module as notification of an incoming or outgoing text message to be written into history journal of some contact
+   *
+   * @constructor TextMessage
+   */
 
-    this.type = 'SDKTextMessage';
+  function TextMessage(params) {
 
+    /**
+     * Always set as "TextMessage"
+     *
+     * @alias type
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
+    this.type = 'TextMessage';
+
+    /**
+     * ID of contact, who sent this message
+     *
+     * @alias from
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
     this.from = null;
+
+    /**
+     * ID of contact, who accepted this message
+     *
+     * @alias to
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
     this.to = null;
+
+    /**
+     * Subject of this message
+     *
+     * @alias subject
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
     this.subject = null;
+
+    /**
+     * Text of message
+     *
+     * @alias message
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
     this.message = null;
+
+    /**
+     * Set as {boolean} true if this message is incoming (to = ID of current authorized client)
+     *
+     * @alias incoming
+     * @memberof TextMessage
+     * @instance
+     * @type boolean
+     */
     this.incoming = false;
+
+    /**
+     * Set as {boolean} true if this message is outgoing (from = ID of current authorized client)
+     *
+     * @alias outgoing
+     * @memberof TextMessage
+     * @instance
+     * @type boolean
+     */
     this.outgoing = false;
 
     if (typeof params.from != 'undefined' && module.utils.isValidID(params.from)) this.from = params.from;
@@ -65,15 +132,84 @@
 
     var date = new Date();
 
+    /**
+     * Time stamp
+     *
+     * @alias timestamp
+     * @memberof TextMessage
+     * @instance
+     * @type string
+     */
     this.timestamp = date.getTime();
+
+    /**
+     * Time zone offset in hours
+     *
+     * @alias timeZoneOffset
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.timeZoneOffset = date.getTimezoneOffset() / 60;
 
+    /**
+     * Day (1-31)
+     *
+     * @alias day
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.day = date.getDate();
+
+    /**
+     * Month (1-12)
+     *
+     * @alias month
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.month = date.getMonth() + 1;
+
+    /**
+     * Year
+     *
+     * @alias year (YYYY)
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.year = date.getFullYear();
 
+    /**
+     * Hours (0-23)
+     *
+     * @alias hours
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.hours = date.getHours();
+
+    /**
+     * Minutes (0-59)
+     *
+     * @alias minutes
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.minutes = date.getMinutes();
+
+    /**
+     * Seconds (0-59)
+     *
+     * @alias seconds
+     * @memberof TextMessage
+     * @instance
+     * @type number
+     */
     this.seconds = date.getSeconds();
 
   }
@@ -458,7 +594,7 @@
          *
          * @memberof MessagingAPI
          * @event incomingMessage
-         * @param {object} SDKTextMessage
+         * @param {object} TextMessage
          */
         'incomingMessage': {client: true},
 
@@ -467,7 +603,7 @@
          *
          * @memberof MessagingAPI
          * @event outgoingMessage
-         * @param {object} SDKTextMessage
+         * @param {object} TextMessage
          */
         'outgoingMessage': {client: true},
 
@@ -572,24 +708,24 @@
         module.info('XMPP HANDLER(incoming message)');
         var id = packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain();
         var user = oSDK.user(id);
-        var message = new SDKTextMessage({
+        var message = new TextMessage({
           from: packet.getFromJID().getNode() + '@' + packet.getFromJID().getDomain(),
           to: xmpp.getClient().id,
           message: packet.getBody().htmlEnc()
         });
-        user.history.push(message);
+        if (user.history) user.history.push(message);
         module.trigger('incomingMessage', message);
       },
 
       fnOutgoingMessage: function(packet) {
         module.info('XMPP HANDLER(outgoing message)');
         var user = oSDK.user(storage.message.to);
-        var message = new SDKTextMessage({
+        var message = new TextMessage({
           from: xmpp.getClient().id,
           to: storage.message.to,
           message: packet.getBody().htmlEnc()
         });
-        user.history.push(message);
+        if (user.history) user.history.push(message);
         if (storage.message.success) {
           storage.message.success({
             to: storage.message.to,
