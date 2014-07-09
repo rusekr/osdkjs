@@ -265,6 +265,31 @@
       success: null
     };
 
+    this.clear = function() {
+      // Roster
+      this.roster = new SDKList();
+      // Contacts
+      this.contacts = new SDKList();
+      // Requests
+      this.requests = {
+        accepted: new SDKList(),
+        rejected: new SDKList(),
+        incoming: new SDKList(),
+        outgoing: new SDKList(),
+        wasAccepted: new SDKList(),
+        wasRejected: new SDKList()
+      };
+      // Flags of some statuses
+      this.logged = false;
+      this.status = null;
+      this.confirm = null;
+      this.message = {
+        from: null,
+        to: null,
+        success: null
+      };
+    };
+
   }
 
   // Inner XMPP module
@@ -848,7 +873,7 @@
       },
       fnOnDisconnect: function() {
         module.info('XMPP HANDLER(disconnect)');
-        storage = null;
+        storage.clear();
         connection = null;
         techCapabilities.instantMessaging = false;
         module.trigger('disconnected', [].slice.call(arguments, 0));
@@ -856,7 +881,7 @@
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
-        storage = null;
+        storage.clear();
         connection = null;
         techCapabilities.instantMessaging = false;
         module.trigger('connectionFailed', new module.Error({ data: arguments }));
@@ -2172,7 +2197,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.addContact
-       * @param {string} User.id
+       * @param {string} to - User.id
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
@@ -2184,7 +2209,7 @@
        *
        * @memberof RosterAPI
        * @method oSDK.removeContact
-       * @param {string} User.id
+       * @param {string} to - User.id
        * @param {object} Callbacks
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
