@@ -24,9 +24,9 @@
 
   var defaultConfig = {
     auth: {
-      apiServerURL: 'https://osdp-teligent-dev-apigw.virt.teligent.ru:8243', //TODO: replace this and following with sdk build parameter
-      credsURI: '/osdp/sm/common/1.0.1/user/ephemerals',
-      authURI: '/authorize/'
+      apiServerURL: '{APIServerURI}', //TODO: replace this and following with sdk build parameter
+      credsURI: '{ephemeralsPath}',
+      authURI: '{authorizePath}'
     },
     appID: null,
     popup: false

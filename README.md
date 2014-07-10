@@ -1,8 +1,36 @@
-To setup build environment:
->> npm install
+### Where it is:
 
-To build library:
->> grunt
+./src - source files.
+./build - built files.
 
-To get minified and devel versions:
-./build/*.js
+### Prepare to use:
+
+You need `nodejs`.
+
+Install grunt-cli system-wide:
+
+    npm install -g grunt-cli
+
+Install node modules by command:
+
+    npm install
+
+### Usage:
+
+Build:
+
+    grunt
+
+Build with uglification:
+
+    grunt builduglify
+
+Build with custom configuration:
+
+1) Create file (for example see ./teligent-osdk-config-default.json):
+
+    ./teligent-osdk-config-<configname>.json
+
+2) Run:
+
+    grunt --profile=<configname>

@@ -1,5 +1,7 @@
 module.exports = function(grunt) {
 
+  var profile = grunt.option('profile')?grunt.option('profile'):'default';
+
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('teligent-osdk.json'),
@@ -58,6 +60,14 @@ module.exports = function(grunt) {
         dest: 'build/<%= pkg.name %>.js'
       }
     },
+
+    replace: {
+      milestone: {
+        src: ['build/**/*.js'],             // source files array (supports minimatch)
+        overwrite: true,
+        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements
+      }
+    },
     uglify: {
       options: {
         banner: '<%= banner %>'
@@ -102,6 +112,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-copy');
+  grunt.loadNpmTasks('grunt-text-replace');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-jsdoc');
 
@@ -109,9 +120,10 @@ module.exports = function(grunt) {
   // Tasks
   grunt.registerTask('check', ['jshint']);
 
-  grunt.registerTask('default', ['check', 'clean', 'concat']);
+  grunt.registerTask('build', ['check', 'clean', 'concat', 'replace']);
   grunt.registerTask('gendoc', ['jsdoc', 'copy']);
-  grunt.registerTask('buildugly', ['check', 'clean', 'concat', 'uglify', 'jsdoc', 'copy']);
+  grunt.registerTask('buildugly', ['build', 'uglify', 'jsdoc', 'copy']);
 
+  grunt.registerTask('default', ['build']);
 
 };
