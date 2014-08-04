@@ -698,6 +698,7 @@
       });
     }
 
+    // Turn
     var turnServers = [];
     if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
       sip.utils.each(event.data.uris.turn, function (uri) {
@@ -709,12 +710,24 @@
       });
     }
 
+    // Stun
+    var stunServers = [];
+    if (event.data.uris && sip.utils.isArray(event.data.uris.stun)) {
+      sip.utils.each(event.data.uris.stun, function (uri) {
+        stunServers.push({
+          urls: 'stun:' + uri.replace(';', '?'),
+          username: event.data.username,
+          credential: event.data.password
+        });
+      });
+    }
+
     sip.initialize({
       'ws_servers': hosts,
       'connection_recovery': false,
       'uri': 'sip:' + event.data.username.split(':')[1],
       'password': event.data.password,
-      'stun_servers': [],
+      'stun_servers': stunServers,
       'turn_servers': turnServers,
       'trace_sip': true,
       'register': true,
