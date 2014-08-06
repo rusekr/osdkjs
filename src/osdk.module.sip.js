@@ -714,11 +714,7 @@
     var stunServers = [];
     if (event.data.uris && sip.utils.isArray(event.data.uris.stun)) {
       sip.utils.each(event.data.uris.stun, function (uri) {
-        stunServers.push({
-          urls: 'stun:' + uri.replace(';', '?'),
-          username: event.data.username,
-          credential: event.data.password
-        });
+        stunServers.push('stun:' + uri.replace(/;.*$/, ''));
       });
     }
 
