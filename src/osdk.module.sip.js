@@ -208,9 +208,16 @@
    */
   function MediaSession (JsSIPrtcSessionEvent) {
 
-    var evData = JsSIPrtcSessionEvent.data;
-
-    var self = this;
+    var evData = JsSIPrtcSessionEvent.data,
+        self = this,
+        eventNamesMap = {
+          'progress': 'progress',
+          'started': 'started',
+          'gotDTMF': 'newDTMF',
+          'failed': 'failed',
+          'ended': 'ended'
+        },
+        externalListeners = {};
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -397,7 +404,7 @@
     * Dispatched when current media session got DTMF signal.
     *
     * @memberof MediaSession
-    * @event MediaSession#newDTMF
+    * @event MediaSession#gotDTMF
     * @param {object} event The event object associated with this event.
     *
     */
@@ -412,8 +419,11 @@
      * @param {object} handler.event Event object.
      */
     self.on = function (sessionEventType, handler) {
-      //TODO: proxy newDTMF to client as gotDTMF on per session basis
-      evData.session[sessionEventType] = handler;
+      // TODO: add checking of eventType existance
+      if(!externalListeners[sessionEventType]) {
+        externalListeners[sessionEventType] = [];
+      }
+      externalListeners[sessionEventType].push(handler);
     };
 
     /**
@@ -620,8 +630,35 @@
         delete arguments[0].reasonPhrase;
       }
 
+      //evData.session.getLocalStreams()[0].stop();
+
       return evData.session.terminate.apply(evData.session, [].slice.call(arguments, 0));
     };
+
+    // Assigning internal event handlers for JsSIP events
+    sip.utils.each(eventNamesMap, function (jssipName, ourName) {
+      evData.session[jssipName] = function () {
+        sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
+
+        // Predefined MediaSession events handling by type
+        switch (jssipName) {
+          case 'ended':
+          case 'failed':
+            // Stopping getting of local media stream to release camera/microphone.
+            evData.session.getLocalStreams()[0].stop();
+            break;
+        }
+
+        var args = [].slice.call(arguments, 0);
+        if (sip.utils.isArray(externalListeners[ourName])) {
+          sip.utils.each(externalListeners[ourName], function (handler) {
+            if (sip.utils.isFunction(handler)) {
+              handler.apply(self, args);
+            }
+          });
+        }
+      };
+    });
 
   }
 
@@ -644,6 +681,7 @@
           clientInt.canAudio = props.audio;
           clientInt.canVideo = props.video;
           sip.trigger('gotMediaCapabilities', props);
+          stream.stop(); // We just got capabilities.
         }
         else {
           throw new sip.Error("Media capabilities are not found.");
@@ -700,6 +738,7 @@
 
     // Turn
     var turnServers = [];
+// TEST: c
     if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
       sip.utils.each(event.data.uris.turn, function (uri) {
         turnServers.push({
@@ -712,6 +751,7 @@
 
     // Stun
     var stunServers = [];
+// TEST: disable temporary for calls to work in FF 31
     if (event.data.uris && sip.utils.isArray(event.data.uris.stun)) {
       sip.utils.each(event.data.uris.stun, function (uri) {
         stunServers.push('stun:' + uri.replace(/;.*$/, ''));
