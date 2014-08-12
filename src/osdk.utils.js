@@ -194,7 +194,7 @@
    */
   var Module = function oSDKModule(name) {
     var self = this;
-    var debugInt = true; // Per-module debug.
+    var debugInt = false; // Per-module debug default setting (TODO: parametrize by grunt).
     var nameInt = name;
 
     var eventSkel = function (initObject) {
@@ -258,14 +258,14 @@
     var lf = function (method) {
       return function () {
         // Function respects global and module-specific debug
-        if (!this.debug) {
+        if (!self.debug) {
           return;
         }
         var d = new Date();
 
         var arr = ['oSDK:',d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3)  , ':'];
-        if (this.oSDKModule && this.name != 'utils') {
-          arr.push(this.name);
+        if (self.oSDKModule && self.name != 'utils') {
+          arr.push(self.name);
         }
         console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
       };
@@ -854,6 +854,9 @@
   };
 
   var utils = new Module('utils');
+
+  // Module specific DEBUG.
+  utils.debug = true;
 
   //Module.prototype.utils = utils;
   Object.defineProperties(Module.prototype, {

@@ -10,6 +10,9 @@
 
   var sip = new oSDK.utils.Module('sip');
 
+  // Module specific DEBUG.
+  sip.debug = true;
+
   var defaultConfig = {
     sip: {
       gw: {
@@ -670,11 +673,6 @@
    */
   sip.initialize = function (config) {
 
-    // Setting JsSIP internal logger
-    if (!sip.utils.debug) {
-      JsSIP.loggerFactory.level = 0;
-    }
-
     if(!media.initialized()) {
       media.initialize(function (result, props, stream) {
         if (result == 'success') {
@@ -738,7 +736,7 @@
 
     // Turn
     var turnServers = [];
-// TEST: c
+// TEST: disable temporary for calls to work in FF 31
     if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
       sip.utils.each(event.data.uris.turn, function (uri) {
         turnServers.push({
@@ -759,12 +757,15 @@
     }
 
     sip.initialize({
+      'log': {
+        'level': sip.debug?3:0
+      },
       'ws_servers': hosts,
       'connection_recovery': false,
       'uri': 'sip:' + event.data.username.split(':')[1],
       'password': event.data.password,
       'stun_servers': stunServers,
-      'turn_servers': turnServers,
+//      'turn_servers': turnServers,
       'trace_sip': true,
       'register': true,
       'authorization_user': event.data.username.split(':')[1],

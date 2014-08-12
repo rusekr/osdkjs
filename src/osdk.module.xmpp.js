@@ -2054,6 +2054,9 @@
 
     module = new oSDK.utils.Module('xmpp');
 
+    // Module specific DEBUG.
+    module.debug = true;
+
     xmpp = new XMPP();
 
     // Register public methods

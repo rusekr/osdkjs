@@ -10,8 +10,11 @@
    * @namespace ConnectionAPI
    */
 
-  // Module namespace
+  // Module namespace.
   var auth = new oSDK.utils.Module('auth');
+
+  // Module specific DEBUG.
+  auth.debug = true;
 
   // Status (disconnected, connecting, connected, disconnecting)
   auth.status = 'disconnected';

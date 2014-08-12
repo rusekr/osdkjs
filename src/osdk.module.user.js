@@ -14,6 +14,9 @@
 
   var module = new oSDK.utils.Module('user');
 
+  // Module specific DEBUG.
+  module.debug = true;
+
   var utils = module.utils;
 
   // Default configuration
