@@ -1280,13 +1280,13 @@
 
   // Dedicated for osdk window.onbeforeunload event handler.
   window.addEventListener('beforeunload', function () {
-    utils.info('Beforeunload start');
-    utils.trigger('windowbeforeunload', { arguments: arguments });
-    utils.info('Beforeunload end');
+    utils.info('windowBeforeUnload start');
+    utils.trigger('windowBeforeUnload', { arguments: arguments });
+    utils.info('windowBeforeUnload end');
   }, false);
 
   window.addEventListener('error', function () {
-    utils.trigger('windowerror', { arguments: arguments });
+    utils.trigger('windowError', { arguments: arguments });
   }, false);
 
   // Dedicated for osdk DOMContentLoaded event.
@@ -1301,8 +1301,8 @@
 
   // Own system listeners wrappers TODO: note this events in module developers guide.
   utils.registerEvents({
-    'windowerror': { self: true, other: true },
-    'windowbeforeunload': { self: true, other: true },
+    'windowError': { self: true, other: true },
+    'windowBeforeUnload': { self: true, other: true },
     'DOMContentLoaded': { self: true, other: true },
     'mergedUserConfig': { self: true, other: true },
     // Transit event for use in cross-oSDK communications like between popup and main window oSDKs. Needs subType in event data for identification of real event.

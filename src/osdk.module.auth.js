@@ -418,8 +418,8 @@
     }
   });
 
-  // connectionFailed event by other modules.
-  auth.on('connectionFailed', function (data) {
+  // Page windowBeforeUnload and connectionFailed event by other modules.
+  auth.on(['windowBeforeUnload', 'connectionFailed'], function (data) {
     // Gracefully disconnecting.
     auth.disconnect();
   });
@@ -433,9 +433,9 @@
   // Instant actions
 
   // mergedUserConfig action
-   auth.on("mergedUserConfig", function () {
+  auth.on('mergedUserConfig', function () {
     auth.tokenCheck(false);
-   });
+  });
 
   // Registering methods in oSDK.
 

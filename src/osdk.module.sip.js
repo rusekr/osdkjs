@@ -831,15 +831,15 @@
 
   };
 
-  sip.on('windowbeforeunload', function (event) {
-    sip.info('Beforeunload start');
+  sip.on('windowBeforeUnload', function (event) {
+    sip.info('windowBeforeUnload start');
     sessions.forEach(function (session) {
       // TODO: make sure session is opened
       if (session) {
         session.end();
       }
     });
-    sip.info('Beforeunload end');
+    sip.info('windowBeforeUnload end');
   });
 
   // Registration stuff
