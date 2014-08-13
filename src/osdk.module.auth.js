@@ -420,8 +420,8 @@
 
   // Page windowBeforeUnload and connectionFailed event by other modules.
   auth.on(['windowBeforeUnload', 'connectionFailed'], function (data) {
-    // Gracefully disconnecting.
-    auth.disconnect();
+    // Gracefully disconnecting keeping token.
+    auth.disconnect(true);
   });
 
   // auth_oAuthError event by self.
