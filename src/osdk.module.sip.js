@@ -648,7 +648,10 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            evData.session.getLocalStreams()[0].stop();
+            if(sip.utils.isArray(evData.session.getLocalStreams()))
+            sip.utils.each(evData.session.getLocalStreams(), function (stream) {
+              stream.stop();
+            });
             break;
         }
 
@@ -656,6 +659,7 @@
         if (sip.utils.isArray(externalListeners[ourName])) {
           sip.utils.each(externalListeners[ourName], function (handler) {
             if (sip.utils.isFunction(handler)) {
+              sip.log('MediaSession applies handler for', ourName, 'event.');
               handler.apply(self, args);
             }
           });
