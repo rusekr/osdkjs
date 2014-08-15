@@ -6610,6 +6610,8 @@ UA.prototype.call = function(target, options) {
 
   session = new JsSIP.RTCSession(this);
   session.connect(target, options);
+
+  return session.id;
 };
 
 /**

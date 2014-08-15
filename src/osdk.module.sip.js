@@ -27,6 +27,33 @@
   // RTC sessions array
   var sessions = [];
 
+  // Clears all sessions
+  sessions.clear = function sessionsClear() {
+    sip.utils.each(sessions, function (session, idx) {
+    // TODO: make sure session is opened
+    if (session) {
+      session.mediaSessionObject.end();
+      delete sessions[idx];
+    }
+    });
+  };
+
+  // Creates new session
+  sessions.create = function sessionsCreate(sessionID, sessionParams) {
+    this[sessionID] = sip.utils.extend({
+      callOptions: {},
+      mediaSessionObject: null,
+      callbacks: {}
+    }, sessionParams);
+
+    return this[sessionID];
+  };
+
+  // Returns session object by ID
+  sessions.find = function sessionsFind(sessionID) {
+    return this[sessionID];
+  };
+
   // Unified media object
   var media = (function () {
     var initialized = false;
@@ -220,7 +247,21 @@
           'failed': 'failed',
           'ended': 'ended'
         },
-        externalListeners = {};
+        callOptions = {
+          audio: null,
+          video: null
+        },
+        currentSession = sessions.find(evData.session.id);
+
+    // It may be already if call from us
+    if(!currentSession) {
+      currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
+      sip.log('incoming session added', sessions);
+    } else {
+      // Grab call options from imperative session (our call).
+      callOptions = currentSession.callOptions;
+      sip.log('outgoing session augmented', sessions);
+    }
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -282,8 +323,10 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+              evData.originator == 'local' &&
+              currentSession.callOptions.video === true ||
+              evData.originator != 'local' &&
+              evData.request.body.match(/m=video/)
           ) {
             return true;
           }
@@ -302,8 +345,10 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0
+              evData.originator == 'local' &&
+              currentSession.callOptions.audio === true ||
+              evData.originator != 'local' &&
+              evData.request.data.match(/m=audio/)
           ) {
             return true;
           }
@@ -322,9 +367,7 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length === 0
+            self.hasAudio && !self.hasVideo
           ) {
             return true;
           }
@@ -343,9 +386,7 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+            self.hasAudio && self.hasVideo
           ) {
             return true;
           }
@@ -423,10 +464,10 @@
      */
     self.on = function (sessionEventType, handler) {
       // TODO: add checking of eventType existance
-      if(!externalListeners[sessionEventType]) {
-        externalListeners[sessionEventType] = [];
+      if(!currentSession.callbacks[sessionEventType]) {
+        currentSession.callbacks[sessionEventType] = [];
       }
-      externalListeners[sessionEventType].push(handler);
+      currentSession.callbacks[sessionEventType].push(handler);
     };
 
     /**
@@ -633,8 +674,6 @@
         delete arguments[0].reasonPhrase;
       }
 
-      //evData.session.getLocalStreams()[0].stop();
-
       return evData.session.terminate.apply(evData.session, [].slice.call(arguments, 0));
     };
 
@@ -656,8 +695,8 @@
         }
 
         var args = [].slice.call(arguments, 0);
-        if (sip.utils.isArray(externalListeners[ourName])) {
-          sip.utils.each(externalListeners[ourName], function (handler) {
+        if (sip.utils.isArray(currentSession.callbacks[ourName])) {
+          sip.utils.each(currentSession.callbacks[ourName], function (handler) {
             if (sip.utils.isFunction(handler)) {
               sip.log('MediaSession applies handler for', ourName, 'event.');
               handler.apply(self, args);
@@ -714,12 +753,12 @@
   };
 
   // Sip start method
-  sip.start = function () {
+  sip.connect = function () {
     sip.JsSIPUA.start();
   };
 
   // Sip stop method
-  sip.stop = function () {
+  sip.disconnect = function () {
     if (sip.JsSIPUA) {
       sip.JsSIPUA.stop();
     }
@@ -777,18 +816,19 @@
       //,hack_via_tcp: true
     });
 
-    sip.start();
+    sip.connect();
 
   });
 
   // On auth disconnecting event
   sip.on('disconnecting', function (data) {
-    sip.stop();
+    sip.disconnect();
+    sessions.clear();
   });
 
   // On other modules connectionFailed event
   sip.on('connectionFailed', function (data) {
-    sip.stop();
+    sip.disconnect();
   });
 
   // TODO: replace with direct jssip listener
@@ -796,8 +836,6 @@
     // Augmenting session object with useful properties
 
     var mediaSession = new MediaSession(event);
-
-    sessions.push(mediaSession);
 
     sip.log('Modifyed session to', mediaSession);
     sip.trigger('gotMediaSession', mediaSession);
@@ -809,11 +847,16 @@
 
   /**
    * Default semi-transparent proxy of JsSIP call initiator interface.
+   * NOTICE: may be add session callbacks options to it.
    * @private
    *
    *
    */
   sip.call = function () {
+
+    var
+      callOptions = sip.utils.isObject(arguments[1])?arguments[1]:null,
+      currentSessionID;
 
     if (arguments[1]) {
       arguments[1] = callOptionsConverter(arguments[1]);
@@ -821,28 +864,46 @@
 
     sip.log('jssip call arguments', arguments);
 
-    return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
+    currentSessionID = sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
+
+    // Internal session registration
+    sessions.create(currentSessionID, {
+      id: currentSessionID,
+      callOptions: callOptions
+    });
+    sip.log('outgoing session added', sessions);
+
+    return currentSessionID;
   };
 
-  // TODO
-  sip.audioCall = function (userID) {
+  // Simple audio call method
+  sip.audioCall = function (userID, callbacksObject) {
 
-    return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
+    currentSessionID = sip.call(userID, { audio: true, video: false });
+
+    // TODO: check callbacksObject for sanity
+    if(sip.utils.isObject(callbacksObject)) {
+      sessions[currentSessionID].callbacks = callbacksObject;
+    }
+
+    return currentSessionID;
   };
 
-  // TODO:
+  // Simple video call method
   sip.videoCall = function () {
+    currentSessionID = sip.call(userID, { audio: true, video: true });
 
+    // TODO: check callbacksObject for sanity
+    if(sip.utils.isObject(callbacksObject)) {
+      sessions[currentSessionID].callbacks = callbacksObject;
+    }
+
+    return currentSessionID;
   };
 
   sip.on('windowBeforeUnload', function (event) {
     sip.info('windowBeforeUnload start');
-    sessions.forEach(function (session) {
-      // TODO: make sure session is opened
-      if (session) {
-        session.end();
-      }
-    });
+    sessions.clear();
     sip.info('windowBeforeUnload end');
   });
 
