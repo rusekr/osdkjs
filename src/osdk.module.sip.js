@@ -25,34 +25,54 @@
   };
 
   // RTC sessions array
-  var sessions = [];
+  var sessions = (function () {
+    var
+      instance = {},
+      store = {};
 
-  // Clears all sessions
-  sessions.clear = function sessionsClear() {
-    sip.utils.each(sessions, function (session, idx) {
-    // TODO: make sure session is opened
-    if (session) {
-      session.mediaSessionObject.end();
-      delete sessions[idx];
-    }
-    });
-  };
+      // Clears one or all sessions
+    instance.clear = function sessionsClear(sessionID) {
 
-  // Creates new session
-  sessions.create = function sessionsCreate(sessionID, sessionParams) {
-    this[sessionID] = sip.utils.extend({
-      callOptions: {},
-      mediaSessionObject: null,
-      callbacks: {}
-    }, sessionParams);
+      var deleteSession = function (sessionID) {
+        // TODO: make sure session is opened
+//         if (store[sessionID].mediaSessionObject && !store[sessionID].mediaSessionObject.end_time) {
+//           store[sessionID].mediaSessionObject.end();
+//         }
+        delete store[sessionID];
+      };
 
-    return this[sessionID];
-  };
+      if(typeof sessionID != 'undefined') {
+        deleteSession(sessionID);
+      } else {
+        sip.utils.each(store, function (session, sessionID) {
+          deleteSession(sessionID);
+        });
+      }
+    };
 
-  // Returns session object by ID
-  sessions.find = function sessionsFind(sessionID) {
-    return this[sessionID];
-  };
+    // Creates new session
+    instance.create = function sessionsCreate(sessionID, sessionParams) {
+      store[sessionID] = sip.utils.extend({
+        callOptions: {},
+        mediaSessionObject: null,
+        callbacks: {}
+      }, sessionParams);
+      store[sessionID].id = sessionID;
+
+      return store[sessionID];
+    };
+
+    // Returns session object by ID
+    instance.find = function sessionsFind(sessionID) {
+      return store[sessionID];
+    };
+
+    instance.show = function sessionsShow() {
+      return store;
+    };
+
+    return instance;
+  })();
 
   // Unified media object
   var media = (function () {
@@ -682,6 +702,24 @@
       evData.session[jssipName] = function () {
         sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
 
+        var args = [].slice.call(arguments, 0);
+        if (sip.utils.isArray(currentSession.callbacks[ourName])) {
+          sip.utils.each(currentSession.callbacks[ourName], function (handler) {
+            if (sip.utils.isFunction(handler)) {
+              sip.log('MediaSession applies handler for', ourName, 'event.');
+              try {
+                handler.apply(self, args);
+              } catch (data) {
+                throw new sip.Error({
+                  message: "SIP media session handling error.",
+                  ecode: 'sip0111',
+                  data: data
+                });
+              }
+            }
+          });
+        }
+
         // Predefined MediaSession events handling by type
         switch (jssipName) {
           case 'ended':
@@ -691,17 +729,9 @@
             sip.utils.each(evData.session.getLocalStreams(), function (stream) {
               stream.stop();
             });
+            // Deleting current session
+            sessions.clear(currentSession.id);
             break;
-        }
-
-        var args = [].slice.call(arguments, 0);
-        if (sip.utils.isArray(currentSession.callbacks[ourName])) {
-          sip.utils.each(currentSession.callbacks[ourName], function (handler) {
-            if (sip.utils.isFunction(handler)) {
-              sip.log('MediaSession applies handler for', ourName, 'event.');
-              handler.apply(self, args);
-            }
-          });
         }
       };
     });
