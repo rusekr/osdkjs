@@ -729,8 +729,8 @@
             sip.utils.each(evData.session.getLocalStreams(), function (stream) {
               stream.stop();
             });
-            // Deleting current session
-            sessions.clear(currentSession.id);
+            // Deleting current session TODO: Commented as something wrong with that
+            // sessions.clear(currentSession.id);
             break;
         }
       };
