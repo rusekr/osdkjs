@@ -36,7 +36,10 @@
   };
 
   // For not adding more than one event listener.
-  var DOMReadyEventListenerAdded = false;
+  var connectOnDOMContendLoadedTries = 0,
+      connectOnGotListenerTries = 0,
+      connectOnGotListenerTimeout = 5000,
+      connectOnGotListenerThreshold = 500;
 
   // Oauth handling object
   var oauth = (function () {
@@ -71,71 +74,77 @@
         auth.utils.storage.setItem('expires_in', config.expires_in);
 
       },
-      // Checks hash for token, returns true if token found, return false otherwise, if error throws it
+      // Checks hash for token, returns true if token found, return false otherwise, if error found throws it
       checkUrl: function () {
 
-        var isOSDKPopup = window.opener && window.opener.oSDK;
+        // // If we are in popup. TODO: more identify window opener.
+        var isOSDKPopup = window.opener && window.opener.oSDK,
+            error = '',
+            errorDescription = '',
+            emitError = function () {
+            if(isOSDKPopup) {
+              var popupError = new auth.Error({
+                message: error,
+                data: {
+                  description: errorDescription
+                }
+              });
+              popupError.subType = 'gotErrorFromPopup';
+              window.opener.oSDK.utils.trigger('transitEvent', popupError);
+
+            } else {
+              // Removing potential connection trigger.
+              if (auth.utils.storage.getItem('connectAfterRedirect')) {
+                auth.utils.storage.removeItem('connectAfterRedirect');
+              }
+
+              // Clearing token right away.
+              oauth.clearToken();
+              // May be triggered after DOMContentLoaded
+              auth.trigger(['connectionFailed', 'auth_oAuthError'], new auth.Error({ 'message': error + ': ' + errorDescription, 'ecode': 'auth0010' }));
+            }
+        };
+
         // If we are in popup.
         if(isOSDKPopup) {
           document.body.innerHTML = '<div style="text-align: center;" >Closing popup.</div>';
         }
 
         // If we got error.
-        var error = auth.utils.getUrlParameter('error');
+        error = auth.utils.getUrlParameter('error');
         if(error) {
-          var error_description = auth.utils.getUrlParameter('error_description');
+          errorDescription = auth.utils.getUrlParameter('error_description');
 
-          // If we are in popup TODO: identify window opener.
-          if(isOSDKPopup) {
-            var popupError = new auth.Error({
-              message: error,
-              data: {
-                description: error_description
-              }
+          emitError();
+        } else {
+          // If we got token.
+          var token = auth.utils.hash.getItem('access_token');
+          if(token) {
+            // Configuring us
+            oauth.configure({
+                access_token: token,
+                expires_in: auth.utils.hash.getItem('expires_in')*1000,
+                expires_start: new Date().getTime()
             });
-            popupError.subType = 'gotErrorFromPopup';
-            window.opener.oSDK.utils.trigger('transitEvent', popupError);
 
-          } else {
-            // Removing potential connection trigger.
-            if (auth.utils.storage.getItem('connectAfterRedirect')) {
-              auth.utils.storage.removeItem('connectAfterRedirect');
+            if(isOSDKPopup) {
+              window.opener.oSDK.utils.trigger('transitEvent', {
+                subType: 'gotTokenFromPopup',
+                data: {
+                  access_token: config.access_token,
+                  expires_in: config.expires_in,
+                  expires_start: config.expires_start
+                }
+              });
             }
 
-            // Clearing token right away.
-            oauth.clearToken();
-            // May be triggered after DOMContentLoaded
-            auth.trigger(['connectionFailed', 'auth_oAuthError'], new auth.Error({ 'message': error + ': ' + error_description, 'ecode': 'auth0010' }));
+            return true;
+          } else {
+            // No error and no token in storage and in URI case.
+            // Normal acting.
           }
-
-          return false;
         }
 
-        // If we got token.
-        var token = auth.utils.hash.getItem('access_token');
-        if(token) {
-          // Configuring us
-          oauth.configure({
-              access_token: token,
-              expires_in: auth.utils.hash.getItem('expires_in')*1000,
-              expires_start: new Date().getTime()
-          });
-
-          if(isOSDKPopup) {
-            window.opener.oSDK.utils.trigger('transitEvent', {
-              subType: 'gotTokenFromPopup',
-              data: {
-                access_token: config.access_token,
-                expires_in: config.expires_in,
-                expires_start: config.expires_start
-              }
-            });
-          }
-
-          return true;
-        }
-
-        // TODO: No error and no token case?
         return false;
       },
       // Clears url from token stuff
@@ -222,12 +231,9 @@
     auth.log('connect method invoked.');
 
     // Waiting for DOMContentLoaded before anything because ajax can't be sent gracefully before this event fires.
-    if(!DOMReadyEventListenerAdded && !auth.utils.DOMContentLoaded) {
+    if(!auth.utils.DOMContentLoaded) {
       auth.log('connect method delayed for DOMContentLoaded.');
-      DOMReadyEventListenerAdded = true;
-      auth.on('DOMContentLoaded', function () {
-        auth.connect();
-      });
+      connectOnDOMContendLoadedTries++;
       return;
     }
 
@@ -331,11 +337,15 @@
     auth.log('planting connectOnGotListener event.');
     var events  = auth.utils.events;
     if(events.connected && events.connected.listeners.length) {
+      connectOnGotListenerTries = 0;
       auth.connect();
     } else {
-      setTimeout(function () {
-          auth.connectOnGotListener();
-      },500);
+      connectOnGotListenerTries++;
+      if (connectOnGotListenerThreshold * connectOnGotListenerTries < connectOnGotListenerTimeout) {
+        setTimeout(function () {
+            auth.connectOnGotListener();
+        }, connectOnGotListenerThreshold);
+      }
     }
   };
 
@@ -432,9 +442,17 @@
 
   // Instant actions
 
-  // mergedUserConfig action
+  // mergedUserConfig action (grabbing token)
   auth.on('mergedUserConfig', function () {
     auth.tokenCheck(false);
+  });
+
+  auth.on('DOMContentLoaded', function () {
+    auth.log('Got DOMContentLoaded, connectOnDOMContendLoadedTries:', connectOnDOMContendLoadedTries);
+    if (connectOnDOMContendLoadedTries) {
+      connectOnDOMContendLoadedTries = 0;
+      auth.connect();
+    }
   });
 
   // Registering methods in oSDK.

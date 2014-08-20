@@ -24,7 +24,37 @@
   var events = {};
   var dependencies = {};
   var mainConfig = {};
-  var DOMContentLoaded = false;
+  var earlyEvents = [];
+  var earlyEventsTriggered = false;
+  var earlyMainEvents = {
+    DOMContentLoaded: false
+//     mergedUserConfig: false,
+  };
+  Object.defineProperties(earlyMainEvents, {
+    fired: {
+      enumerable: true,
+      get: function () {
+        var all = 0;
+        var fired = 0;
+        for (var i in this) {
+          if (i != 'fired' && this.hasOwnProperty(i)) {
+            all++;
+            if (this[i] !== false) {
+              fired++;
+            }
+          }
+        }
+        if (fired === 0) {
+          return 'none';
+        } else if (fired < all) {
+          return 'any';
+        } else {
+          return 'all';
+        }
+      }
+    }
+  });
+
 
   // Generic functions
 
@@ -476,7 +506,7 @@
         events[eventType].listeners.push(listener);
         ids.push(id);
 
-        self.log(eventType, 'listener added');
+        self.log('Listener added', eventType);
       });
       return (ids.length == 1)?ids[0]:ids;
     };
@@ -523,21 +553,32 @@
      */
     self.constructor.prototype.trigger = function oSDKtrigger () {
 
-      // DOMContentLoaded and mergedUserConfig are two system events that can (and must) go right through. All other need to wait for DOMContentLoaded.
-      if (!DOMContentLoaded && arguments[0] != 'DOMContentLoaded' && arguments[0] != 'mergedUserConfig') {
-        var args = arguments;
-        // self.log('delaying event(s)', args[0], ' for DOMContentLoaded with arguments', args[1]);
-        self.on('DOMContentLoaded', function () {
-          // self.log('firing delayed while DOMContentLoaded event(s)', args[0], 'with arguments', args[1]);
-          return self.trigger(args[0], Array.prototype.slice.call(args, 1));
-        });
-
-        return;
-      }
-      if (arguments[0] == 'DOMContentLoaded') {
-        // Flag for checking this event after it fired.
-        // self.log('firing DOMContentLoaded');
-        DOMContentLoaded = true;
+      // TODO: this if else if must be in external addon for generic trigger function
+      // Transit event must fire without waiting
+      if (['transitEvent', 'mergedUserConfig'].indexOf(arguments[0]) == -1) {
+        if (earlyMainEvents.fired != 'all') {
+          self.log('NOT Triggered early event name', arguments[0]);
+          // Not main events
+          if (typeof earlyMainEvents[arguments[0]] == 'undefined') {
+            earlyEvents.push([self].concat(Array.prototype.slice.call(arguments, 0)));
+            self.log('NOT Triggered early event name pushed to', earlyEvents);
+            return;
+          } else {
+            self.log('NOT Triggered early event is main', arguments[0]);
+            earlyMainEvents[arguments[0]] = self;
+          }
+        }
+        if (!earlyEventsTriggered && earlyMainEvents.fired == 'all') {
+          earlyEventsTriggered = true;
+          self.log('All main events triggered, triggering stashed events');
+//           earlyMainEvents.mergedUserConfig.trigger('mergedUserConfig');
+          earlyMainEvents.DOMContentLoaded.trigger('DOMContentLoaded');
+          earlyEvents.map(function (args) {
+            var module = args.shift();
+            var name = args.shift();
+            module.trigger(name, args);
+          });
+        }
       }
 
       var configObject = {
@@ -1048,7 +1089,7 @@
     DOMContentLoaded: {
       enumerable: true,
       get: function () {
-        return DOMContentLoaded;
+        return earlyMainEvents.DOMContentLoaded;
       }
     },
     // Returns registered modules
