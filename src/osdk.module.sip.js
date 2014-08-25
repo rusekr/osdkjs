@@ -41,7 +41,7 @@
         delete store[sessionID];
       };
 
-      if(typeof sessionID != 'undefined') {
+      if (typeof sessionID != 'undefined') {
         deleteSession(sessionID);
       } else {
         sip.utils.each(store, function (session, sessionID) {
@@ -261,6 +261,7 @@
     var evData = JsSIPrtcSessionEvent.data,
         self = this,
         eventNamesMap = {
+          'connecting': 'connecting',
           'progress': 'progress',
           'started': 'started',
           'gotDTMF': 'newDTMF',
@@ -274,7 +275,7 @@
         currentSession = sessions.find(evData.session.id);
 
     // It may be already if call from us
-    if(!currentSession) {
+    if (!currentSession) {
       currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
       sip.log('incoming session added', sessions);
     } else {
@@ -425,8 +426,64 @@
         get: function () {
           return evData.session.remote_identity.toString().replace(/^.*?<sip:(.*?)>.*$/, '$1');
         }
+      },
+     /**
+     * Current user ID.
+     * @alias me
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      me: {
+        enumerable: true,
+        get: function () {
+          return evData.session.local_identity.toString().replace(/^.*?<sip:(.*?)>.*$/, '$1');
+        }
+      },
+     /**
+     * Call initiator ID.
+     * @alias from
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      from: {
+        enumerable: true,
+        get: function () {
+          if (self.incoming) {
+            return self.opponent;
+          } else {
+            return self.me;
+          }
+        }
+      },
+     /**
+     * Callee ID.
+     * @alias to
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      to: {
+        enumerable: true,
+        get: function () {
+          if (!self.incoming) {
+            return self.opponent;
+          } else {
+            return self.me;
+          }
+        }
       }
     });
+
+    /**
+    * Dispatched after the local media stream is added into MediaSession and before the ICE gathering starts for initial INVITE request or “200 OK” response transmission.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#connecting
+    * @param {object} event The event object associated with this event.
+    *
+    */
 
     /**
     * Dispatched when current call answered.
@@ -478,16 +535,24 @@
      * @alias on
      * @memberof MediaSession
      * @instance
-     * @param {string} event Event type.
+     * @param {string||array} event Event type.
      * @param {function} handler Handler function.
      * @param {object} handler.event Event object.
      */
-    self.on = function (sessionEventType, handler) {
-      // TODO: add checking of eventType existance
-      if(!currentSession.callbacks[sessionEventType]) {
-        currentSession.callbacks[sessionEventType] = [];
-      }
-      currentSession.callbacks[sessionEventType].push(handler);
+    self.on = function (sessionEventTypes, handler) {
+      sip.utils.each([].concat(sessionEventTypes), function (sessionEventType) {
+        // Checking of eventType existance
+        if (!sip.utils.isString(eventNamesMap[sessionEventType])) {
+          throw new sip.Error({
+            message: "Media session no such event type.",
+            ecode: 'sip0121'
+          });
+        }
+        if (!currentSession.callbacks[sessionEventType]) {
+          currentSession.callbacks[sessionEventType] = [];
+        }
+        currentSession.callbacks[sessionEventType].push(handler);
+      });
     };
 
     /**
@@ -663,7 +728,7 @@
     }
 
     /**
-     * TODO
+     * TODO: to document options parameter.
      * Send DTMF signal to other end of call session.
      * @alias sendDTMF
      * @memberof MediaSession
@@ -725,7 +790,7 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            if(sip.utils.isArray(evData.session.getLocalStreams()))
+            if (sip.utils.isArray(evData.session.getLocalStreams()))
             sip.utils.each(evData.session.getLocalStreams(), function (stream) {
               stream.stop();
             });
@@ -746,7 +811,7 @@
    */
   sip.initialize = function (config) {
 
-    if(!media.initialized()) {
+    if (!media.initialized()) {
       media.initialize(function (result, props, stream) {
         if (result == 'success') {
           clientInt.canAudio = props.audio;
@@ -809,7 +874,6 @@
 
     // Turn
     var turnServers = [];
-// TEST: disable temporary for calls to work in FF 31
     if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
       sip.utils.each(event.data.uris.turn, function (uri) {
         turnServers.push({
@@ -822,7 +886,6 @@
 
     // Stun
     var stunServers = [];
-// TEST: disable temporary for calls to work in FF 31
     if (event.data.uris && sip.utils.isArray(event.data.uris.stun)) {
       sip.utils.each(event.data.uris.stun, function (uri) {
         stunServers.push('stun:' + uri.replace(/;.*$/, ''));
@@ -869,6 +932,12 @@
 
     sip.log('Modifyed session to', mediaSession);
     sip.trigger('gotMediaSession', mediaSession);
+
+    if (mediaSession.isAudioCall) {
+      sip.trigger('gotIncomingAudioCall', mediaSession);
+    } else if (MediaSession.isVideoCall) {
+      sip.trigger('gotIncomingVideoCall', mediaSession);
+    }
   });
 
   sip.on('sip_disconnected', function (data) {
@@ -912,7 +981,7 @@
     currentSessionID = sip.call(userID, { audio: true, video: false });
 
     // TODO: check callbacksObject for sanity
-    if(sip.utils.isObject(callbacksObject)) {
+    if (sip.utils.isObject(callbacksObject)) {
       sessions[currentSessionID].callbacks = callbacksObject;
     }
 
@@ -924,7 +993,7 @@
     currentSessionID = sip.call(userID, { audio: true, video: true });
 
     // TODO: check callbacksObject for sanity
-    if(sip.utils.isObject(callbacksObject)) {
+    if (sip.utils.isObject(callbacksObject)) {
       sessions[currentSessionID].callbacks = callbacksObject;
     }
 
@@ -1020,10 +1089,8 @@
      */
 
     /**
-    * Dispatched when oSDK got incoming audio call (both sides have only audio). For use with oSDK.audioCall method.
-    * TODO: incomplete for public
+    * Dispatched when oSDK got incoming audio call (both sides have only audio). Subset of gotMediaSession event type.
     *
-    * @private
     * @memberof MediaAPI
     * @event gotIncomingAudioCall
     * @param {MediaSession} event The event object associated with this event.
@@ -1032,10 +1099,8 @@
     'gotIncomingAudioCall': { client: true },
 
     /**
-    * Dispatched when oSDK got incoming video call (both sides have audio and video).  For use with oSDK.videoCall method.
-    * TODO: incomplete for public
+    * Dispatched when oSDK got incoming video call (both sides have audio and video). Subset of gotMediaSession event type.
     *
-    * @private
     * @memberof MediaAPI
     * @event gotIncomingVideoCall
     * @param {MediaSession} event The event object associated with this event.
