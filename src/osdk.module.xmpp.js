@@ -678,7 +678,7 @@
 
       fnIQ: function(iq) {
         module.info('XMPP HANDLER(iq)');
-        if (connection.connected()) {
+        if (connection && connection.connected()) {
           connection.send(iq.errorReply(ERR_FEATURE_NOT_IMPLEMENTED));
           return true;
         }
@@ -687,7 +687,7 @@
 
       fnIQV: function(iq) {
         module.info('XMPP HANDLER(iq version)');
-        if (connection.connected()) {
+        if (connection && connection.connected()) {
           connection.send(iq.reply([iq.buildNode('name', 'oSDK client'), iq.buildNode('version', JSJaC.Version), iq.buildNode('os', navigator.userAgent)]));
           return true;
         }
@@ -696,7 +696,7 @@
 
       fnIQT: function(iq) {
         module.info('XMPP HANDLER(iq time)');
-        if (connection.connected()) {
+        if (connection && connection.connected()) {
           var now = new Date();
           connection.send(iq.reply([iq.buildNode('display', now.toLocaleString()), iq.buildNode('utc', now.jabberDate()), iq.buildNode('tz', now.toLocaleString().substring(now.toLocaleString().lastIndexOf(' ') + 1))]));
           return true;
@@ -1118,7 +1118,7 @@
 
       var handlers = self.getHandlers(params);
 
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
 
         params = params || {};
 
@@ -1211,7 +1211,7 @@
 
       var handlers = self.getHandlers(params);
 
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
 
         this.sendPresence({
           onError: handlers.onError
@@ -1326,7 +1326,7 @@
       // Get handlers from params
       var handlers = self.getHandlers(params);
 
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
 
         var iq = new JSJaCIQ();
         iq.setIQ(null, 'get', self.generateRosterId());
