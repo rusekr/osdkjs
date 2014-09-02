@@ -7,8 +7,11 @@
   // Module namespace
   var errors = new oSDK.utils.Module('errors');
 
+  // Module specific DEBUG.
+  errors.debug = true;
+
   // Catching all unhandled exceptions and converting to core.error events
-  errors.on('windowerror', function() {
+  errors.on('windowError', function() {
 
     // Triggering only our errors
     if(errors.utils.isObject(arguments[0]) && arguments[0].error && arguments[0].error.oSDKError) {

@@ -13,6 +13,9 @@
   // Module namespace
   var client = new oSDK.utils.Module('client');
 
+  // Module specific DEBUG.
+  client.debug = true;
+
   client.registerMethods({
     /**
      * Allows client to register listener for one or several event types.

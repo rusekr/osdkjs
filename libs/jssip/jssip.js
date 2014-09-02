@@ -377,9 +377,9 @@ EventEmitter.prototype = {
   * @param {Array} args
   */
   emit: function(event, sender, data) {
-    var self = this, 
-      listeners, e, idx;
-
+    var listeners, length, e, idx,
+      self = this;
+    
     if (!this.checkEvent(event)) {
       this.logger.error('unable to emit a nonexistent event'+ event);
       return;
@@ -388,12 +388,17 @@ EventEmitter.prototype = {
     this.logger.log('emitting event '+ event);
 
     listeners = this.events[event];
-
+    length = listeners.length;
+    
     e = new JsSIP.Event(event, sender, data);
 
-    listeners.forEach(function (callback) {
+    listeners.map(function(listener) {
+      return function() {
+        listener.call(null, e);
+      };
+    }).forEach(function(callback) {
       try {
-        callback.call(null, e);
+        callback();
       } catch(err) {
         self.logger.error(err.stack);
       }
@@ -457,6 +462,7 @@ JsSIP.C= {
     DIALOG_ERROR:             'Dialog Error',
 
     // Session error causes
+    BYE:                      'Terminated',
     WEBRTC_NOT_SUPPORTED:     'WebRTC Not Supported',
     WEBRTC_ERROR:             'WebRTC Error',
     CANCELED:                 'Canceled',
@@ -1697,6 +1703,8 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
     response += 'Accept: '+ JsSIP.UA.C.ACCEPTED_BODY_TYPES +'\r\n';
   } else if (code === 405) {
     response += 'Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua) +'\r\n';
+  } else if (code === 415 ) {
+    response += 'Accept: '+ JsSIP.UA.C.ACCEPTED_BODY_TYPES +'\r\n';
   }
   
   response += 'Supported: ' +  supported +'\r\n';
@@ -3824,7 +3832,7 @@ RTCMediaHandler.prototype = {
   isReady: function() {
     return this.ready;
   },
-  
+
   createOffer: function(onSuccess, onFailure, constraints) {
     var self = this;
 
@@ -3840,7 +3848,7 @@ RTCMediaHandler.prototype = {
         };
       }
     }
-    
+
     this.ready = false;
 
     this.peerConnection.createOffer(
@@ -3879,7 +3887,7 @@ RTCMediaHandler.prototype = {
         };
       }
     }
-    
+
     this.ready = false;
 
     this.peerConnection.createAnswer(
@@ -3936,7 +3944,7 @@ RTCMediaHandler.prototype = {
   */
   init: function(options) {
     options = options || {};
-    
+
     var idx, length, server,
       self = this,
       servers = [],
@@ -3952,15 +3960,15 @@ RTCMediaHandler.prototype = {
     if (!turn_servers) {
       turn_servers = config.turn_servers;
     }
-    
+
     /* Change 'url' to 'urls' whenever this issue is solved:
      * https://code.google.com/p/webrtc/issues/detail?id=2096
      */
-    
+
     if (stun_servers.length > 0) {
       servers.push({'url': stun_servers});
     }
-    
+
     length = turn_servers.length;
     for (idx = 0; idx < length; idx++) {
       server = turn_servers[idx];
@@ -3991,8 +3999,8 @@ RTCMediaHandler.prototype = {
 
     this.peerConnection.oniceconnectionstatechange = function() {
       self.logger.log('ICE connection state changed to "'+ this.iceConnectionState +'"');
-      
-      if (this.iceConnectionState === 'disconnected') {
+
+      if (this.iceConnectionState === 'failed') {
         self.session.terminate({
             cause: JsSIP.C.causes.RTP_TIMEOUT,
             status_code: 200,
@@ -4314,7 +4322,7 @@ RTCSession = function(ua) {
   this.start_time = null;
   this.end_time = null;
   this.tones = null;
-  
+
   // Mute/Hold state
   this.audioMuted = false;
   this.videoMuted = false;
@@ -4323,16 +4331,16 @@ RTCSession = function(ua) {
 
   this.pending_actions = {
     actions: [],
-    
+
     length: function() {
       return this.actions.length;
     },
-    
+
     isPending: function(name){
-      var 
+      var
         idx = 0,
         length = this.actions.length;
-        
+
       for (idx; idx<length; idx++) {
         if (this.actions[idx].name === name) {
           return true;
@@ -4340,22 +4348,22 @@ RTCSession = function(ua) {
       }
       return false;
     },
-    
+
     shift: function() {
       return this.actions.shift();
     },
-    
+
     push: function(name) {
       this.actions.push({
         name: name
       });
     },
-    
+
     pop: function(name) {
-      var 
+      var
         idx = 0,
         length = this.actions.length;
-        
+
       for (idx; idx<length; idx++) {
         if (this.actions[idx].name === name) {
           this.actions.splice(idx,1);
@@ -4363,7 +4371,7 @@ RTCSession = function(ua) {
       }
     }
   };
-  
+
   // Custom session empty object for high level use
   this.data = {};
 
@@ -4425,6 +4433,8 @@ RTCSession.prototype.terminate = function(options) {
         this.request.cancel(cancel_reason);
       }
 
+      this.status = C.STATUS_CANCELED;
+
       this.failed('local', null, JsSIP.C.causes.CANCELED);
       break;
 
@@ -4442,7 +4452,7 @@ RTCSession.prototype.terminate = function(options) {
       this.request.reply(status_code, reason_phrase, extraHeaders, body);
       this.failed('local', null, JsSIP.C.causes.REJECTED);
       break;
-      
+
     case C.STATUS_WAITING_FOR_ACK:
     case C.STATUS_CONFIRMED:
       this.logger.log('terminating RTCSession');
@@ -4454,7 +4464,7 @@ RTCSession.prototype.terminate = function(options) {
       } else if (status_code) {
         extraHeaders.push('Reason: SIP ;cause=' + status_code + '; text="' + reason_phrase + '"');
       }
-      
+
       /* RFC 3261 section 15 (Terminating a session):
         *
         * "...the callee's UA MUST NOT send a BYE on a confirmed dialog
@@ -4467,7 +4477,7 @@ RTCSession.prototype.terminate = function(options) {
 
         // Save the dialog for later restoration
         dialog = this.dialog;
-        
+
         // Send the BYE as soon as the ACK is received...
         this.receiveRequest = function(request) {
           if(request.method === JsSIP.C.ACK) {
@@ -4478,8 +4488,8 @@ RTCSession.prototype.terminate = function(options) {
             dialog.terminate();
           }
         };
-        
-        // .., or when the INVITE transaction times out 
+
+        // .., or when the INVITE transaction times out
         this.request.server_transaction.on('stateChanged', function(e){
           if (e.sender.state === JsSIP.Transactions.C.STATUS_TERMINATED) {
             self.sendRequest(JsSIP.C.BYE, {
@@ -4491,13 +4501,13 @@ RTCSession.prototype.terminate = function(options) {
         });
 
         this.ended('local', null, cause);
-        
+
         // Restore the dialog into 'this' in order to be able to send the in-dialog BYE :-)
         this.dialog = dialog;
-        
+
         // Restore the dialog into 'ua' so the ACK can reach 'this' session
         this.ua.dialogs[dialog.id.toString()] = dialog;
-        
+
       } else {
         this.sendRequest(JsSIP.C.BYE, {
           extraHeaders: extraHeaders,
@@ -4518,11 +4528,13 @@ RTCSession.prototype.terminate = function(options) {
 RTCSession.prototype.answer = function(options) {
   options = options || {};
 
-  var idx, length, hasAudio, hasVideo,
+  var idx, length, sdp, remoteDescription,
+    hasAudio = false,
+    hasVideo = false,
     self = this,
     request = this.request,
     extraHeaders = options.extraHeaders && options.extraHeaders.slice() || [],
-    mediaConstraints = options.mediaConstraints || {'audio':true, 'video':true},
+    mediaConstraints = options.mediaConstraints || {},
     RTCAnswerConstraints = options.RTCAnswerConstraints || {},
     mediaStream = options.mediaStream || null,
 
@@ -4544,11 +4556,11 @@ RTCSession.prototype.answer = function(options) {
     // rtcMediaHandler.addStream successfully added
     streamAdditionSucceeded = function() {
       self.connecting(request);
-      
+
       if (self.status === C.STATUS_TERMINATED) {
         return;
       }
-      
+
       self.rtcMediaHandler.createAnswer(
         answerCreationSucceeded,
         answerCreationFailed,
@@ -4605,7 +4617,7 @@ RTCSession.prototype.answer = function(options) {
   } else if (this.status !== C.STATUS_WAITING_FOR_ANSWER) {
     throw new JsSIP.Exceptions.InvalidStateError(this.status);
   }
-  
+
   this.status = C.STATUS_ANSWERED;
 
   // An error on dialog creation will fire 'failed' event
@@ -4615,40 +4627,59 @@ RTCSession.prototype.answer = function(options) {
   }
 
   window.clearTimeout(this.timers.userNoAnswerTimer);
-  
+
   extraHeaders.unshift('Contact: ' + self.contact);
 
-  length = this.getRemoteStreams().length;
-  
-  for (idx=0; idx<length; idx++) {
-    if (this.getRemoteStreams()[idx].getAudioTracks().length > 0) {
+  // Determine incoming media from remote session description
+  remoteDescription = this.rtcMediaHandler.peerConnection.remoteDescription || {};
+  sdp = JsSIP.Parser.parseSDP(remoteDescription.sdp || '');
+
+  // Make sure sdp is an array, not the case if there is only one media
+  if(!(sdp.media instanceof Array)) {
+    sdp.media = [sdp.media || []];
+  }
+
+  // Go through all medias in SDP to find offered capabilities to answer with
+  idx = sdp.media.length;
+  while(idx--) {
+    if(sdp.media[idx].type === 'audio' &&
+        (sdp.media[idx].direction === 'sendrecv' ||
+         sdp.media[idx].direction === 'recvonly')) {
       hasAudio=true;
     }
-    if (this.getRemoteStreams()[idx].getVideoTracks().length > 0) {
+    if(sdp.media[idx].type === 'video' &&
+        (sdp.media[idx].direction === 'sendrecv' ||
+         sdp.media[idx].direction === 'recvonly')) {
       hasVideo=true;
     }
   }
-  
-  if (!hasAudio && mediaConstraints.audio === true) {
-    mediaConstraints.audio = false;
-    if (mediaStream) {
-      length = mediaStream.getAudioTracks().length;
-      for (idx=0; idx<length; idx++) {
-        mediaStream.removeTrack(mediaStream.getAudioTracks()[idx]);
-      }
+
+  // Remove audio from mediaStream if suggested by mediaConstraints
+   if (mediaStream && mediaConstraints.audio === false) {
+    length = mediaStream.getAudioTracks().length;
+    for (idx=0; idx<length; idx++) {
+      mediaStream.removeTrack(mediaStream.getAudioTracks()[idx]);
     }
   }
-  
-  if (!hasVideo && mediaConstraints.video === true) {
-    mediaConstraints.video = false;
-    if (mediaStream) {
-      length = mediaStream.getVideoTracks().length;
-      for (idx=0; idx<length; idx++) {
-        mediaStream.removeTrack(mediaStream.getVideoTracks()[idx]);
-      }
+
+  // Remove video from mediaStream if suggested by mediaConstraints
+  if (mediaStream && mediaConstraints.video === false) {
+    length = mediaStream.getVideoTracks().length;
+    for (idx=0; idx<length; idx++) {
+      mediaStream.removeTrack(mediaStream.getVideoTracks()[idx]);
     }
   }
-  
+
+  // Set audio constraints based on incoming stream if not supplied
+  if (mediaConstraints.audio === undefined) {
+      mediaConstraints.audio = hasAudio;
+  }
+
+  // Set video constraints based on incoming stream if not supplied
+  if (mediaConstraints.video === undefined) {
+      mediaConstraints.video = hasVideo;
+  }
+
   if (mediaStream) {
     userMediaSucceeded(mediaStream);
   } else {
@@ -4693,7 +4724,7 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
   if (!tones || typeof tones !== 'string' || !tones.match(/^[0-9A-D#*,]+$/i)) {
     throw new TypeError('Invalid tones: '+ tones);
   }
- 
+
   // Check duration
   if (duration && !JsSIP.Utils.isDecimal(duration)) {
     throw new TypeError('Invalid tone duration: '+ duration);
@@ -4776,14 +4807,14 @@ RTCSession.prototype.sendRequest = function(method, options) {
 /**
  * Check if RTCSession is ready for a re-INVITE
  *
- * @returns {Boolean} 
+ * @returns {Boolean}
  */
 RTCSession.prototype.isReadyToReinvite = function() {
   // rtcMediaHandler is not ready
   if (!this.rtcMediaHandler.isReady()) {
     return;
   }
-  
+
   // Another INVITE transaction is in progress
   if (this.dialog.uac_pending_reply === true || this.dialog.uas_pending_reply === true) {
     return false;
@@ -4791,30 +4822,30 @@ RTCSession.prototype.isReadyToReinvite = function() {
     return true;
   }
 };
- 
- 
+
+
 /**
  * Mute
  */
 RTCSession.prototype.mute = function(options) {
   options = options || {audio:true, video:false};
-  
-  var 
-    audioMuted = false, 
+
+  var
+    audioMuted = false,
     videoMuted = false;
-  
+
   if (this.audioMuted === false && options.audio) {
     audioMuted = true;
     this.audioMuted = true;
     this.toogleMuteAudio(true);
   }
-  
+
   if (this.videoMuted === false && options.video) {
     videoMuted = true;
     this.videoMuted = true;
     this.toogleMuteVideo(true);
   }
-  
+
   if (audioMuted === true || videoMuted === true) {
     this.onmute({
       audio: audioMuted,
@@ -4828,29 +4859,29 @@ RTCSession.prototype.mute = function(options) {
  */
 RTCSession.prototype.unmute = function(options) {
   options = options || {audio:true, video:true};
-  
-  var 
-    audioUnMuted = false, 
+
+  var
+    audioUnMuted = false,
     videoUnMuted = false;
-  
+
   if (this.audioMuted === true && options.audio) {
     audioUnMuted = true;
     this.audioMuted = false;
-    
+
     if (this.local_hold === false) {
       this.toogleMuteAudio(false);
     }
   }
-  
+
   if (this.videoMuted === true && options.video) {
     videoUnMuted = true;
     this.videoMuted = false;
-    
+
     if (this.local_hold === false) {
       this.toogleMuteVideo(false);
     }
   }
-  
+
   if (audioUnMuted === true || videoUnMuted === true) {
     this.onunmute({
       audio: audioUnMuted,
@@ -4877,10 +4908,10 @@ RTCSession.prototype.hold = function() {
   if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
     throw new JsSIP.Exceptions.InvalidStateError(this.status);
   }
-  
+
   this.toogleMuteAudio(true);
   this.toogleMuteVideo(true);
-  
+
   if (!this.isReadyToReinvite()) {
     /* If there is a pending 'unhold' action, cancel it and don't queue this one
      * Else, if there isn't any 'hold' action, add this one to the queue
@@ -4900,15 +4931,15 @@ RTCSession.prototype.hold = function() {
       return;
     }
   }
-  
+
   this.onhold('local');
-  
+
   this.sendReinvite({
     mangle: function(body){
       var idx, length;
-      
+
       body = JsSIP.Parser.parseSDP(body);
-      
+
       length = body.media.length;
       for (idx=0; idx<length; idx++) {
         if (body.media[idx].direction === undefined) {
@@ -4919,7 +4950,7 @@ RTCSession.prototype.hold = function() {
           body.media[idx].direction = 'inactive';
         }
       }
-      
+
       return JsSIP.Parser.writeSDP(body);
     }
   });
@@ -4929,19 +4960,19 @@ RTCSession.prototype.hold = function() {
  * Unhold
  */
 RTCSession.prototype.unhold = function() {
-  
+
   if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
     throw new JsSIP.Exceptions.InvalidStateError(this.status);
   }
-  
+
   if (!this.audioMuted) {
     this.toogleMuteAudio(false);
   }
-  
+
   if (!this.videoMuted) {
     this.toogleMuteVideo(false);
   }
-  
+
   if (!this.isReadyToReinvite()) {
     /* If there is a pending 'hold' action, cancel it and don't queue this one
      * Else, if there isn't any 'unhold' action, add this one to the queue
@@ -4961,9 +4992,9 @@ RTCSession.prototype.unhold = function() {
       return;
     }
   }
-  
+
   this.onunhold('local');
-  
+
   this.sendReinvite();
 };
 
@@ -4981,8 +5012,8 @@ RTCSession.prototype.isOnHold = function() {
 /**
  * Session Timers
  */
- 
- 
+
+
 /**
  * RFC3261 13.3.1.4
  * Response retransmissions cannot be accomplished by transaction layer
@@ -4992,14 +5023,14 @@ RTCSession.prototype.setInvite2xxTimer = function(request, body) {
   var
     self = this,
     timeout = JsSIP.Timers.T1;
-    
+
   this.timers.invite2xxTimer = window.setTimeout(function invite2xxRetransmission() {
     if (self.status !== C.STATUS_WAITING_FOR_ACK) {
       return;
     }
-    
+
     request.reply(200, null, ['Contact: '+ self.contact], body);
-    
+
     if (timeout < JsSIP.Timers.T2) {
       timeout = timeout * 2;
       if (timeout > JsSIP.Timers.T2) {
@@ -5023,7 +5054,7 @@ RTCSession.prototype.setACKTimer = function() {
 
   this.timers.ackTimer = window.setTimeout(function() {
     if(self.status === C.STATUS_WAITING_FOR_ACK) {
-      this.logger.log('no ACK received, terminating the call');
+      self.logger.log('no ACK received, terminating the call');
       window.clearTimeout(self.timers.invite2xxTimer);
       self.sendRequest(JsSIP.C.BYE);
       self.ended('remote', null, JsSIP.C.causes.NO_ACK);
@@ -5097,9 +5128,9 @@ RTCSession.prototype.init_incoming = function(request) {
 
   //Initialize Media Session
   this.rtcMediaHandler = new RTCMediaHandler(this, {
-    RTCConstraints: {"optional": [{'DtlsSrtpKeyAgreement': 'true'}]}
+    constraints: {"optional": [{'DtlsSrtpKeyAgreement': 'true'}]}
     });
-    
+
   this.rtcMediaHandler.onMessage(
     'offer',
     request.body,
@@ -5161,7 +5192,7 @@ RTCSession.prototype.connect = function(target, options) {
     RTCOfferConstraints = options.RTCOfferConstraints || {},
     stun_servers = options.stun_servers || null,
     turn_servers = options.turn_servers || null;
-  
+
   if (stun_servers) {
     iceServers = JsSIP.UA.configuration_check.optional['stun_servers'](stun_servers);
     if (!iceServers) {
@@ -5170,7 +5201,7 @@ RTCSession.prototype.connect = function(target, options) {
       stun_servers = iceServers;
     }
   }
-  
+
   if (turn_servers) {
     iceServers = JsSIP.UA.configuration_check.optional['turn_servers'](turn_servers);
     if (!iceServers){
@@ -5240,11 +5271,11 @@ RTCSession.prototype.connect = function(target, options) {
   this.logger = this.ua.getLogger('jssip.rtcsession', this.id);
 
   this.rtcMediaHandler = new RTCMediaHandler(this, {
-    RTCConstraints: RTCConstraints,
+    constraints: RTCConstraints,
     stun_servers: stun_servers,
     turn_servers: turn_servers
     });
-  
+
   //Save the session into the ua sessions collection.
   this.ua.sessions[this.id] = this;
 
@@ -5370,12 +5401,12 @@ RTCSession.prototype.receiveReinvite = function(request) {
       request.reply(415);
       return;
     }
-    
+
     sdp = JsSIP.Parser.parseSDP(request.body);
-    
+
     for (idx=0; idx < sdp.media.length; idx++) {
       direction = sdp.direction || sdp.media[idx].direction || 'sendrecv';
-      
+
       if (direction !== 'sendonly' && direction !== 'inactive') {
         hold = false;
       }
@@ -5396,7 +5427,7 @@ RTCSession.prototype.receiveReinvite = function(request) {
                 self.status = C.STATUS_WAITING_FOR_ACK;
                 self.setInvite2xxTimer(request, body);
                 self.setACKTimer();
-                
+
                 if (self.remote_hold === true && hold === false) {
                   self.onunhold('remote');
                 } else if (self.remote_hold === false && hold === true) {
@@ -5439,7 +5470,7 @@ RTCSession.prototype.receiveRequest = function(request) {
     */
 
     /*
-    * Terminate the whole session in case the user didn't accept (or yet send the answer) 
+    * Terminate the whole session in case the user didn't accept (or yet send the answer)
     * nor reject the request opening the session.
     */
     if(this.status === C.STATUS_WAITING_FOR_ANSWER  || this.status === C.STATUS_ANSWERED) {
@@ -5511,11 +5542,11 @@ RTCSession.prototype.sendInitialRequest = function(mediaConstraints, RTCOfferCon
  // rtcMediaHandler.addStream successfully added
  streamAdditionSucceeded = function() {
    self.connecting(self.request);
-   
+
    if (self.status === C.STATUS_TERMINATED) {
      return;
    }
-      
+
    self.rtcMediaHandler.createOffer(
      offerCreationSucceeded,
      offerCreationFailed,
@@ -5551,7 +5582,7 @@ RTCSession.prototype.sendInitialRequest = function(mediaConstraints, RTCOfferCon
 
    self.failed('system', null, JsSIP.C.causes.WEBRTC_ERROR);
  };
- 
+
  this.receiveResponse = this.receiveInviteResponse;
 
  if (mediaStream) {
@@ -5570,8 +5601,8 @@ RTCSession.prototype.sendInitialRequest = function(mediaConstraints, RTCOfferCon
  * @private
  */
 RTCSession.prototype.sendReinvite = function(options) {
-  options = options || {}; 
-  
+  options = options || {};
+
   var
     self = this,
     extraHeaders = options.extraHeaders || [],
@@ -5600,7 +5631,7 @@ RTCSession.prototype.sendReinvite = function(options) {
       if (mangle) {
         body = mangle(body);
       }
-      
+
       self.dialog.sendRequest(self, JsSIP.C.INVITE, {
         extraHeaders: extraHeaders,
         body: body
@@ -5626,27 +5657,27 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
 
   // Handle 2XX retransmissions and responses from forked requests
   if (this.dialog && (response.status_code >=200 && response.status_code <=299)) {
-  
+
     /*
      * If it is a retransmission from the endpoint that established
      * the dialog, send an ACK
      */
-    if (this.dialog.id.call_id === response.call_id && 
-        this.dialog.id.local_tag === response.from_tag && 
+    if (this.dialog.id.call_id === response.call_id &&
+        this.dialog.id.local_tag === response.from_tag &&
         this.dialog.id.remote_tag === response.to_tag) {
       this.sendRequest(JsSIP.C.ACK);
       return;
-    } 
-    
+    }
+
     // If not, send an ACK  and terminate
     else  {
       dialog = new JsSIP.Dialog(this, response, 'UAC');
-      
+
       if (dialog.error !== undefined) {
         this.logger.error(dialog.error);
         return;
       }
-      
+
       dialog.sendRequest({
           owner: {status: C.STATUS_TERMINATED},
           onRequestTimeout: function(){},
@@ -5654,7 +5685,7 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
           onDialogError: function(){},
           receiveResponse: function(){}
         }, JsSIP.C.ACK);
-        
+
       dialog.sendRequest({
           owner: {status: C.STATUS_TERMINATED},
           onRequestTimeout: function(){},
@@ -5687,7 +5718,7 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
       if(this.status !== C.STATUS_INVITE_SENT && this.status !== C.STATUS_1XX_RECEIVED) {
         break;
       }
-      
+
       // Do nothing with 1xx responses without To tag.
       if(!response.to_tag) {
         this.logger.warn('1xx response received without to tag');
@@ -5701,13 +5732,13 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
           break;
         }
       }
-      
+
       if (!response.body) {
         session.status = C.STATUS_1XX_RECEIVED;
         session.progress('remote', response);
         break;
       }
-      
+
       this.rtcMediaHandler.onMessage(
         'pranswer',
         response.body,
@@ -5730,6 +5761,8 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
       );
       break;
     case /^2[0-9]{2}$/.test(response.status_code):
+      this.status = C.STATUS_CONFIRMED;
+
       if(!response.body) {
         this.acceptAndTerminate(response, 400, 'Missing session description');
         this.failed('remote', response, JsSIP.C.causes.BAD_MEDIA_DESCRIPTION);
@@ -5749,7 +5782,6 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
          * SDP Answer fits with Offer. Media will start
          */
         function() {
-          session.status = C.STATUS_CONFIRMED;
           session.sendRequest(JsSIP.C.ACK);
           session.started('remote', response);
         },
@@ -5789,7 +5821,7 @@ RTCSession.prototype.receiveReinviteResponse = function(response) {
     case /^2[0-9]{2}$/.test(response.status_code):
       this.status = C.STATUS_CONFIRMED;
       this.sendRequest(JsSIP.C.ACK);
-      
+
       if(!response.body) {
         this.reinviteFailed();
         break;
@@ -5842,6 +5874,9 @@ RTCSession.prototype.acceptAndTerminate = function(response, status_code, reason
       extraHeaders: extraHeaders
     });
   }
+
+  // Update session status.
+  this.status = C.STATUS_TERMINATED;
 };
 
 
@@ -5851,7 +5886,7 @@ RTCSession.prototype.acceptAndTerminate = function(response, status_code, reason
 RTCSession.prototype.toogleMuteAudio = function(mute) {
   var streamIdx, trackIdx, tracks,
     localStreams = this.getLocalStreams();
-    
+
   for (streamIdx in localStreams) {
     tracks = localStreams[streamIdx].getAudioTracks();
     for (trackIdx in tracks) {
@@ -5866,7 +5901,7 @@ RTCSession.prototype.toogleMuteAudio = function(mute) {
 RTCSession.prototype.toogleMuteVideo = function(mute) {
   var streamIdx, trackIdx, tracks,
     localStreams = this.getLocalStreams();
-    
+
   for (streamIdx in localStreams) {
     tracks = localStreams[streamIdx].getVideoTracks();
     for (trackIdx in tracks) {
@@ -6027,7 +6062,7 @@ RTCSession.prototype.onhold = function(originator) {
   } else {
     this.remote_hold = true;
   }
-  
+
   this.emit('hold', this, {
     originator: originator
   });
@@ -6042,7 +6077,7 @@ RTCSession.prototype.onunhold = function(originator) {
   } else {
     this.remote_hold = false;
   }
-  
+
   this.emit('unhold', this, {
     originator: originator
   });
@@ -6073,11 +6108,11 @@ RTCSession.prototype.onunmute = function(options) {
  */
 RTCSession.prototype.onReadyToReinvite = function() {
   var action = (this.pending_actions.length() > 0)? this.pending_actions.shift() : null;
-  
+
   if (!action) {
     return;
   }
-  
+
   if (action.name === 'hold') {
     this.hold();
   } else if (action.name === 'unhold') {
@@ -6389,9 +6424,9 @@ UA = function(configuration) {
     'connecting',
     'connected',
     'disconnected',
-    'connectionFailed',
     'newTransaction',
     'transactionDestroyed',
+    'connectionFailed',
     'registered',
     'unregistered',
     'registrationFailed',
@@ -6575,6 +6610,8 @@ UA.prototype.call = function(target, options) {
 
   session = new JsSIP.RTCSession(this);
   session.connect(target, options);
+
+  return session.id;
 };
 
 /**
@@ -6768,6 +6805,11 @@ UA.prototype.onTransportError = function(transport) {
     reason: transport.lastTransportError.reason
   });
 
+  // No reconnection possibility by config
+  if(!this.configuration.connection_autorecovery) {
+    return;
+  }
+
   server = this.getNextWsServer();
 
   if(server) {
@@ -6778,11 +6820,8 @@ UA.prototype.onTransportError = function(transport) {
       this.status = C.STATUS_NOT_READY;
       this.error = C.NETWORK_ERROR;
     }
-
-    if(this.configuration.connection_recovery) {
-      // Transport Recovery process
-      this.recoverTransport();
-    }
+    // Transport Recovery process
+    this.recoverTransport();
   }
 };
 
@@ -7131,8 +7170,8 @@ UA.prototype.loadConfig = function(configuration) {
       registrar_server: null,
 
       // Transport related parameters
-      connection_recovery: true,
 
+      connection_autorecovery: true,
       ws_server_max_reconnection: 3,
       ws_server_reconnection_timeout: 4,
 
@@ -7315,6 +7354,8 @@ UA.configuration_skeleton = (function() {
     parameters = [
       // Internal parameters
       "jssip_id",
+      "register_min_expires",
+      "connection_autorecovery",
       "ws_server_max_reconnection",
       "ws_server_reconnection_timeout",
       "hostport_params",
@@ -7325,7 +7366,6 @@ UA.configuration_skeleton = (function() {
 
       // Optional user configurable parameters
       "authorization_user",
-      "connection_recovery",
       "connection_recovery_max_interval",
       "connection_recovery_min_interval",
       "display_name",
@@ -7459,9 +7499,9 @@ UA.configuration_check = {
       }
     },
 
-    connection_recovery: function(connection_recovery) {
-      if (typeof connection_recovery === 'boolean') {
-        return connection_recovery;
+    connection_autorecovery: function(connection_autorecovery) {
+      if (typeof connection_autorecovery === 'boolean') {
+        return connection_autorecovery;
       }
     },
 
@@ -8108,7 +8148,6 @@ var sanityCheck,
  *
  * Responses:
  *  - _rfc3261_8_1_3_3_ Multiple Via headers
- *  - _rfc3261_18_1_2_ sent-by mismatch
  *  - _rfc3261_18_3_response_ Body Content-Length
  *
  * All:
@@ -8187,14 +8226,6 @@ function rfc3261_8_1_3_3() {
   }
 }
 
-function rfc3261_18_1_2() {
-  var via_host = ua.configuration.via_host;
-  if(message.via.host !== via_host) {
-    logger.warn('Via host in the response does not match UA Via host value. Dropping the response');
-    return false;
-  }
-}
-
 function rfc3261_18_3_response() {
   var
     len = JsSIP.Utils.str_utf8_length(message.body),
@@ -8253,7 +8284,6 @@ requests.push(rfc3261_18_3_request);
 requests.push(rfc3261_8_2_2_2);
 
 responses.push(rfc3261_8_1_3_3);
-responses.push(rfc3261_18_1_2);
 responses.push(rfc3261_18_3_response);
 
 all.push(minimumHeaders);

@@ -10,6 +10,9 @@
 
   var sip = new oSDK.utils.Module('sip');
 
+  // Module specific DEBUG.
+  sip.debug = true;
+
   var defaultConfig = {
     sip: {
       gw: {
@@ -22,7 +25,54 @@
   };
 
   // RTC sessions array
-  var sessions = [];
+  var sessions = (function () {
+    var
+      instance = {},
+      store = {};
+
+      // Clears one or all sessions
+    instance.clear = function sessionsClear(sessionID) {
+
+      var deleteSession = function (sessionID) {
+        // TODO: make sure session is opened
+//         if (store[sessionID].mediaSessionObject && !store[sessionID].mediaSessionObject.end_time) {
+//           store[sessionID].mediaSessionObject.end();
+//         }
+        delete store[sessionID];
+      };
+
+      if (typeof sessionID != 'undefined') {
+        deleteSession(sessionID);
+      } else {
+        sip.utils.each(store, function (session, sessionID) {
+          deleteSession(sessionID);
+        });
+      }
+    };
+
+    // Creates new session
+    instance.create = function sessionsCreate(sessionID, sessionParams) {
+      store[sessionID] = sip.utils.extend({
+        callOptions: {},
+        mediaSessionObject: null,
+        callbacks: {}
+      }, sessionParams);
+      store[sessionID].id = sessionID;
+
+      return store[sessionID];
+    };
+
+    // Returns session object by ID
+    instance.find = function sessionsFind(sessionID) {
+      return store[sessionID];
+    };
+
+    instance.show = function sessionsShow() {
+      return store;
+    };
+
+    return instance;
+  })();
 
   // Unified media object
   var media = (function () {
@@ -208,9 +258,31 @@
    */
   function MediaSession (JsSIPrtcSessionEvent) {
 
-    var evData = JsSIPrtcSessionEvent.data;
+    var evData = JsSIPrtcSessionEvent.data,
+        self = this,
+        eventNamesMap = {
+          'connecting': 'connecting',
+          'progress': 'progress',
+          'started': 'started',
+          'gotDTMF': 'newDTMF',
+          'failed': 'failed',
+          'ended': 'ended'
+        },
+        callOptions = {
+          audio: null,
+          video: null
+        },
+        currentSession = sessions.find(evData.session.id);
 
-    var self = this;
+    // It may be already if call from us
+    if (!currentSession) {
+      currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
+      sip.log('incoming session added', sessions);
+    } else {
+      // Grab call options from imperative session (our call).
+      callOptions = currentSession.callOptions;
+      sip.log('outgoing session augmented', sessions);
+    }
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -272,8 +344,10 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+              evData.originator == 'local' &&
+              currentSession.callOptions.video === true ||
+              evData.originator != 'local' &&
+              evData.request.body.match(/m=video/)
           ) {
             return true;
           }
@@ -292,8 +366,10 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0
+              evData.originator == 'local' &&
+              currentSession.callOptions.audio === true ||
+              evData.originator != 'local' &&
+              evData.request.data.match(/m=audio/)
           ) {
             return true;
           }
@@ -312,9 +388,7 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length === 0
+            self.hasAudio && !self.hasVideo
           ) {
             return true;
           }
@@ -333,9 +407,7 @@
         enumerable: true,
         get: function () {
           if (
-            evData.session.getRemoteStreams().length > 0 &&
-            evData.session.getRemoteStreams()[0].getAudioTracks().length > 0 &&
-            evData.session.getRemoteStreams()[0].getVideoTracks().length > 0
+            self.hasAudio && self.hasVideo
           ) {
             return true;
           }
@@ -354,8 +426,64 @@
         get: function () {
           return evData.session.remote_identity.toString().replace(/^.*?<sip:(.*?)>.*$/, '$1');
         }
+      },
+     /**
+     * Current user ID.
+     * @alias me
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      me: {
+        enumerable: true,
+        get: function () {
+          return evData.session.local_identity.toString().replace(/^.*?<sip:(.*?)>.*$/, '$1');
+        }
+      },
+     /**
+     * Call initiator ID.
+     * @alias from
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      from: {
+        enumerable: true,
+        get: function () {
+          if (self.incoming) {
+            return self.opponent;
+          } else {
+            return self.me;
+          }
+        }
+      },
+     /**
+     * Callee ID.
+     * @alias to
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      to: {
+        enumerable: true,
+        get: function () {
+          if (!self.incoming) {
+            return self.opponent;
+          } else {
+            return self.me;
+          }
+        }
       }
     });
+
+    /**
+    * Dispatched after the local media stream is added into MediaSession and before the ICE gathering starts for initial INVITE request or “200 OK” response transmission.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#connecting
+    * @param {object} event The event object associated with this event.
+    *
+    */
 
     /**
     * Dispatched when current call answered.
@@ -397,7 +525,7 @@
     * Dispatched when current media session got DTMF signal.
     *
     * @memberof MediaSession
-    * @event MediaSession#newDTMF
+    * @event MediaSession#gotDTMF
     * @param {object} event The event object associated with this event.
     *
     */
@@ -407,13 +535,24 @@
      * @alias on
      * @memberof MediaSession
      * @instance
-     * @param {string} event Event type.
+     * @param {string||array} event Event type.
      * @param {function} handler Handler function.
      * @param {object} handler.event Event object.
      */
-    self.on = function (sessionEventType, handler) {
-      //TODO: proxy newDTMF to client as gotDTMF on per session basis
-      evData.session[sessionEventType] = handler;
+    self.on = function (sessionEventTypes, handler) {
+      sip.utils.each([].concat(sessionEventTypes), function (sessionEventType) {
+        // Checking of eventType existance
+        if (!sip.utils.isString(eventNamesMap[sessionEventType])) {
+          throw new sip.Error({
+            message: "Media session no such event type.",
+            ecode: 'sip0121'
+          });
+        }
+        if (!currentSession.callbacks[sessionEventType]) {
+          currentSession.callbacks[sessionEventType] = [];
+        }
+        currentSession.callbacks[sessionEventType].push(handler);
+      });
     };
 
     /**
@@ -589,7 +728,7 @@
     }
 
     /**
-     * TODO
+     * TODO: to document options parameter.
      * Send DTMF signal to other end of call session.
      * @alias sendDTMF
      * @memberof MediaSession
@@ -623,6 +762,45 @@
       return evData.session.terminate.apply(evData.session, [].slice.call(arguments, 0));
     };
 
+    // Assigning internal event handlers for JsSIP events
+    sip.utils.each(eventNamesMap, function (jssipName, ourName) {
+      evData.session[jssipName] = function () {
+        sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
+
+        var args = [].slice.call(arguments, 0);
+        if (sip.utils.isArray(currentSession.callbacks[ourName])) {
+          sip.utils.each(currentSession.callbacks[ourName], function (handler) {
+            if (sip.utils.isFunction(handler)) {
+              sip.log('MediaSession applies handler for', ourName, 'event.');
+              try {
+                handler.apply(self, args);
+              } catch (data) {
+                throw new sip.Error({
+                  message: "SIP media session handling error.",
+                  ecode: 'sip0111',
+                  data: data
+                });
+              }
+            }
+          });
+        }
+
+        // Predefined MediaSession events handling by type
+        switch (jssipName) {
+          case 'ended':
+          case 'failed':
+            // Stopping getting of local media stream to release camera/microphone.
+            if (sip.utils.isArray(evData.session.getLocalStreams()))
+            sip.utils.each(evData.session.getLocalStreams(), function (stream) {
+              stream.stop();
+            });
+            // Deleting current session TODO: Commented as something wrong with that
+            // sessions.clear(currentSession.id);
+            break;
+        }
+      };
+    });
+
   }
 
   /**
@@ -633,17 +811,13 @@
    */
   sip.initialize = function (config) {
 
-    // Setting JsSIP internal logger
-    if (!sip.utils.debug) {
-      JsSIP.loggerFactory.level = 0;
-    }
-
-    if(!media.initialized()) {
+    if (!media.initialized()) {
       media.initialize(function (result, props, stream) {
         if (result == 'success') {
           clientInt.canAudio = props.audio;
           clientInt.canVideo = props.video;
           sip.trigger('gotMediaCapabilities', props);
+          stream.stop(); // We just got capabilities.
         }
         else {
           throw new sip.Error("Media capabilities are not found.");
@@ -674,12 +848,12 @@
   };
 
   // Sip start method
-  sip.start = function () {
+  sip.connect = function () {
     sip.JsSIPUA.start();
   };
 
   // Sip stop method
-  sip.stop = function () {
+  sip.disconnect = function () {
     if (sip.JsSIPUA) {
       sip.JsSIPUA.stop();
     }
@@ -719,12 +893,15 @@
     }
 
     sip.initialize({
+      'log': {
+        'level': sip.debug?3:0
+      },
       'ws_servers': hosts,
       'connection_recovery': false,
       'uri': 'sip:' + event.data.username.split(':')[1],
       'password': event.data.password,
       'stun_servers': stunServers,
-      'turn_servers': turnServers,
+//      'turn_servers': turnServers,
       'trace_sip': true,
       'register': true,
       'authorization_user': event.data.username.split(':')[1],
@@ -732,18 +909,19 @@
       //,hack_via_tcp: true
     });
 
-    sip.start();
+    sip.connect();
 
   });
 
   // On auth disconnecting event
   sip.on('disconnecting', function (data) {
-    sip.stop();
+    sip.disconnect();
+    sessions.clear();
   });
 
   // On other modules connectionFailed event
   sip.on('connectionFailed', function (data) {
-    sip.stop();
+    sip.disconnect();
   });
 
   // TODO: replace with direct jssip listener
@@ -752,10 +930,14 @@
 
     var mediaSession = new MediaSession(event);
 
-    sessions.push(mediaSession);
-
     sip.log('Modifyed session to', mediaSession);
     sip.trigger('gotMediaSession', mediaSession);
+
+    if (mediaSession.isAudioCall) {
+      sip.trigger('gotIncomingAudioCall', mediaSession);
+    } else if (MediaSession.isVideoCall) {
+      sip.trigger('gotIncomingVideoCall', mediaSession);
+    }
   });
 
   sip.on('sip_disconnected', function (data) {
@@ -764,11 +946,16 @@
 
   /**
    * Default semi-transparent proxy of JsSIP call initiator interface.
+   * NOTICE: may be add session callbacks options to it.
    * @private
    *
    *
    */
   sip.call = function () {
+
+    var
+      callOptions = sip.utils.isObject(arguments[1])?arguments[1]:null,
+      currentSessionID;
 
     if (arguments[1]) {
       arguments[1] = callOptionsConverter(arguments[1]);
@@ -776,29 +963,47 @@
 
     sip.log('jssip call arguments', arguments);
 
-    return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
-  };
+    currentSessionID = sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
 
-  // TODO
-  sip.audioCall = function (userID) {
-
-    return sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
-  };
-
-  // TODO:
-  sip.videoCall = function () {
-
-  };
-
-  sip.on('windowbeforeunload', function (event) {
-    sip.info('Beforeunload start');
-    sessions.forEach(function (session) {
-      // TODO: make sure session is opened
-      if (session) {
-        session.end();
-      }
+    // Internal session registration
+    sessions.create(currentSessionID, {
+      id: currentSessionID,
+      callOptions: callOptions
     });
-    sip.info('Beforeunload end');
+    sip.log('outgoing session added', sessions);
+
+    return currentSessionID;
+  };
+
+  // Simple audio call method
+  sip.audioCall = function (userID, callbacksObject) {
+
+    currentSessionID = sip.call(userID, { audio: true, video: false });
+
+    // TODO: check callbacksObject for sanity
+    if (sip.utils.isObject(callbacksObject)) {
+      sessions[currentSessionID].callbacks = callbacksObject;
+    }
+
+    return currentSessionID;
+  };
+
+  // Simple video call method
+  sip.videoCall = function () {
+    currentSessionID = sip.call(userID, { audio: true, video: true });
+
+    // TODO: check callbacksObject for sanity
+    if (sip.utils.isObject(callbacksObject)) {
+      sessions[currentSessionID].callbacks = callbacksObject;
+    }
+
+    return currentSessionID;
+  };
+
+  sip.on('windowBeforeUnload', function (event) {
+    sip.info('windowBeforeUnload start');
+    sessions.clear();
+    sip.info('windowBeforeUnload end');
   });
 
   // Registration stuff
@@ -884,10 +1089,8 @@
      */
 
     /**
-    * Dispatched when oSDK got incoming audio call (both sides have only audio). For use with oSDK.audioCall method.
-    * TODO: incomplete for public
+    * Dispatched when oSDK got incoming audio call (both sides have only audio). Subset of gotMediaSession event type.
     *
-    * @private
     * @memberof MediaAPI
     * @event gotIncomingAudioCall
     * @param {MediaSession} event The event object associated with this event.
@@ -896,10 +1099,8 @@
     'gotIncomingAudioCall': { client: true },
 
     /**
-    * Dispatched when oSDK got incoming video call (both sides have audio and video).  For use with oSDK.videoCall method.
-    * TODO: incomplete for public
+    * Dispatched when oSDK got incoming video call (both sides have audio and video). Subset of gotMediaSession event type.
     *
-    * @private
     * @memberof MediaAPI
     * @event gotIncomingVideoCall
     * @param {MediaSession} event The event object associated with this event.

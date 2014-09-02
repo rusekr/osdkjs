@@ -8,6 +8,9 @@
   // Module namespace
   var test = new oSDK.utils.Module('test');
 
+  // Module specific DEBUG.
+  test.debug = true;
+
   // TODO: DEBUG ONLY LISTENER
   if(test.utils.debug) {
     test.on('gotTokenFromPopup', function (data) {
