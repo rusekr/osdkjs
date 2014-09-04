@@ -161,27 +161,6 @@
     needVideo: true  // TODO: retreive from internal storage on start?
   };
 
-  var client = {
-    canAudio: function () {
-      return clientInt.canAudio;
-    },
-    canVideo: function () {
-      return clientInt.canVideo;
-    },
-    needAudio: function (flag) {
-      if (typeof flag !== undefined) {
-        clientInt.needAudio = !!flag;
-      }
-      return clientInt.needAudio;
-    },
-    needVideo: function (flag) {
-      if (typeof flag !== undefined) {
-        clientInt.needAudio = !!flag;
-      }
-      return clientInt.needVideo;
-    }
-  };
-
   // Attach triggers for registered events through initialized module object
   var attachTriggers = function (attachableEvents, triggerFunction, context) {
     sip.utils.each(attachableEvents, function (ev, i) {
@@ -842,7 +821,8 @@
       hosts = hosts.concat(sip.config('gw.host'));
     } else if (event.data.uris && sip.utils.isArray(event.data.uris.sip)) {
       sip.utils.each(event.data.uris.sip, function (uri) {
-        hosts.push(sip.config('gw.proto') + '://' + uri.split(';')[0] + (uri.split(';')[0].split(':').length > 1?'':(':' + sip.config('gw.port'))) + '/' + sip.config('gw.url'));
+        var domain = uri.split(';')[0];
+        hosts.push(sip.config('gw.proto') + '://' + domain + (domain.split(':').length > 1?'':(':' + sip.config('gw.port'))) + '/' + sip.config('gw.url'));
       });
     }
 
@@ -1045,15 +1025,7 @@
    * Described in auth module.
    */
   sip.registerNamespaces({
-    'client': client,
     'mediaSessions': sessions // TODO: remove after DEBUG
-  });
-
-  /*
-   * Described in auth module.
-   */
-  sip.registerObjects({
-    'User': client
   });
 
   sip.registerEvents({
