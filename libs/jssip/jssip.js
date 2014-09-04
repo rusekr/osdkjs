@@ -4610,6 +4610,9 @@ RTCSession.prototype.answer = function(options) {
       self.failed('system', null, JsSIP.C.causes.WEBRTC_ERROR);
     };
 
+  // Local choosen media parameters
+  this.mediaConstraints = mediaConstraints;
+
 
   // Check Session Direction and Status
   if (this.direction !== 'incoming') {
@@ -5192,6 +5195,9 @@ RTCSession.prototype.connect = function(target, options) {
     RTCOfferConstraints = options.RTCOfferConstraints || {},
     stun_servers = options.stun_servers || null,
     turn_servers = options.turn_servers || null;
+
+  // Local choosen media parameters
+  this.mediaConstraints = mediaConstraints;
 
   if (stun_servers) {
     iceServers = JsSIP.UA.configuration_check.optional['stun_servers'](stun_servers);
@@ -6610,8 +6616,6 @@ UA.prototype.call = function(target, options) {
 
   session = new JsSIP.RTCSession(this);
   session.connect(target, options);
-
-  return session.id;
 };
 
 /**

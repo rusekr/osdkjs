@@ -75,31 +75,31 @@
   })();
 
   // Unified media object
-  var media = (function () {
-    var initialized = false;
+  var Media = (function () {
     var mediaToGet = {};
     var streamSource = null;
     var streamObjectURL = null;
     var getUserMedia = null;
     var attachMediaStream = null;
+    var n = window.navigator;
 
     // getUserMedia
-    if (window.navigator.webkitGetUserMedia) {
-      getUserMedia = window.navigator.webkitGetUserMedia.bind(navigator);
+    if (n.webkitGetUserMedia) {
+      getUserMedia = n.webkitGetUserMedia.bind(n);
 
       attachMediaStream = function (element, stream) {
         element.src = webkitURL.createObjectURL(stream);
       };
     }
-    else if (window.navigator.mozGetUserMedia) {
-      getUserMedia = window.navigator.mozGetUserMedia.bind(navigator);
+    else if (n.mozGetUserMedia) {
+      getUserMedia = n.mozGetUserMedia.bind(n);
 
       attachMediaStream = function (element, stream) {
         element.mozSrcObject = stream;
       };
     }
-    else if (window.navigator.getUserMedia) {
-      getUserMedia = window.navigator.getUserMedia.bind(navigator);
+    else if (n.getUserMedia) {
+      getUserMedia = n.getUserMedia.bind(n);
 
       attachMediaStream = function (element, stream) {
         element.src = stream;
@@ -107,47 +107,34 @@
     }
 
     return {
-      myStream: function () {
-        return streamSource;
-      },
-      initialize: function (callback) {
-        if (!initialized) {
-
-          mediaToGet = {
-            video: true,
-            audio: true
-          };
-          var successCallback = function (stream) {
-            streamSource = stream;
-            initialized = true;
-
-            callback.call(this, 'success', mediaToGet, streamSource);
-          };
-          var errorCallback = function (err) {
-            sip.log('Error while getting media stream: ', err);
-            if (mediaToGet.video === false) {
-              //if tried already to got only audio
-              callback.call(this, 'error', mediaToGet, err);
-            }
-            else {
-              //trying to get only audio
-              mediaToGet.video = false;
-              getUserMedia(mediaToGet, successCallback, errorCallback);
-            }
-          };
-          //trying to get audio and video
-          getUserMedia(mediaToGet, successCallback, errorCallback);
-        }
-        else {
-          callback.call(this, 'success', mediaToGet, streamSource);
-        }
+      tryCapabilities: function (callback) {
+        mediaToGet = {
+          video: true,
+          audio: true
+        };
+        var successCallback = function (stream) {
+          stream.stop();
+          callback.call(this, 'success', mediaToGet);
+        };
+        var errorCallback = function (err) {
+          sip.log('Error while getting media stream: ', err);
+          if (mediaToGet.video === false) {
+            //if tried already to got only audio
+            callback.call(this, 'error', mediaToGet, err);
+          }
+          else {
+            //trying to get only audio
+            mediaToGet.video = false;
+            getUserMedia.call(this, mediaToGet, successCallback, errorCallback);
+          }
+        };
+        //trying to get audio and video
+        getUserMedia.call(this, mediaToGet, successCallback, errorCallback);
       },
 
-      initialized: function () {
-        return initialized;
+      getUserMedia: function (caps, success, error) {
+        return getUserMedia.call(this, caps, success, error);
       },
-
-      getUserMedia: getUserMedia,
 
       attachMediaStream: attachMediaStream,
 
@@ -197,25 +184,22 @@
 
   // Attach triggers for registered events through initialized module object
   var attachTriggers = function (attachableEvents, triggerFunction, context) {
+    sip.utils.each(attachableEvents, function (ev, i) {
+      var outer = [];
+      if (typeof(ev) === 'string') { // Assuming event alias
+        outer.push(ev);
+      } else if (ev instanceof Array){ // Assuming array of event aliases
+        outer = outer.concat(ev);
+      } else {
+        outer.push(i); // Assuming boolean
+      }
 
-      sip.utils.each(attachableEvents, function (ev, i) {
-        var outer = [];
-        if (typeof(ev) === 'string') { // Assuming event alias
-          outer.push(ev);
-        } else if (ev instanceof Array){ // Assuming array of event aliases
-          outer = outer.concat(ev);
-        } else {
-          outer.push(i); // Assuming boolean
-        }
-
-        sip.utils.each(outer, function (outerEvent) {
-          triggerFunction.call(context || this, i, function (e) {
-            sip.trigger(outerEvent, e);
-          });
+      sip.utils.each(outer, function (outerEvent) {
+        triggerFunction.call(context || this, i, function (e) {
+          sip.trigger(outerEvent, e);
         });
-
-
       });
+    });
   };
 
   /**
@@ -268,21 +252,10 @@
           'failed': 'failed',
           'ended': 'ended'
         },
-        callOptions = {
-          audio: null,
-          video: null
-        },
-        currentSession = sessions.find(evData.session.id);
+        currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
-    // It may be already if call from us
-    if (!currentSession) {
-      currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
-      sip.log('incoming session added', sessions);
-    } else {
-      // Grab call options from imperative session (our call).
-      callOptions = currentSession.callOptions;
-      sip.log('outgoing session augmented', sessions);
-    }
+    currentSession.callOptions = evData.session.mediaConstraints;
+    sip.log('incoming session added', sessions.show(), currentSession);
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -476,6 +449,8 @@
       }
     });
 
+    sip.log('audiovideo', self.hasAudio, self.hasVideo);
+
     /**
     * Dispatched after the local media stream is added into MediaSession and before the ICE gathering starts for initial INVITE request or “200 OK” response transmission.
     *
@@ -545,7 +520,8 @@
         if (!sip.utils.isString(eventNamesMap[sessionEventType])) {
           throw new sip.Error({
             message: "Media session no such event type.",
-            ecode: 'sip0121'
+            ecode: 'sip0121',
+            data: sessionEventType
           });
         }
         if (!currentSession.callbacks[sessionEventType]) {
@@ -591,7 +567,7 @@
       }
       var streams = evData.session.getLocalStreams.call(evData.session);
       sip.log('attachLocalStream got streams and index', streams, index);
-      media.attachMediaStream(element, streams[index]);
+      Media.attachMediaStream(element, streams[index]);
     };
 
     /**
@@ -608,7 +584,7 @@
       }
       var streams = evData.session.getRemoteStreams.call(evData.session);
       sip.log('attachRemoteStream got streams and index', streams, index);
-      media.attachMediaStream(element, streams[index]);
+      Media.attachMediaStream(element, streams[index]);
     };
 
     /**
@@ -619,7 +595,7 @@
      * @param {DOMNode} element - Element from which to detach a media stream.
      */
     self.detachStream = function (element) {
-      media.detachMediaStream(element);
+      Media.detachMediaStream(element);
     };
 
     /**
@@ -721,7 +697,7 @@
         // Conversion to JsSIP object.
         arguments[0] = callOptionsConverter(arguments[0]);
 
-        sip.log('Modifyed answer arguments to', arguments[0]);
+        sip.log('Modified answer arguments to', arguments[0]);
 
         return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
       };
@@ -767,6 +743,13 @@
       evData.session[jssipName] = function () {
         sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
 
+        // Internal MediaSession before-events handling by type
+        switch (jssipName) {
+          case 'connecting':
+
+          break;
+        }
+
         var args = [].slice.call(arguments, 0);
         if (sip.utils.isArray(currentSession.callbacks[ourName])) {
           sip.utils.each(currentSession.callbacks[ourName], function (handler) {
@@ -785,7 +768,7 @@
           });
         }
 
-        // Predefined MediaSession events handling by type
+        // Internal MediaSession after-events handling by type
         switch (jssipName) {
           case 'ended':
           case 'failed':
@@ -811,25 +794,16 @@
    */
   sip.initialize = function (config) {
 
-    if (!media.initialized()) {
-      media.initialize(function (result, props, stream) {
-        if (result == 'success') {
-          clientInt.canAudio = props.audio;
-          clientInt.canVideo = props.video;
-          sip.trigger('gotMediaCapabilities', props);
-          stream.stop(); // We just got capabilities.
-        }
-        else {
-          throw new sip.Error("Media capabilities are not found.");
-        }
-      });
-    } else {
-      sip.trigger('gotMediaCapabilities', {
-        audio: clientInt.canAudio,
-        video: clientInt.canVideo
-      });
-    }
-
+    Media.tryCapabilities(function (result, props) {
+      if (result == 'success') {
+        clientInt.canAudio = props.audio;
+        clientInt.canVideo = props.video;
+        sip.trigger('gotMediaCapabilities', props);
+      }
+      else {
+        throw new sip.Error("Media capabilities are not found.");
+      }
+    });
 
     try {
       // JsSIP initialization
@@ -868,7 +842,7 @@
       hosts = hosts.concat(sip.config('gw.host'));
     } else if (event.data.uris && sip.utils.isArray(event.data.uris.sip)) {
       sip.utils.each(event.data.uris.sip, function (uri) {
-        hosts.push(sip.config('gw.proto') + '://' + uri.split(';')[0] + ':' + sip.config('gw.port') + '/' + sip.config('gw.url'));
+        hosts.push(sip.config('gw.proto') + '://' + uri.split(';')[0] + (uri.split(';')[0].split(':').length > 1?'':(':' + sip.config('gw.port'))) + '/' + sip.config('gw.url'));
       });
     }
 
@@ -897,11 +871,11 @@
         'level': sip.debug?3:0
       },
       'ws_servers': hosts,
-      'connection_recovery': false,
+      'connection_autorecovery': false,
       'uri': 'sip:' + event.data.username.split(':')[1],
       'password': event.data.password,
       'stun_servers': stunServers,
-//      'turn_servers': turnServers,
+      'turn_servers': turnServers,
       'trace_sip': true,
       'register': true,
       'authorization_user': event.data.username.split(':')[1],
@@ -927,17 +901,19 @@
   // TODO: replace with direct jssip listener
   sip.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
-
     var mediaSession = new MediaSession(event);
 
-    sip.log('Modifyed session to', mediaSession);
     sip.trigger('gotMediaSession', mediaSession);
-
-    if (mediaSession.isAudioCall) {
-      sip.trigger('gotIncomingAudioCall', mediaSession);
-    } else if (MediaSession.isVideoCall) {
-      sip.trigger('gotIncomingVideoCall', mediaSession);
+    if(mediaSession.incoming) {
+      if (mediaSession.isAudioCall) {
+        sip.trigger('gotIncomingAudioCall', mediaSession);
+      } else if (mediaSession.isVideoCall) {
+        sip.trigger('gotIncomingVideoCall', mediaSession);
+      }
     }
+
+    sip.log('Modified session to', mediaSession);
+
   });
 
   sip.on('sip_disconnected', function (data) {
@@ -954,25 +930,13 @@
   sip.call = function () {
 
     var
-      callOptions = sip.utils.isObject(arguments[1])?arguments[1]:null,
-      currentSessionID;
+      callOptions = sip.utils.isObject(arguments[1])?callOptionsConverter(arguments[1]):null,
+      opponent = arguments[0];
 
-    if (arguments[1]) {
-      arguments[1] = callOptionsConverter(arguments[1]);
-    }
+    sip.log('JsSIP call arguments', arguments, callOptions);
 
-    sip.log('jssip call arguments', arguments);
+    sip.JsSIPUA.call.call(sip.JsSIPUA, opponent, callOptions);
 
-    currentSessionID = sip.JsSIPUA.call.apply(sip.JsSIPUA, [].slice.call(arguments, 0));
-
-    // Internal session registration
-    sessions.create(currentSessionID, {
-      id: currentSessionID,
-      callOptions: callOptions
-    });
-    sip.log('outgoing session added', sessions);
-
-    return currentSessionID;
   };
 
   // Simple audio call method
@@ -999,6 +963,16 @@
 
     return currentSessionID;
   };
+
+  // Expand user capabilities (add "instantMessaging")
+  if (typeof sip.factory.user != 'undefined') {
+
+    var fUser = new sip.factory.user();
+
+    fUser.expandCapabilities('audioCall', false, false, 'sip');
+    fUser.expandCapabilities('videoCall', false, false, 'sip');
+
+  }
 
   sip.on('windowBeforeUnload', function (event) {
     sip.info('windowBeforeUnload start');
@@ -1053,9 +1027,9 @@
      * @memberof MediaAPI
      * @method oSDK.attachMediaStream
      * @param {DOMNode} DOMNode Element to which to attach the stream.
-     * @param {stream} stream Local or remote {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream}.
+     * @param {stream} stream Local or remote {@link http://dev.w3.org/2011/webrtc/editor/getuserMedia.html#mediastream MediaStream}.
      */
-    'attachMediaStream': media.attachMediaStream,
+    'attachMediaStream': Media.attachMediaStream,
 
     /**
      * This method used to detach media stream from HTML element.
@@ -1064,7 +1038,7 @@
      * @method oSDK.detachMediaStream
      * @param {DOMNode} DOMNode Element from which to detach the stream.
      */
-    'detachMediaStream': media.detachMediaStream
+    'detachMediaStream': Media.detachMediaStream
   });
 
   /*
@@ -1187,17 +1161,6 @@
      */
     'connectionFailed': { client: true, other: true, cancels: 'connected' }
   });
-
-  // Expand user capabilities (add "instantMessaging")
-
-  if (typeof sip.factory.user != 'undefined') {
-
-    var fUser = new sip.factory.user();
-
-    fUser.expandCapabilities('audioCall', false, false, 'sip');
-    fUser.expandCapabilities('videoCall', false, false, 'sip');
-
-  }
 
   sip.registerConfig(defaultConfig);
 

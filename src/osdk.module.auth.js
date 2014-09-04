@@ -265,6 +265,7 @@
         //service: 'sip' // FIXME: needed?
       },
       success: function(data) {
+        var uris = {};
         data = JSON.parse(data);
         if(data.error) {
           auth.trigger(['connectionFailed', 'auth_connectionError'], new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
@@ -277,13 +278,13 @@
 
           // Array of mixed uris to object of grouped by service
           if(auth.utils.isArray(data.uris)) {
-            var uris = {};
             auth.utils.each(data.uris, function (uri) {
-              var serviceName = uri.split(':')[0].toLowerCase();
+              var uriArray = uri.split(':');
+              var serviceName = uriArray.shift().toLowerCase();
               if(!uris[serviceName]) {
                 uris[serviceName] = [];
               }
-              uris[serviceName].push(uri.split(':')[1]);
+              uris[serviceName].push(uriArray.join(':'));
             });
             data.uris = uris;
           }

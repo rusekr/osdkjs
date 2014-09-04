@@ -1046,10 +1046,11 @@
       }
       if (!params.domain) {
         result += location.domain;
+        params.domain = '';
       } else {
         result += params.domain;
       }
-      if (params.port) result += ':' + params.port;
+      if (params.domain.split(':').length === 1 && params.port) result += ':' + params.port;
       if (params.url) result += '/' + params.url;
       result += '/';
       return result;
