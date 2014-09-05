@@ -139,7 +139,8 @@
       attachMediaStream: attachMediaStream,
 
       detachMediaStream: function (element) {
-        attachMediaStream(element, null);
+        element.pause();
+        element.src =  '';
       }
     };
   })();
@@ -489,7 +490,7 @@
      * @alias on
      * @memberof MediaSession
      * @instance
-     * @param {string||array} event Event type.
+     * @param {string|string[]} event Event type.
      * @param {function} handler Handler function.
      * @param {object} handler.event Event object.
      */
