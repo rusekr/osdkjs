@@ -436,7 +436,7 @@
     *
     * @memberof MediaSession
     * @event MediaSession#connecting
-    * @param {object} event The event object associated with this event.
+    * @param {object} request Object representing the incoming INVITE SIP message.
     *
     */
 
@@ -445,7 +445,8 @@
     *
     * @memberof MediaSession
     * @event MediaSession#started
-    * @param {object} event The event object associated with this event.
+    * @param {string} initiator Initiator of this event.
+    * @param {object} response (Outgoing call only) Instance of the received SIP 2XX response.
     *
     */
 
@@ -454,7 +455,9 @@
     *
     * @memberof MediaSession
     * @event MediaSession#ended
-    * @param {object} event The event object associated with this event.
+    * @param {string} initiator Initiator of this event. Can be 'remote', 'local' and 'system'.
+    * @param {object|null} response (If initiator is 'remote') Response object associated with this event.
+    * @param {string} cause Cause of this state.
     *
     */
 
@@ -463,7 +466,9 @@
     *
     * @memberof MediaSession
     * @event MediaSession#failed
-    * @param {object} event The event object associated with this event.
+    * @param {string} initiator Initiator of this event. Can be 'remote', 'local' and 'system'.
+    * @param {object|null} response (If initiator is 'remote') Response object associated with this event.
+    * @param {string} cause Cause of this state.
     *
     */
 
@@ -472,7 +477,8 @@
     *
     * @memberof MediaSession
     * @event MediaSession#progress
-    * @param {object} event The event object associated with this event.
+    * @param {string} initiator Initiator of this event. Can be 'remote', 'local' and 'system'.
+    * @param {object} response (Outgoing call only) Instance of the received SIP 2XX response.
     *
     */
 
@@ -481,7 +487,9 @@
     *
     * @memberof MediaSession
     * @event MediaSession#gotDTMF
-    * @param {object} event The event object associated with this event.
+    * @param {string} initiator Initiator of this event. Can be 'remote', 'local' and 'system'.
+    * @param {object} dtmf Object representing parameters of DTMF signal.
+    * @param {object} response Instance of the incoming/outgoing INFO request.
     *
     */
 
