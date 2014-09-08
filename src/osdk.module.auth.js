@@ -354,7 +354,7 @@
   auth.tokenCheck = function (agressive) {
 
     oauth.configure({
-      client_id: auth.config('appID'),
+      client_id: auth.config('appID') || auth.utils.storage.getItem('appID'),
       redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
       authorization_uri: auth.config('apiServerURL')+auth.config('authURI'),
       popup: auth.config('popup')
@@ -445,11 +445,19 @@
 
   // mergedUserConfig action (grabbing token)
   auth.on('mergedUserConfig', function () {
+    // Storing token in localStorage for future preinitialization.
+    // NOTICE: may be we'll need to save all configuration to localStorage in future.
+    auth.utils.storage.setItem('appID', auth.config('appID'));
+    // Updating token info after merging user config.
     auth.tokenCheck(false);
   });
 
   auth.on('DOMContentLoaded', function () {
     auth.log('Got DOMContentLoaded, connectOnDOMContendLoadedTries:', connectOnDOMContendLoadedTries);
+
+    // Updating token info upon document loading (token may be in localStorage, ater redirect for example)
+    auth.tokenCheck(false);
+
     if (connectOnDOMContendLoadedTries) {
       connectOnDOMContendLoadedTries = 0;
       auth.connect();
