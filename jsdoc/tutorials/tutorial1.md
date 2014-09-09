@@ -125,7 +125,7 @@ That's all for pre-initialization stuff.
 
 ## Part 5: Initializing oSDK with appID ##
 
-For than you simply write:
+For that you simply write:
 
 ```
 oSDK({

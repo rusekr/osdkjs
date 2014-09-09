@@ -259,7 +259,7 @@ That's all needed for simple making and receiving call application.
 
 ## Part 5: Initializing oSDK with appID ##
 
-For than you simply write:
+For that you simply write:
 
 ```
 oSDK({
