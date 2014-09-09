@@ -48,3 +48,6 @@ build:
 	grunt | tee -a $(LOGFILE)
 	mv build osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
+
+clean:
+	git clean -dxf
