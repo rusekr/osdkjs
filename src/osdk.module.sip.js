@@ -942,7 +942,7 @@
   };
 
   // Simple video call method
-  sip.videoCall = function () {
+  sip.videoCall = function (userID, callbacksObject) {
     currentSessionID = sip.call(userID, { audio: true, video: true });
 
     // TODO: check callbacksObject for sanity
