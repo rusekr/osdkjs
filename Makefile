@@ -32,9 +32,9 @@ RPM_SPEC_FILE	:= $(BP)/app.spec
 
 # Specify file server, location on file server and packages to copy to file server
 # Used in scp target
-DIST_LOCATION	:= $(DIST_LOCATION_BASE)/$(PRODUCT)/1.8/$(MODULE)/$(DIST)/.
+DIST_LOCATION	:= $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/$(DIST)/.
 PACKAGES        := $(BP)/osdkjs-$(VERSION).tar.gz
-REPORT_LOCATION := $(DIST_LOCATION_BASE)/$(PRODUCT)/1.8/$(MODULE)/.log/$(DIST)
+REPORT_LOCATION := $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/.log/$(DIST)
 REPORT          := $(wildcard $(BP)/html/*)
 
 
