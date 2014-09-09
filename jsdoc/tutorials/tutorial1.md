@@ -16,7 +16,7 @@ Insides of our `body` tag in html file after that will be look like:
 &#60;button id="connect" &#62;Connect&#60;/button&#62;
 &#60;button id="disconnect" &#62;Disconnect&#60;/button&#62;
 &#60;textarea id="status" &#62;&#60;/textarea&#62;
-&#60;input id="messageuser" type="text" placeholder="Enter user for whom to send a message" /&#62;
+&#60;input id="messageuser" type="text" placeholder="Enter user to send a message to" /&#62;
 &#60;input id="messagetext" type="text" placeholder="Enter message to send" /&#62;
 &#60;button id="messagesend" &#62;Send message&#60;/button&#62;
 ```
@@ -53,7 +53,8 @@ Now we'll write some helper functions.
 
 ```
 informationarea.addText = function (text) {
-  informationarea.innerHTML = (new Date()).toLocaleTimeString() + ': ' + text + '\n' + informationarea.innerHTML;
+  informationarea.innerHTML = informationarea.innerHTML + (new Date()).toLocaleTimeString() + ': ' + text + '\n';
+  informationarea.scrollTop = informationarea.scrollHeight;
 };
 ```
 
@@ -124,7 +125,7 @@ That's all for pre-initialization stuff.
 
 ## Part 5: Initializing oSDK with appID ##
 
-For than you simply write:
+For that you simply write:
 
 ```
 oSDK({
@@ -132,4 +133,4 @@ oSDK({
 });
 ```
 
-Now you can try to use your application. And you can download complete example of that page from [here](examples/tutorial1.zip).
+Now you can try to use your application. And you can download complete example with added `appID` field for easier testing from [here](examples/tutorial1.zip).
