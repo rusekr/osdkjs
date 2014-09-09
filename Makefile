@@ -33,7 +33,7 @@ RPM_SPEC_FILE	:= $(BP)/app.spec
 # Specify file server, location on file server and packages to copy to file server
 # Used in scp target
 DIST_LOCATION	:= $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/$(DIST)/.
-PACKAGES        = $(wildcard $(BP)/osdkjs-*.tar.gz)
+PACKAGES        := $(wildcard $(BP)/osdkjs-*.tar.gz)
 REPORT_LOCATION := $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/.log/$(DIST)
 REPORT          := $(wildcard $(BP)/html/*)
 
@@ -48,7 +48,7 @@ build:
 	grunt | tee -a $(LOGFILE)
 	mv build osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
-	echo "Wrote: $(PACKAGES)"
+	echo "Wrote: $(BP)/osdkjs-$(VERSION).tar.gz"
 
 clean:
 	git clean -dxf
