@@ -4,7 +4,13 @@ module.exports = function(grunt) {
   var showversion = grunt.option('showversion')?grunt.option('showversion'):false;
   if (!showversion) {
     var exec = require('shelljs').exec;
-    showversion = exec('git describe --long', {silent:true}).output.replace(/(\r\n|\n|\r)/gm,"") || console.error('No showversion found. Use --showversion or build from repository.');
+    showversion = exec('git describe --long', {silent:true});
+    if (showversion.code === 0) {
+      showversion = showversion.output.replace(/(\r\n|\n|\r)/gm,"");
+    } else {
+      console.error('No showversion found. Use --showversion or build from repository.');
+      return;
+    }
   }
   console.log(showversion);
 
