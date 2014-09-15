@@ -1,11 +1,20 @@
 module.exports = function(grunt) {
 
   var profile = grunt.option('profile')?grunt.option('profile'):'default';
+  var showversion = grunt.option('showversion')?grunt.option('showversion'):false;
+  if (!showversion) {
+    var exec = require('shelljs').exec;
+    showversion = exec('git describe --long', {silent:true}).output.replace(/(\r\n|\n|\r)/gm,"") || console.error('No showversion found. Use --showversion or build from repository.');
+  }
+  console.log(showversion);
 
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('teligent-osdk.json'),
-    banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
+    build: {
+      version: showversion,
+    },
+    banner: '/*! <%= pkg.title || pkg.name %> - v<%= build.version %> - ' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n' +
@@ -74,7 +83,7 @@ module.exports = function(grunt) {
       },
       dist: {
         src: '<%= concat.dist.dest %>',
-        dest: 'build/<%= pkg.name %>.min.js'
+        dest: 'build/<%= pkg.name %>.js'
       }
     },
     jsdoc: {
@@ -116,13 +125,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-jsdoc');
 
-
   // Tasks
   grunt.registerTask('check', ['jshint']);
 
   grunt.registerTask('build', ['check', 'clean', 'concat', 'replace']);
   grunt.registerTask('gendoc', ['jsdoc', 'copy']);
-  grunt.registerTask('buildugly', ['build', 'uglify', 'jsdoc', 'copy']);
+  grunt.registerTask('buildugly', ['build', 'uglify']);
 
   grunt.registerTask('default', ['build']);
 
