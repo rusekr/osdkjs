@@ -15,11 +15,20 @@ Install node modules by command:
 
     npm install
 
+NOTICE:
+If you have problems with SSL while downloading node modules you can change download link to non-ssl with command:
+
+    npm config set registry http://registry.npmjs.org/
+
 ### Usage:
 
 Build:
 
     grunt
+
+Build
+
+    grunt build
 
 Build with uglification:
 
