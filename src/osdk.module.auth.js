@@ -56,6 +56,7 @@
     };
 
     var authPopup = null;
+    var checkPopupInterval = false;
 
     return {
       // Configure oauth object
@@ -77,7 +78,7 @@
       // Checks hash for token, returns true if token found, return false otherwise, if error found throws it
       checkUrl: function () {
 
-        // // If we are in popup. TODO: more identify window opener.
+        // If we are in popup. TODO: more identify window opener.
         var isOSDKPopup = window.opener && window.opener.oSDK,
             error = '',
             errorDescription = '',
@@ -206,6 +207,26 @@
             // TODO: autochange type of request to redirect?
             alert('Error. Authorization popup blocked by browser.');
           }
+
+          // Event for manual closing popup window on api manager page.
+          var closeCallback = function () {
+            var popupError = new auth.Error({
+              message: 'Popup manually closed.',
+              data: {
+                description: 'User closed popup manually.'
+              }
+            });
+            popupError.subType = 'gotManualCloseFromPopup';
+            auth.utils.trigger('transitEvent', popupError);
+          };
+          // There is only way of monitoring popup close status.
+          checkPopupInterval = window.setInterval(function() {
+            if (authPopup === null || authPopup.closed) {
+                auth.log('aaaaaaaaaaaaa');
+                closeCallback();
+            }
+          }, 1000);
+
         } else {
           auth.log('oAuth doing redirect');
           // Redirect current page
@@ -221,7 +242,16 @@
         });
       },
       // Returns authorization popup object
-      popup: function () { return authPopup; }
+      popup: function () {
+        return authPopup;
+      },
+      // Clear waiting of manual popup closing (on api manager pages)
+      clearPopupInterval: function () {
+        if (!checkPopupInterval) {
+          return;
+        }
+        window.clearInterval(checkPopupInterval);
+      }
     };
   })();
 
@@ -242,6 +272,7 @@
       return;
     }
     auth.status = 'connecting';
+    auth.trigger('connecting');
 
     // Checking user token
     auth.log('connect method before token check.');
@@ -251,8 +282,6 @@
       return;
     }
     auth.log('connect method resumed after token check.');
-
-    auth.trigger('connecting');
 
     // Perform a ephemerals request
     // TODO: fix ajax
@@ -411,6 +440,7 @@
 
   auth.on('transitEvent', function (event) {
     if (event.subType == 'gotTokenFromPopup') {
+      oauth.clearPopupInterval();
       oauth.popup().addEventListener('unload', function () {
         auth.log('auth popup closed');
         oauth.configure(event.data);
@@ -418,6 +448,7 @@
       }, false);
       oauth.popup().close();
     } else if (event.subType == 'gotErrorFromPopup') {
+      oauth.clearPopupInterval();
       oauth.popup().addEventListener('unload', function () {
         // Clearing token right away.
         oauth.clearToken();
@@ -425,7 +456,9 @@
         auth.trigger(['connectionFailed', 'auth_oAuthError'], event);
       });
       oauth.popup().close();
-
+    } else if (event.subType == 'gotManualCloseFromPopup') {
+      oauth.clearPopupInterval();
+      auth.trigger(['connectionFailed', 'auth_oAuthError'], event);
     }
   });
 

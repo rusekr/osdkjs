@@ -458,7 +458,7 @@
 
       // ReadyStateChange handlers
       r.onreadystatechange = function () {
-        if (r.readyState != 4 || r.status === 0) {
+        if (r.readyState != 4) {
           return;
         }
         if (r.status != 200) {
