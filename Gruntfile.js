@@ -1,7 +1,6 @@
 module.exports = function(grunt) {
 
   // Load the plugin that provides the "uglify" task.
-  grunt.loadNpmTasks('grunt-path-check');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-concat');
@@ -29,11 +28,13 @@ module.exports = function(grunt) {
       '* JSJaC (https://github.com/sstrigler/JSJaC)\n' +
       '*  Copyright (c) 2004-2008 Stefan Strigler\n' +
       '*  License: MPL-1.1/GPL-2.0+/LGPL-2.1+\n' +
-      '*\n' +
-      '* Crocodile MSRP (https://github.com/crocodilertc/crocodile-msrp)\n' +
-      '*  Copyright (c) 2012-2013 Crocodile RCS Ltd\n' +
-      '*  License: MIT\n' +
-      '*/\n',
+      '*\n'
+//       +
+//       '* Crocodile MSRP (https://github.com/crocodilertc/crocodile-msrp)\n' +
+//       '*  Copyright (c) 2012-2013 Crocodile RCS Ltd\n' +
+//       '*  License: MIT\n' +
+//       '*/\n'
+      ,
 
     clean: {
       files: ['build']
@@ -46,22 +47,22 @@ module.exports = function(grunt) {
       },
       dist: {
         src: [
-          'libs/jssip/jssip.js',
-          'libs/crocodile-msrp/crocodile-msrp.js',
-          'libs/jsjac/jsjac.js',
+          'temp/libs/jssip/jssip.js',
+//          'temp/libs/crocodile-msrp/crocodile-msrp.js',
+          'temp/libs/jsjac/jsjac.js',
 
-          'src/osdk.namespace.js',
-          'src/osdk.utils.js',
+          'temp/src/osdk.namespace.js',
+          'temp/src/osdk.utils.js',
 
-          'src/osdk.module.errors.js',
-          'src/osdk.module.auth.js',
-          'src/osdk.module.user.js',
-          'src/osdk.module.sip.js',
-          'src/osdk.module.xmpp.js',
+          'temp/src/osdk.module.errors.js',
+          'temp/src/osdk.module.auth.js',
+          'temp/src/osdk.module.user.js',
+          'temp/src/osdk.module.sip.js',
+          'temp/src/osdk.module.xmpp.js',
 
-          'src/osdk.module.client.js',
+          'temp/src/osdk.module.client.js',
 
-          'src/osdk.module.test.js'
+          'temp/src/osdk.module.test.js'
         ],
         dest: 'build/<%= pkg.name %>.js'
       }
@@ -85,12 +86,12 @@ module.exports = function(grunt) {
     },
     jsdoc: {
       dist: {
-        src: ['src/*.js', 'jsdoc/index.md'],
+        src: ['temp/src/*.js', 'temp/jsdoc/index.md'],
         options: {
           destination: 'build/doc',
           private: false,
-          template: 'jsdoc/templates/teligent',
-          tutorials: 'jsdoc/tutorials',
+          template: 'temp/jsdoc/templates/teligent',
+          tutorials: 'temp/jsdoc/tutorials',
         }
       }
     },
@@ -99,7 +100,7 @@ module.exports = function(grunt) {
         files: [
           {
             expand: true,
-            cwd: 'jsdoc/static/',
+            cwd: 'temp/jsdoc/static/',
             src: ['**'],
             dest: 'build/doc/'
           }
@@ -108,13 +109,13 @@ module.exports = function(grunt) {
     },
     jshint: {
       all: [
-        'src/*.js'
+        'temp/src/*.js'
       ]
     }
   });
 
   // Our custom tasks.
-  grunt.registerTask('build', 'Builds oSDK by specified git tag', function(ugly, gendoc) {
+  grunt.registerTask('releasetag', 'Copies tree by specified tag or from master to ./temp', function(ugly, gendoc) {
 
     var done = this.async();
 
@@ -129,42 +130,32 @@ module.exports = function(grunt) {
       }
     };
 
-    // Building current tree
-    var build = function () {
-      grunt.config('buildversion', tagversion);
-      console.log('Building oSDK version:', tagversion);
-      grunt.task.run(['check', 'clean', 'concat', 'replace']);
-    };
-
     // Version to build by tag or by last commit from last tag.
     var tagversion = grunt.option('tagversion')?grunt.option('tagversion'):false;
 
     if (!tagversion) {
       // Grabbing last tag and last commit.
-      tagversion = exec('git describe', {silent:true});
-      // Building
-      build();
-    } else {
-      // Remember current branch.
-      var currentBranch = exec('git symbolic-ref --short HEAD');
-      // Checking out specified tag.
-      exec('git checkout ' + tagversion);
-      // Building.
-      build();
-      // Returning to saved branch.
-      exec('git checkout ' + currentBranch);
+      tagversion = exec('git describe');
     }
+
+    exec('rm -rf temp && mkdir temp && git archive ' + tagversion + ' | tar -x -C temp');
+
+    console.log('Build version:', tagversion);
+    grunt.config('buildversion', tagversion);
 
     done();
   });
 
 //  grunt.registerTask('build', ['gettagversion', 'savedefault', 'checkouttag', 'buildcurrenttree', 'checkoutdefault']);
 
-  // Tasks.
-  grunt.registerTask('check', ['jshint']);
 
-  grunt.registerTask('gendoc', ['jsdoc', 'copy']);
+  // Tasks.
+  grunt.registerTask('check', ['releasetag', 'jshint']);
+
+  grunt.registerTask('gendoc', ['releasetag', 'jsdoc', 'copy']);
   grunt.registerTask('buildugly', ['build', 'uglify']);
+
+  grunt.registerTask('build', ['releasetag', 'check', 'clean', 'concat', 'replace']);
 
   grunt.registerTask('default', ['build']);
 
