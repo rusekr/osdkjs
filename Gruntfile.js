@@ -15,7 +15,7 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.config.init({
     pkg: grunt.file.readJSON('teligent-osdk.json'),
-    banner: '/*! <%= pkg.title || pkg.name %> - v<%= build.version %> - ' +
+    banner: '/*! <%= pkg.title || pkg.name %> - v<%= buildversion %> - ' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n' +
@@ -115,6 +115,9 @@ module.exports = function(grunt) {
 
   // Our custom tasks.
   grunt.registerTask('build', 'Builds oSDK by specified git tag', function(ugly, gendoc) {
+
+    var done = this.async();
+
     // Wrapper to exec.
     var exec = function () {
       var realOutput = require('shelljs').exec.apply(this, Array.prototype.slice.call(arguments, 0));
@@ -128,45 +131,34 @@ module.exports = function(grunt) {
 
     // Building current tree
     var build = function () {
-      grunt.config('build', { version: tagversion });
+      grunt.config('buildversion', tagversion);
       console.log('Building oSDK version:', tagversion);
       grunt.task.run(['check', 'clean', 'concat', 'replace']);
     };
 
-    // System has git and we are in a git repo.
-    var hasGitRepo = exec('which git 2>&1 >/dev/null && [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1 && echo 1');
     // Version to build by tag or by last commit from last tag.
     var tagversion = grunt.option('tagversion')?grunt.option('tagversion'):false;
 
-    if (hasGitRepo) {
-      if (!tagversion) {
-        // Grabbing last tag and last commit.
-        tagversion = exec('git describe --long', {silent:true});
-        // Building
-        build();
-      } else {
-        // Remember current branch.
-        var currentBranch = exec('git symbolic-ref --short HEAD');
-        // Checking out specified tag.
-        exec('git checkout ' + tagversion + ' >/dev/null');
-        // Building.
-        build();
-        // Returning to saved branch.
-        exec('git checkout ' + currentBranch + ' >/dev/null');
-      }
-
+    if (!tagversion) {
+      // Grabbing last tag and last commit.
+      tagversion = exec('git describe', {silent:true});
+      // Building
+      build();
     } else {
-      if (!tagversion) {
-        // No git and no tagversion - aborting.
-        console.error('No tagversion found. Use --tagversion or build from repository.');
-        return false;
-      } else {
-        // Building with specified tagversion.
-        build();
-      }
+      // Remember current branch.
+      var currentBranch = exec('git symbolic-ref --short HEAD');
+      // Checking out specified tag.
+      exec('git checkout ' + tagversion);
+      // Building.
+      build();
+      // Returning to saved branch.
+      exec('git checkout ' + currentBranch);
     }
 
+    done();
   });
+
+//  grunt.registerTask('build', ['gettagversion', 'savedefault', 'checkouttag', 'buildcurrenttree', 'checkoutdefault']);
 
   // Tasks.
   grunt.registerTask('check', ['jshint']);

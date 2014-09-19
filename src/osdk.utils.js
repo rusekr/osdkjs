@@ -11,7 +11,7 @@
       enumerable: true,
       writable: false,
       configurable: false,
-      value: '<%= build.version %>'
+      value: '<%= buildversion %>'
     }
   });
 
