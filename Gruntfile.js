@@ -151,11 +151,11 @@ module.exports = function(grunt) {
         // Remember current branch.
         var currentBranch = exec('git symbolic-ref --short HEAD');
         // Checking out specified tag.
-        exec('git checkout ' + tagversion);
+        exec('git checkout ' + tagversion + ' >/dev/null');
         // Building.
         build();
         // Returning to saved branch.
-        exec('git checkout ' + currentBranch);
+        exec('git checkout ' + currentBranch + ' >/dev/null');
       }
 
     } else {
