@@ -32,7 +32,7 @@ Build:
 
 Build without git (you must specify version by last git tag manually):
 
-    grunt --showversion=<version_to_show_to_client>
+    grunt --tagversion=<version_of_tag_downloaded>
 
 Build with uglification:
 
@@ -52,4 +52,4 @@ Build documentation (index will be in `./build/doc`):
 
     grunt gendoc
 
-You can group `--profile` and `--showversion` parameters and other options.
+You can group `--profile` and `--tagversion` parameters and other options.

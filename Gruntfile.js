@@ -1,25 +1,20 @@
 module.exports = function(grunt) {
 
+  // Load the plugin that provides the "uglify" task.
+  grunt.loadNpmTasks('grunt-path-check');
+  grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-copy');
+  grunt.loadNpmTasks('grunt-text-replace');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-jsdoc');
+
   var profile = grunt.option('profile')?grunt.option('profile'):'default';
-  var showversion = grunt.option('showversion')?grunt.option('showversion'):false;
-  if (!showversion) {
-    var exec = require('shelljs').exec;
-    showversion = exec('git describe --long', {silent:true});
-    if (showversion.code === 0) {
-      showversion = showversion.output.replace(/(\r\n|\n|\r)/gm,"");
-    } else {
-      console.error('No showversion found. Use --showversion or build from repository.');
-      return;
-    }
-  }
-  console.log(showversion);
 
   // Project configuration.
-  grunt.initConfig({
+  grunt.config.init({
     pkg: grunt.file.readJSON('teligent-osdk.json'),
-    build: {
-      version: showversion,
-    },
     banner: '/*! <%= pkg.title || pkg.name %> - v<%= build.version %> - ' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
@@ -34,10 +29,6 @@ module.exports = function(grunt) {
       '* JSJaC (https://github.com/sstrigler/JSJaC)\n' +
       '*  Copyright (c) 2004-2008 Stefan Strigler\n' +
       '*  License: MPL-1.1/GPL-2.0+/LGPL-2.1+\n' +
-      '*\n' +
-      '* JSO (https://github.com/andreassolberg/jso)\n' +
-      '*  Copyright (c) 2012 Andreas Åkre Solberg\n' +
-      '*  License: Simplified BSD License\n' +
       '*\n' +
       '* Crocodile MSRP (https://github.com/crocodilertc/crocodile-msrp)\n' +
       '*  Copyright (c) 2012-2013 Crocodile RCS Ltd\n' +
@@ -122,19 +113,81 @@ module.exports = function(grunt) {
     }
   });
 
-  // Load the plugin that provides the "uglify" task.
-  grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-copy');
-  grunt.loadNpmTasks('grunt-text-replace');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-jsdoc');
-
-  // Tasks
+  // Tasks.
   grunt.registerTask('check', ['jshint']);
 
-  grunt.registerTask('build', ['check', 'clean', 'concat', 'replace']);
+  // Our custom tasks.
+  grunt.registerTask('build', 'Builds oSDK by specified git tag', function(ugly, gendoc) {
+    // Wrapper to exec.
+    var exec = function () {
+      var realOutput = require('shelljs').exec.apply(this, Array.prototype.slice.call(arguments, 0));
+      if (realOutput.code === 0) {
+        return realOutput.output.replace(/(\r\n|\n|\r)/gm,"");
+      } else {
+        console.error('Something wrong with command', arguments[0]);
+        return false;
+      }
+    };
+
+    // Building current tree
+    var build = function () {
+      grunt.config('build', { version: tagversion });
+      grunt.task.run(['check', 'clean', 'concat', 'replace']);
+    };
+
+    // System has git and we are in a git repo
+    var hasGitRepo = exec('which git 2>&1 >/dev/null && [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1 && echo 1');
+    // Version to build by tag or by last commit from last tag.
+    var tagversion = grunt.option('tagversion')?grunt.option('tagversion'):false;
+
+    if (hasGitRepo) {
+      if (!tagversion) {
+        tagversion = exec('git describe --long', {silent:true});
+        build();
+      } else {
+        // Checking out specified tag
+
+      }
+
+    } else {
+      if (!tagversion) {
+        console.error('No tagversion found. Use --tagversion or build from repository.');
+        return false;
+      } else {
+        build();
+      }
+    }
+
+    // Remember current branch.
+    var currentBranch = exec('git symbolic-ref --short HEAD');
+
+
+    if (!tagversion) {
+
+
+        if (!tagversion) {
+          console.error('No tagversion found. Use --tagversion.');
+          return false;
+        } else {
+
+        }
+      }
+    }
+
+
+
+    console.log('Building oSDK version:', tagversion);
+
+    // git co tag
+
+
+
+
+    // git co currentbranch
+
+
+  });
+
   grunt.registerTask('gendoc', ['jsdoc', 'copy']);
   grunt.registerTask('buildugly', ['build', 'uglify']);
 
