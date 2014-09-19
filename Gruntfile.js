@@ -113,9 +113,6 @@ module.exports = function(grunt) {
     }
   });
 
-  // Tasks.
-  grunt.registerTask('check', ['jshint']);
-
   // Our custom tasks.
   grunt.registerTask('build', 'Builds oSDK by specified git tag', function(ugly, gendoc) {
     // Wrapper to exec.
@@ -170,6 +167,9 @@ module.exports = function(grunt) {
     }
 
   });
+
+  // Tasks.
+  grunt.registerTask('check', ['jshint']);
 
   grunt.registerTask('gendoc', ['jsdoc', 'copy']);
   grunt.registerTask('buildugly', ['build', 'uglify']);
