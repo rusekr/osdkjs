@@ -132,59 +132,42 @@ module.exports = function(grunt) {
     // Building current tree
     var build = function () {
       grunt.config('build', { version: tagversion });
+      console.log('Building oSDK version:', tagversion);
       grunt.task.run(['check', 'clean', 'concat', 'replace']);
     };
 
-    // System has git and we are in a git repo
+    // System has git and we are in a git repo.
     var hasGitRepo = exec('which git 2>&1 >/dev/null && [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1 && echo 1');
     // Version to build by tag or by last commit from last tag.
     var tagversion = grunt.option('tagversion')?grunt.option('tagversion'):false;
 
     if (hasGitRepo) {
       if (!tagversion) {
+        // Grabbing last tag and last commit.
         tagversion = exec('git describe --long', {silent:true});
+        // Building
         build();
       } else {
-        // Checking out specified tag
-
+        // Remember current branch.
+        var currentBranch = exec('git symbolic-ref --short HEAD');
+        // Checking out specified tag.
+        exec('git checkout ' + tagversion);
+        // Building.
+        build();
+        // Returning to saved branch.
+        exec('git checkout ' + currentBranch);
       }
 
     } else {
       if (!tagversion) {
+        // No git and no tagversion - aborting.
         console.error('No tagversion found. Use --tagversion or build from repository.');
         return false;
       } else {
+        // Building with specified tagversion.
         build();
       }
     }
-
-    // Remember current branch.
-    var currentBranch = exec('git symbolic-ref --short HEAD');
-
-
-    if (!tagversion) {
-
-
-        if (!tagversion) {
-          console.error('No tagversion found. Use --tagversion.');
-          return false;
-        } else {
-
-        }
-      }
-    }
-
-
-
-    console.log('Building oSDK version:', tagversion);
-
-    // git co tag
-
-
-
-
-    // git co currentbranch
-
 
   });
 
