@@ -32,9 +32,9 @@ RPM_SPEC_FILE	:= $(BP)/app.spec
 
 # Specify file server, location on file server and packages to copy to file server
 # Used in scp target
-DIST_LOCATION	:= $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/$(DIST)/.
+DIST_LOCATION	:= $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/.
 PACKAGES        := $(wildcard $(BP)/osdkjs-*.tar.gz)
-REPORT_LOCATION := $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/.log/$(DIST)
+REPORT_LOCATION := $(DIST_LOCATION_BASE)/products/$(PRODUCT)/$(MODULE)/.log/
 REPORT          := $(wildcard $(BP)/html/*)
 
 
@@ -45,10 +45,13 @@ build_tools/global_start.mak :.
 
 build:
 	npm install | tee -a $(LOGFILE)
-	grunt --tag="$(VERSION)" build | tee -a $(LOGFILE)
+	grunt --tag="$(VERSION)" build builddocs | tee -a $(LOGFILE)
 	mv built osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
 	echo "Wrote: $(BP)/osdkjs-$(VERSION).tar.gz"
+	mv builtdocs osdkjs-docs | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-docs-$(VERSION).tar.gz osdkjs-docs | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-docs-$(VERSION).tar.gz"
 
 clean:
 	git clean -dxf
