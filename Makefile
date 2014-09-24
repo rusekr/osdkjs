@@ -45,8 +45,8 @@ build_tools/global_start.mak :.
 
 build:
 	npm install | tee -a $(LOGFILE)
-	grunt --tagversion="$(VERSION)" buildugly | tee -a $(LOGFILE)
-	mv build osdkjs | tee -a $(LOGFILE)
+	grunt --tag="$(VERSION)" build | tee -a $(LOGFILE)
+	mv built osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
 	echo "Wrote: $(BP)/osdkjs-$(VERSION).tar.gz"
 

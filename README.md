@@ -1,7 +1,8 @@
 ### Where it is:
 
-`./src` - source files.
-`./build` - built files.
+`./src` - Source files.
+`./built` - Built files.
+`./builtdocs` - Built documentation index.
 
 ### Prepare to use:
 
@@ -22,34 +23,30 @@ If you have problems with SSL while downloading node modules you can change down
 
 ### Usage:
 
-Build:
+## Command template:
 
-    grunt
+    grunt [option]... [parameter]...
 
-Build:
+## Parameters:
 
-    grunt build
+`check` - Check current source code for errors.
 
-Build without git (you must specify version by last git tag manually):
+`builddev` - Check current source code for errors and build developer version.
 
-    grunt --tagversion=<version_of_tag_downloaded>
+`builddocsdev` - Build documentation from current source code.
 
-Build with uglification:
+`build` - Build production minified version.
 
-    grunt builduglify
+`buildclean` - Build production unminified version.
 
-Build with custom configuration:
+`builddocs` - Build production version documentation.
 
-1) Create file (for example see `./teligent-osdk-config-default.json`):
+## Options:
 
-    ./teligent-osdk-config-<configname>.json
+`--tag=<tag>` - Build code tagged with specified git tag `<tag>`.
 
-2) Run:
+`--profile=<configname>` - Build with custom configuration where `<configname>` is the part of file `./teligent-osdk-config-<configname>.json`. By defauld build script uses `./teligent-osdk-config-default.json`.
 
-    grunt --profile=<configname>
+## Defaults:
 
-Build documentation (index will be in `./build/doc`):
-
-    grunt gendoc
-
-You can group `--profile` and `--tagversion` parameters and other options.
+Running `grunt` is equivalent for running `grunt build builddocs`
