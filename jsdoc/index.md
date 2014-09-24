@@ -27,3 +27,5 @@
 ## Tutorials ##
 
 <p>{@tutorial tutorial1}
+
+<p>{@tutorial tutorial2}
