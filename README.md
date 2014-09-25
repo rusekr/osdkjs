@@ -50,3 +50,7 @@ If you have problems with SSL while downloading node modules you can change down
 ## Defaults:
 
 Running `grunt` is equivalent for running `grunt build builddocs`
+
+## Notes:
+
+Building very old versions may be inaccurate as the build script is always of current version. To build very old versions use `git checkout`.
