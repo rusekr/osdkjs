@@ -21,7 +21,7 @@ If you have problems with SSL while downloading node modules you can change down
 
     npm config set registry http://registry.npmjs.org/
 
-### Usage:
+### Building:
 
 ## Command template:
 
@@ -51,6 +51,6 @@ If you have problems with SSL while downloading node modules you can change down
 
 Running `grunt` is equivalent for running `grunt build builddocs`
 
-## Notes:
+## Notice:
 
-Building very old versions may be inaccurate as the build script is always of current version. To build very old versions use `git checkout`.
+Building some older versions may be inaccurate as the build script is always of current version. To build that versions use `git checkout` by tag manually and version's own build scripts and readme's.
