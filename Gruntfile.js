@@ -166,7 +166,7 @@ module.exports = function(grunt) {
   // Our custom tasks.
   grunt.registerTask('releasedevel', 'Manages building developer version', function () {
     var done = this.async();
-    tagversion = tagversionfromgit + '-devel';
+    tagversion = tagversionfromgit + '-dev';
     grunt.config('buildversion', tagversion);
     console.log('Building developer version:', tagversion);
     done();
