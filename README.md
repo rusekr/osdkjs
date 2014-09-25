@@ -43,7 +43,7 @@ If you have problems with SSL while downloading node modules you can change down
 
 ## Options:
 
-`--tag=<tag>` - Build code tagged with specified git tag `<tag>`.
+`--osdktag=<tag>` - Build code tagged with specified git tag `<tag>`.
 
 `--profile=<configname>` - Build with custom configuration where `<configname>` is the part of file `./teligent-osdk-config-<configname>.json`. By defauld build script uses `./teligent-osdk-config-default.json`.
 

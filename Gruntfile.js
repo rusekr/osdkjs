@@ -44,7 +44,7 @@ module.exports = function(grunt) {
   // Profile of oSDK config to build.
   var profile = grunt.option('profile')?grunt.option('profile'):'default';
   // Git tag to build.
-  var tagversion = grunt.option('tag')?grunt.option('tag'):false;
+  var tagversion = grunt.option('osdktag')?grunt.option('osdktag'):false;
 
   // Wrapper to exec function.
   var exec = function () {
@@ -171,7 +171,7 @@ module.exports = function(grunt) {
     console.log('Building developer version:', tagversion);
     done();
   });
-  grunt.registerTask('releasetag', 'Copies tree by specified as "--tag" option tag or from last commit to ./temp', function() {
+  grunt.registerTask('releasetag', 'Copies tree by specified as "--osdktag" option tag or from last commit to ./temp', function() {
     var done = this.async();
     grunt.config('buildversion', tagversion);
     console.log('Building release version:', tagversion);
