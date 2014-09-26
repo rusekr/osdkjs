@@ -63,6 +63,8 @@ module.exports = function(grunt) {
   var replacements = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements;
   // Last tag version (plus commits if exists) from git repository. (No "--dirty" because "releasetag" ignores current tree)
   var tagversionfromgit = exec('git describe');
+  // Dirty flag
+  var tagversionfromgitdev = exec('git describe --dirty=-dev');
   // Using git tag if not specified.
   if (!tagversion) {
     tagversion = tagversionfromgit;
@@ -166,7 +168,7 @@ module.exports = function(grunt) {
   // Our custom tasks.
   grunt.registerTask('releasedevel', 'Manages building developer version', function () {
     var done = this.async();
-    tagversion = tagversionfromgit + '-dev';
+    tagversion = tagversionfromgit + (tagversionfromgitdev != tagversionfromgit?'-dev':'');
     grunt.config('buildversion', tagversion);
     console.log('Building oSDK developer version:', tagversion);
     done();
