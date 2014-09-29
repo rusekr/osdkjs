@@ -46,9 +46,12 @@ build_tools/global_start.mak :.
 build:
 	npm install | tee -a $(LOGFILE)
 	grunt --osdktag="$(VERSION)" build builddocs | tee -a $(LOGFILE)
-	mv built osdkjs | tee -a $(LOGFILE)
+	mv built/clean osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
 	echo "Wrote: $(BP)/osdkjs-$(VERSION).tar.gz"
+	mv built/minified osdkjs-devel | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-devel-$(VERSION).tar.gz osdkjs-devel | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-devel-$(VERSION).tar.gz"
 	mv builtdocs osdkjs-docs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-docs-$(VERSION).tar.gz osdkjs-docs | tee -a $(LOGFILE)
 	echo "Wrote: $(BP)/osdkjs-docs-$(VERSION).tar.gz"

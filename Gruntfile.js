@@ -87,7 +87,7 @@ module.exports = function(grunt) {
       },
       milestone: {
         src: srcfiles.map(function (value) { return 'temp/' + value; }),
-        dest: 'built/<%= pkg.name %>.js'
+        dest: 'built/clean/<%= pkg.name %>.js'
       },
       developer: {
         src: srcfiles,
@@ -107,7 +107,7 @@ module.exports = function(grunt) {
       },
       milestone: {
         src: '<%= concat.milestone.dest %>',
-        dest: '<%= concat.milestone.dest %>'
+        dest: 'built/minified/<%= pkg.name %>.js'
       }
     },
     jsdoc: {
