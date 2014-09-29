@@ -83,12 +83,7 @@ module.exports = function(grunt) {
       options: {
         banner: banner,
         stripBanners: true,
-        process: function(src, filepath) {
-          for (var val in replacements) {
-            src = src.replace(replacements[val].from, replacements[val].to);
-          }
-          return grunt.template.process(src);
-        }
+        process: true
       },
       milestone: {
         src: srcfiles.map(function (value) { return 'temp/' + value; }),
@@ -97,6 +92,13 @@ module.exports = function(grunt) {
       developer: {
         src: srcfiles,
         dest: '<%= concat.milestone.dest %>'
+      }
+    },
+    replace: {
+      general: {
+        src: ['built/**/*.js'],             // source files array (supports minimatch)
+        overwrite: true,
+        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements
       }
     },
     uglify: {
@@ -164,6 +166,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-text-replace');
 
   // Our custom tasks.
   grunt.registerTask('releasedevel', 'Manages building developer version', function () {
@@ -188,6 +191,8 @@ module.exports = function(grunt) {
   grunt.registerTask('check', ['jshint:developer']);
   grunt.registerTask('builddev', ['releasedevel', 'check', 'clean:developer', 'concat:developer']);
   grunt.registerTask('builddocsdev', ['releasedevel', 'clean:docsdeveloper', 'jsdoc:developer', 'copy:developer']);
+
+  grunt.registerTask('replacedev', ['replace:general']);
 
   grunt.registerTask('build', ['releasetag', 'clean:milestone', 'concat:milestone', 'uglify:milestone']);
   grunt.registerTask('buildclean', ['releasetag', 'clean:milestone', 'concat:milestone']);

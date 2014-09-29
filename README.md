@@ -33,6 +33,8 @@ If you have problems with SSL while downloading node modules you can change down
 
 `builddev` - Check current source code for errors and build developer version.
 
+`replacedev` - Replace strings in built oSDK library according to configuration in file specified by `--profile` option.
+
 `builddocsdev` - Build documentation from current source code.
 
 `build` - Build production minified version.
