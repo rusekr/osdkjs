@@ -1,6 +1,6 @@
 module.exports = function(grunt) {
 
-  // Source files of oSDK to build.
+  // Source files to build.
   var srcfiles = [
     'libs/jssip/jssip.js',
 //  'temp/libs/crocodile-msrp/crocodile-msrp.js',
@@ -41,7 +41,7 @@ module.exports = function(grunt) {
 //       '*  License: MIT\n' +
 //       '*/\n'
 
-  // Profile of oSDK config to build.
+  // Profile for config selection to build.
   var profile = grunt.option('profile')?grunt.option('profile'):'default';
   // Git tag to build.
   var tagversion = grunt.option('osdktag')?grunt.option('osdktag'):false;
@@ -59,7 +59,7 @@ module.exports = function(grunt) {
     }
   };
 
-  // Replacements strings by oSDK building profile.
+  // Replacements strings for building profile.
   var replacements = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements;
   // Last tag version (plus commits if exists) from git repository. (No "--dirty" because "releasetag" ignores current tree)
   var tagversionfromgit = exec('git describe');
@@ -173,13 +173,13 @@ module.exports = function(grunt) {
     var done = this.async();
     tagversion = tagversionfromgit + (tagversionfromgitdev != tagversionfromgit?'-dev':'');
     grunt.config('buildversion', tagversion);
-    console.log('Building oSDK developer version:', tagversion);
+    console.log('Building developer version:', tagversion);
     done();
   });
   grunt.registerTask('releasetag', 'Copies tree by specified as "--osdktag" option tag or from last commit to ./temp', function() {
     var done = this.async();
     grunt.config('buildversion', tagversion);
-    console.log('Building oSDK release version:', tagversion);
+    console.log('Building release version:', tagversion);
     exec('rm -rf temp && mkdir temp && git archive ' + tagversion + ' | tar -x -C temp');
     done();
   });
