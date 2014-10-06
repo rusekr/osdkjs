@@ -289,7 +289,7 @@
 
       url: auth.config('apiServerURL')+auth.config('credsURI'),
       type: 'get',
-      oauthType: 'both',
+      oauthType: 'bearer',
       data: {
         //service: 'sip' // FIXME: needed?
       },
