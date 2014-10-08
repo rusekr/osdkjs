@@ -103,7 +103,7 @@
 
     // Generate unique key to history in localStorage
     var generateHistoryKey = function() {
-      return '_' + utils.md5(user.id);
+      return '_' + utils.md5(oSDK.getClient().id + user.id);
     };
 
     // Get history to current user from localStorage
