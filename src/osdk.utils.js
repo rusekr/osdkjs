@@ -944,7 +944,7 @@
    */
   utils.isValidLogin = function(login) {
     if (login && utils.isString(login)) {
-      if (login.match(/^[-fa-z0-9_]+$/i)) return true;
+      if (login.match(/^[-\w]+$/i)) return true;
     }
     return false;
   };

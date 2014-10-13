@@ -761,10 +761,10 @@
                 // AVAILABLE
                 case xmpp.OSDK_PRESENCE_TYPE_AVAILABLE :
                   contact = storage.contacts.get(data.from);
-                  if (contact.status == 'offline') {
+                  if (contact.status == 'offline' && (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
                     contact.status = 'online';
                     module.trigger('contactStatusChanged', {contact: contact});
-                    if (!data.show && !data.status && !data.priority) {
+                    if (!data.show && !data.status && !data.priority && (contact.subscription == self.OSDK_SUBSCRIPTION_FROM || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
                       self.thatICan(contact.id);
                     }
                   }
@@ -2010,6 +2010,10 @@
     this.getIncomingRequests = function() { return storage.requests.incoming.get(); };
     this.getOutgoingRequests = function() { return storage.requests.outgoing.get(); };
 
+    this.getDomain = function() {
+      return storage.client.domain;
+    };
+
     // Initiation
 
     module.on('connectionFailed', function() {
@@ -2407,7 +2411,15 @@
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
        */
-      "removeContact": xmpp.removeContact
+      "removeContact": xmpp.removeContact,
+
+      /**
+       * Return current client domain
+       *
+       * @memberof RosterAPI
+       * @method oSDK.getDomain
+       */
+      "getDomain": xmpp.getDomain
 
     });
 
