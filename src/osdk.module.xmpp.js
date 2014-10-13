@@ -667,6 +667,10 @@
         }
         module.trigger('contactStatusChanged', {contact: contact});
       },
+      thatICanOnStart: function(p) {
+        this.thatICan(p);
+        this.sendMeWhatYouCan(p);
+      },
       sendMeWhatYouCan: function(p) {
         self.thatICan(p.info.from);
       }
@@ -999,7 +1003,6 @@
               },
               onSuccess: function(data) {
                 storage.logged = true;
-                self.thatICanToAll();
                 module.trigger('connected', [].slice.call(arguments, 0));
               }
             });
@@ -1214,8 +1217,17 @@
 
       if (connection && connection.connected()) {
 
+        var thatICan = {};
+        thatICan.tech = storage.client.capabilities.getTechParams();
+        thatICan.user = storage.client.capabilities.getUserParams();
+        thatICan.status = storage.client.status;
+
         this.sendPresence({
-          onError: handlers.onError
+          onError: handlers.onError,
+          command: {
+            name: 'thatICan',
+            data: thatICan
+          }
         });
 
         handlers.onSuccess();
@@ -1267,11 +1279,46 @@
 
     this.thatICanToAll = function(params) {
 
-      var i, len = storage.contacts.len(), con = storage.contacts.get();
+      var handlers = self.getHandlers(params);
 
-      for (i = 0; i != len; i ++) {
+      if (connection.connected()) {
 
-        self.thatICan(con[i].id, params);
+        var thatICan = {};
+        thatICan.tech = storage.client.capabilities.getTechParams();
+        thatICan.user = storage.client.capabilities.getUserParams();
+        thatICan.status = storage.client.status;
+
+        var status = self.encodeStatus(storage.client.status);
+
+        var commandName = 'thatICan';
+
+//         if (module.utils.isObject(params) && params.onStart) commandName += 'OnStart';
+
+        var data = {
+          command: {
+            name: commandName,
+            data: thatICan
+          },
+          onError: handlers.onError
+        };
+
+        if (status.real) {
+          data.show = status.real;
+        } else {
+          data.show = 'chat';
+        }
+
+        this.sendPresence(data);
+
+        handlers.onSuccess();
+
+        return true;
+
+      } else {
+
+        handlers.onError();
+
+        return false;
 
       }
 
@@ -1292,10 +1339,14 @@
 
         var status = self.encodeStatus(storage.client.status);
 
+        var commandName = 'thatICan';
+
+//         if (module.utils.isObject(params) && params.onStart) commandName += 'OnStart';
+
         var data = {
           to: to,
           command: {
-            name: 'thatICan',
+            name: commandName,
             data: thatICan
           },
           onError: handlers.onError
@@ -1310,6 +1361,8 @@
         this.sendPresence(data);
 
         handlers.onSuccess();
+
+        return true;
 
       } else {
 
