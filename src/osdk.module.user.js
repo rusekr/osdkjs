@@ -28,6 +28,8 @@
     }
   };
 
+  var clientID = null;
+
   // Class User
 
   var listOfRegisteredParamsToUser = [];
@@ -103,7 +105,7 @@
 
     // Generate unique key to history in localStorage
     var generateHistoryKey = function() {
-      return '_' + utils.md5(oSDK.getClient().id + user.id);
+      return '_' + utils.md5(clientID + user.id);
     };
 
     // Get history to current user from localStorage
@@ -346,6 +348,12 @@
     };
 
   }
+
+  // Getting/updating current user ID.
+  module.on('gotTempCreds', function (event) {
+    clientID = event.data.username;
+  });
+
 
   // Register protected methods
 
