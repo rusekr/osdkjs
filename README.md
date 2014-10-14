@@ -33,7 +33,9 @@ If you have problems with SSL while downloading node modules you can change down
 
 `builddev` - Check current source code for errors and build developer version.
 
-`replacedev` - Replace strings in built oSDK library according to configuration in file specified by `--profile` option.
+`replacetest` - Replace strings for testing in built oSDK library according to configuration in file specified by `--profile` option.
+
+`replacewip` - Replace strings for developing in built oSDK library according to configuration in file specified by `--profile` option.
 
 `builddocsdev` - Build documentation from current source code.
 
@@ -48,6 +50,10 @@ If you have problems with SSL while downloading node modules you can change down
 `--osdktag=<tag>` - Build code tagged with specified git tag `<tag>`.
 
 `--profile=<configname>` - Build with custom configuration where `<configname>` is the part of file `./teligent-osdk-config-<configname>.json`. By defauld build script uses `./teligent-osdk-config-default.json`.
+
+`--nosip` - Build oSDK without SIP module.
+
+`--noxmpp` - Build oSDK without XMPP module.
 
 ## Defaults:
 

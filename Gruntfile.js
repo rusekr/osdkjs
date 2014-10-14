@@ -2,9 +2,7 @@ module.exports = function(grunt) {
 
   // Source files to build.
   var srcfiles = [
-    'libs/jssip/jssip.js',
 //  'temp/libs/crocodile-msrp/crocodile-msrp.js',
-    'libs/jsjac/jsjac.js',
 
     'src/osdk.namespace.js',
     'src/osdk.utils.js',
@@ -12,13 +10,22 @@ module.exports = function(grunt) {
     'src/osdk.module.errors.js',
     'src/osdk.module.auth.js',
     'src/osdk.module.user.js',
-    'src/osdk.module.sip.js',
-    'src/osdk.module.xmpp.js',
 
     'src/osdk.module.client.js',
 
     'src/osdk.module.test.js'
   ];
+
+  var srcfilessip = [
+    'libs/jssip/jssip.js',
+    'src/osdk.module.sip.js'
+  ];
+
+  var srcfilesxmpp = [
+    'libs/jsjac/jsjac.js',
+    'src/osdk.module.xmpp.js'
+  ];
+
   // Banner for built file.
   var banner = '/*! <%= pkg.title || pkg.name %> - v<%= buildversion %> - ' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
@@ -59,6 +66,22 @@ module.exports = function(grunt) {
     }
   };
 
+  //No SIP module
+  if (!grunt.option('nosip')) {
+    srcfiles = srcfiles.concat(srcfilessip);
+  } else {
+    console.log('Building without SIP module.');
+  }
+  //No XMPP module
+  if (!grunt.option('noxmpp')) {
+    srcfiles = srcfiles.concat(srcfilesxmpp);
+  } else {
+    console.log('Building without XMPP module.');
+  }
+
+  console.log('Building from src files:');
+  console.log(srcfiles);
+
   // Replacements strings for building profile.
   var replacements = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements;
   // Last tag version (plus commits if exists) from git repository. (No "--dirty" because "releasetag" ignores current tree)
@@ -95,10 +118,15 @@ module.exports = function(grunt) {
       }
     },
     replace: {
-      general: {
+      test: {
         src: ['built/**/*.js'],             // source files array (supports minimatch)
         overwrite: true,
-        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements
+        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsTEST
+      },
+      wip: {
+        src: ['built/**/*.js'],             // source files array (supports minimatch)
+        overwrite: true,
+        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsWIP
       }
     },
     uglify: {
@@ -192,7 +220,8 @@ module.exports = function(grunt) {
   grunt.registerTask('builddev', ['releasedevel', 'check', 'clean:developer', 'concat:developer']);
   grunt.registerTask('builddocsdev', ['releasedevel', 'clean:docsdeveloper', 'jsdoc:developer', 'copy:developer']);
 
-  grunt.registerTask('replacedev', ['replace:general']);
+  grunt.registerTask('replacetest', ['replace:test']);
+  grunt.registerTask('replacewip', ['replace:wip']);
 
   grunt.registerTask('build', ['releasetag', 'clean:milestone', 'concat:milestone', 'uglify:milestone']);
   grunt.registerTask('buildclean', ['releasetag', 'clean:milestone', 'concat:milestone']);

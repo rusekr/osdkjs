@@ -1,5 +1,18 @@
 {
-    "replacements": [
+    "replacementsTEST": [
+    {
+      "from": "{APIServerURI}",
+      "to": "https://osdp-teligent-test-apigw.virt.teligent.ru:8243"
+    },
+    {
+      "from": "{ephemeralsPath}",
+      "to": "/osdp/sm/common/1.0.2/ephemerals"
+    },
+    {
+      "from": "{authorizePath}",
+      "to": "/authorize/"
+    }],
+    "replacementsWIP": [
     {
       "from": "{APIServerURI}",
       "to": "https://osdp-teligent-dev-apigw.virt.teligent.ru:8243"
