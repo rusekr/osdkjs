@@ -481,10 +481,15 @@
     };
     self.ajax = self.constructor.prototype.ajax.bind(self);
 
+
     /**
     * Adds custom callback for specified event type.
     * Returns id of added listener for removing through {@link off}.
-    * @param fireType may be 'last' (fires only when last emitter sent event), 'every' (default, fires every time emitter emits)
+    *
+    * @private
+    * @instance
+    *
+    * @param {(string|string[])} eventTypes Name or array of names of events to listen.
     */
     self.constructor.prototype.on = function oSDKon (eventTypes, eventHandler) {
 
@@ -545,11 +550,29 @@
     self.off = self.constructor.prototype.off.bind(self);
 
     /**
+     * @typedef triggerConfigObject
+     * @type {object}
+     * @instance
+     *
+     * @private
+     *
+     * @property {(string|string[])} type - Name or array of names for events to trigger.
+     * @property {string} data - your name.
+     * @property {number} context - your age.
+     * @property {boolean} arguments -
+     */
+
+    /**
      * Fires custom callbacks
-     * @alias self.trigger
-     * @param string||array event type.
-     * @param object event data. Augmented with "type" and "module" properties if not defined already.
-     * Transparent proxying of arguments through events can be accomplished with property "arguments" in data object. Other properties are ignored in this case.
+     *
+     * @alias Module.trigger
+     * @instance
+     *
+     * @private
+     *
+     * @param {(string|string[]|triggerConfigObject)} name - Name or array of names or configuration object for event to trigger.
+     * @param {object=} data - Data to pass to event.
+     * @param {object=} context - Context to trigger event within.
      */
     self.constructor.prototype.trigger = function oSDKtrigger () {
 

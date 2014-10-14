@@ -56,6 +56,9 @@
  * @memberof CoreAPI
  * @function
  * @alias oSDK
+ *
+ * @global
+ * 
  * @param {CoreAPI~ConfigObject} config
  *            <p>
  *            The <code>config</code> parameter should be an object
