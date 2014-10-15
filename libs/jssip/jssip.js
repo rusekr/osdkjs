@@ -1,5 +1,5 @@
 /*
- * JsSIP version 0.4.0-devel
+ * JsSIP version 0.4.0-alpha
  * Copyright (c) 2012-2014 José Luis Millán - Versatica <http://www.versatica.com>
  * Homepage: http://jssip.net
  * License: http://jssip.net/license
@@ -21,7 +21,7 @@ var JsSIP = (function() {
 
   Object.defineProperties(JsSIP, {
     version: {
-      get: function(){ return '0.4.0-devel'; }
+      get: function(){ return '0.4.0-alpha'; }
     },
     name: {
       get: function(){ return 'JsSIP'; }
@@ -233,7 +233,7 @@ EventEmitter.prototype = {
    * @param {Array} events
    */
   initEvents: function(events) {
-    var idx;
+    var idx, length;
 
     if (!this.logger) {
       this.logger = logger;
@@ -244,7 +244,8 @@ EventEmitter.prototype = {
     this.events = {};
     this.oneTimeListeners = {};
 
-    for (idx in events) {
+    length = events.length;
+    for (idx = 0; idx < length; idx++) {
       this.events[events[idx]] = [];
       this.oneTimeListeners[events[idx]] = [];
     }
@@ -271,12 +272,12 @@ EventEmitter.prototype = {
       this.logger.error('listener must be a function');
       return;
     } else if (!this.checkEvent(event)) {
-      this.logger.error('unable to add a listener to a nonexistent event'+ event);
+      this.logger.error('unable to add a listener to a nonexistent event ' + event);
       return;
     }
 
     if (this.events[event].length >= this.maxListeners) {
-      this.logger.warn('max listeners exceeded for event '+ event);
+      this.logger.warn('max listeners exceeded for event ' + event);
     }
 
     this.events[event].push(listener);
@@ -311,6 +312,7 @@ EventEmitter.prototype = {
       return;
     } else if (typeof listener !== 'function') {
       this.logger.error('listener must be a function');
+      return;
     } else if (!this.checkEvent(event)) {
       this.logger.error('unable to remove a listener from a nonexistent event'+ event);
       return;
@@ -379,17 +381,17 @@ EventEmitter.prototype = {
   emit: function(event, sender, data) {
     var listeners, length, e, idx,
       self = this;
-    
+
     if (!this.checkEvent(event)) {
       this.logger.error('unable to emit a nonexistent event'+ event);
       return;
     }
 
-    this.logger.log('emitting event '+ event);
+    this.logger.debug('emitting event '+ event);
 
     listeners = this.events[event];
     length = listeners.length;
-    
+
     e = new JsSIP.Event(event, sender, data);
 
     listeners.map(function(listener) {
@@ -718,7 +720,7 @@ Transport.prototype = {
 
     if(this.ws && this.ws.readyState === WebSocket.OPEN) {
       if (this.ua.configuration.trace_sip === true) {
-        this.logger.log('sending WebSocket message:\n\n' + message + '\n');
+        this.logger.debug('sending WebSocket message:\n\n' + message + '\n');
       }
       this.ws.send(message);
       return true;
@@ -735,12 +737,14 @@ Transport.prototype = {
     if(this.ws) {
       // Clear reconnectTimer
       window.clearTimeout(this.reconnectTimer);
-      
+      // TODO: should make this.reconnectTimer = null here?
+
       this.closed = true;
-      this.logger.log('closing WebSocket ' + this.server.ws_uri);
+      this.logger.debug('closing WebSocket ' + this.server.ws_uri);
       this.ws.close();
     }
 
+    // TODO: Why this??
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -773,7 +777,7 @@ Transport.prototype = {
 
     try {
       this.ws = new WebSocket(this.server.ws_uri, 'sip');
-      
+
       this.ws.binaryType = 'arraybuffer';
 
       this.ws.onopen = function() {
@@ -808,7 +812,7 @@ Transport.prototype = {
   onOpen: function() {
     this.connected = true;
 
-    this.logger.log('WebSocket ' + this.server.ws_uri + ' connected');
+    this.logger.debug('WebSocket ' + this.server.ws_uri + ' connected');
     // Clear reconnectTimer since we are not disconnected
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
@@ -832,7 +836,7 @@ Transport.prototype = {
     this.connected = false;
     this.lastTransportError.code = e.code;
     this.lastTransportError.reason = e.reason;
-    this.logger.log('WebSocket disconnected (code: ' + e.code + (e.reason? '| reason: ' + e.reason : '') +')');
+    this.logger.debug('WebSocket disconnected (code: ' + e.code + (e.reason? '| reason: ' + e.reason : '') +')');
 
     if(e.wasClean === false) {
       this.logger.warn('WebSocket abrupt disconnection');
@@ -852,7 +856,7 @@ Transport.prototype = {
       }
     } else {
       // This is the first connection attempt
-      //Network error
+      // May be a network error (or may be UA.stop() was called)
       this.ua.onTransportError(this);
     }
   },
@@ -868,7 +872,7 @@ Transport.prototype = {
     // CRLF Keep Alive response from server. Ignore it.
     if(data === '\r\n') {
       if (this.ua.configuration.trace_sip === true) {
-        this.logger.log('received WebSocket message with CRLF Keep Alive response');
+        this.logger.debug('received WebSocket message with CRLF Keep Alive response');
       }
       return;
     }
@@ -883,14 +887,14 @@ Transport.prototype = {
       }
 
       if (this.ua.configuration.trace_sip === true) {
-        this.logger.log('received WebSocket binary message:\n\n' + data + '\n');
+        this.logger.debug('received WebSocket binary message:\n\n' + data + '\n');
       }
     }
 
     // WebSocket text message.
     else {
       if (this.ua.configuration.trace_sip === true) {
-        this.logger.log('received WebSocket text message:\n\n' + data + '\n');
+        this.logger.debug('received WebSocket text message:\n\n' + data + '\n');
       }
     }
 
@@ -1324,7 +1328,7 @@ OutgoingRequest.prototype = {
   setHeader: function(name, value) {
     this.headers[JsSIP.Utils.headerize(name)] = (value instanceof Array) ? value : [value];
   },
-  
+
   /**
    * Get the value of the given header name at the given position.
    * @param {String} name header name
@@ -1348,7 +1352,7 @@ OutgoingRequest.prototype = {
         }
       }
     }
-    
+
     return;
   },
 
@@ -1389,7 +1393,7 @@ OutgoingRequest.prototype = {
   hasHeader: function(name) {
     var regexp, idx,
       length = this.extraHeaders.length;
-    
+
     if (this.headers[JsSIP.Utils.headerize(name)]) {
       return true;
     } else {
@@ -1400,12 +1404,12 @@ OutgoingRequest.prototype = {
         }
       }
     }
-    
+
     return false;
   },
-  
+
   toString: function() {
-    var msg = '', header, length, idx, 
+    var msg = '', header, length, idx,
       supported = [];
 
     msg += this.method + ' ' + this.ruri + ' SIP/2.0\r\n';
@@ -1433,12 +1437,12 @@ OutgoingRequest.prototype = {
         }
         break;
     }
-    
+
     supported.push('outbound');
-    
+
     // Allow
     msg += 'Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua) +'\r\n';
-    
+
     msg += 'Supported: ' +  supported +'\r\n';
     msg += 'User-Agent: ' + JsSIP.C.USER_AGENT +'\r\n';
 
@@ -1685,7 +1689,7 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
   for (idx = 0; idx < length; idx++) {
     response += extraHeaders[idx].trim() +'\r\n';
   }
-  
+
   // Supported
   switch (this.method) {
     case JsSIP.C.INVITE:
@@ -1694,9 +1698,9 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
       }
       break;
   }
-  
+
   supported.push('outbound');
-  
+
   // Allow and Accept
   if (this.method === JsSIP.C.OPTIONS) {
     response += 'Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua) +'\r\n';
@@ -1706,7 +1710,7 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
   } else if (code === 415 ) {
     response += 'Accept: '+ JsSIP.UA.C.ACCEPTED_BODY_TYPES +'\r\n';
   }
-  
+
   response += 'Supported: ' +  supported +'\r\n';
 
   if(body) {
@@ -2156,6 +2160,7 @@ var
 */
 var NonInviteClientTransaction = function(request_sender, request, transport) {
   var via,
+    via_transport,
     events = ['stateChanged'];
 
   this.type = C.NON_INVITE_CLIENT;
@@ -2166,7 +2171,17 @@ var NonInviteClientTransaction = function(request_sender, request, transport) {
 
   this.logger = request_sender.ua.getLogger('jssip.transaction.nict', this.id);
 
-  via = 'SIP/2.0/' + (request_sender.ua.configuration.hack_via_tcp ? 'TCP' : transport.server.scheme);
+  if (request_sender.ua.configuration.hack_via_tcp) {
+    via_transport = 'TCP';
+  }
+  else if (request_sender.ua.configuration.hack_via_ws) {
+    via_transport = 'WS';
+  }
+  else {
+    via_transport = transport.server.scheme;
+  }
+
+  via = 'SIP/2.0/' + via_transport;
   via += ' ' + request_sender.ua.configuration.via_host + ';branch=' + this.id;
 
   this.request.setHeader('via', via);
@@ -2194,7 +2209,7 @@ NonInviteClientTransaction.prototype.send = function() {
 };
 
 NonInviteClientTransaction.prototype.onTransportError = function() {
-  this.logger.log('transport error occurred, deleting non-INVITE client transaction ' + this.id);
+  this.logger.debug('transport error occurred, deleting non-INVITE client transaction ' + this.id);
   window.clearTimeout(this.F);
   window.clearTimeout(this.K);
   this.stateChanged(C.STATUS_TERMINATED);
@@ -2203,7 +2218,7 @@ NonInviteClientTransaction.prototype.onTransportError = function() {
 };
 
 NonInviteClientTransaction.prototype.timer_F = function() {
-  this.logger.log('Timer F expired for non-INVITE client transaction ' + this.id);
+  this.logger.debug('Timer F expired for non-INVITE client transaction ' + this.id);
   this.stateChanged(C.STATUS_TERMINATED);
   this.request_sender.ua.destroyTransaction(this);
   this.request_sender.onRequestTimeout();
@@ -2260,6 +2275,7 @@ NonInviteClientTransaction.prototype.receiveResponse = function(response) {
 var InviteClientTransaction = function(request_sender, request, transport) {
   var via,
     tr = this,
+    via_transport,
     events = ['stateChanged'];
 
   this.type = C.INVITE_CLIENT;
@@ -2270,7 +2286,17 @@ var InviteClientTransaction = function(request_sender, request, transport) {
 
   this.logger = request_sender.ua.getLogger('jssip.transaction.ict', this.id);
 
-  via = 'SIP/2.0/' + (request_sender.ua.configuration.hack_via_tcp ? 'TCP' : transport.server.scheme);
+  if (request_sender.ua.configuration.hack_via_tcp) {
+    via_transport = 'TCP';
+  }
+  else if (request_sender.ua.configuration.hack_via_ws) {
+    via_transport = 'WS';
+  }
+  else {
+    via_transport = transport.server.scheme;
+  }
+
+  via = 'SIP/2.0/' + via_transport;
   via += ' ' + request_sender.ua.configuration.via_host + ';branch=' + this.id;
 
   this.request.setHeader('via', via);
@@ -2305,7 +2331,7 @@ InviteClientTransaction.prototype.send = function() {
 };
 
 InviteClientTransaction.prototype.onTransportError = function() {
-  this.logger.log('transport error occurred, deleting INVITE client transaction ' + this.id);
+  this.logger.debug('transport error occurred, deleting INVITE client transaction ' + this.id);
   window.clearTimeout(this.B);
   window.clearTimeout(this.D);
   window.clearTimeout(this.M);
@@ -2319,7 +2345,7 @@ InviteClientTransaction.prototype.onTransportError = function() {
 
 // RFC 6026 7.2
 InviteClientTransaction.prototype.timer_M = function() {
-  this.logger.log('Timer M expired for INVITE client transaction ' + this.id);
+  this.logger.debug('Timer M expired for INVITE client transaction ' + this.id);
 
   if(this.state === C.STATUS_ACCEPTED) {
     window.clearTimeout(this.B);
@@ -2330,7 +2356,7 @@ InviteClientTransaction.prototype.timer_M = function() {
 
 // RFC 3261 17.1.1
 InviteClientTransaction.prototype.timer_B = function() {
-  this.logger.log('Timer B expired for INVITE client transaction ' + this.id);
+  this.logger.debug('Timer B expired for INVITE client transaction ' + this.id);
   if(this.state === C.STATUS_CALLING) {
     this.stateChanged(C.STATUS_TERMINATED);
     this.request_sender.ua.destroyTransaction(this);
@@ -2339,7 +2365,7 @@ InviteClientTransaction.prototype.timer_B = function() {
 };
 
 InviteClientTransaction.prototype.timer_D = function() {
-  this.logger.log('Timer D expired for INVITE client transaction ' + this.id);
+  this.logger.debug('Timer D expired for INVITE client transaction ' + this.id);
   window.clearTimeout(this.B);
   this.stateChanged(C.STATUS_TERMINATED);
   this.request_sender.ua.destroyTransaction(this);
@@ -2405,9 +2431,6 @@ InviteClientTransaction.prototype.receiveResponse = function(response) {
       case C.STATUS_CALLING:
         this.stateChanged(C.STATUS_PROCEEDING);
         this.request_sender.receiveResponse(response);
-        if(this.cancel) {
-          this.transport.send(this.cancel);
-        }
         break;
       case C.STATUS_PROCEEDING:
         this.request_sender.receiveResponse(response);
@@ -2451,7 +2474,8 @@ InviteClientTransaction.prototype.receiveResponse = function(response) {
  * @param {JsSIP.Transport} transport
  */
 var AckClientTransaction = function(request_sender, request, transport) {
-  var via;
+  var via,
+    via_transport;
 
   this.transport = transport;
   this.id = 'z9hG4bK' + Math.floor(Math.random() * 10000000);
@@ -2460,7 +2484,17 @@ var AckClientTransaction = function(request_sender, request, transport) {
 
   this.logger = request_sender.ua.getLogger('jssip.transaction.nict', this.id);
 
-  via = 'SIP/2.0/' + (request_sender.ua.configuration.hack_via_tcp ? 'TCP' : transport.server.scheme);
+  if (request_sender.ua.configuration.hack_via_tcp) {
+    via_transport = 'TCP';
+  }
+  else if (request_sender.ua.configuration.hack_via_ws) {
+    via_transport = 'WS';
+  }
+  else {
+    via_transport = transport.server.scheme;
+  }
+
+  via = 'SIP/2.0/' + via_transport;
   via += ' ' + request_sender.ua.configuration.via_host + ';branch=' + this.id;
 
   this.request.setHeader('via', via);
@@ -2474,7 +2508,7 @@ AckClientTransaction.prototype.send = function() {
 };
 
 AckClientTransaction.prototype.onTransportError = function() {
-  this.logger.log('transport error occurred, for an ACK client transaction ' + this.id);
+  this.logger.debug('transport error occurred, for an ACK client transaction ' + this.id);
   this.request_sender.onTransportError();
 };
 
@@ -2512,7 +2546,7 @@ NonInviteServerTransaction.prototype.stateChanged = function(state) {
 };
 
 NonInviteServerTransaction.prototype.timer_J = function() {
-  this.logger.log('Timer J expired for non-INVITE server transaction ' + this.id);
+  this.logger.debug('Timer J expired for non-INVITE server transaction ' + this.id);
   this.stateChanged(C.STATUS_TERMINATED);
   this.ua.destroyTransaction(this);
 };
@@ -2520,8 +2554,8 @@ NonInviteServerTransaction.prototype.timer_J = function() {
 NonInviteServerTransaction.prototype.onTransportError = function() {
   if (!this.transportError) {
     this.transportError = true;
-    
-    this.logger.log('transport error occurred, deleting non-INVITE server transaction ' + this.id);
+
+    this.logger.debug('transport error occurred, deleting non-INVITE server transaction ' + this.id);
 
     window.clearTimeout(this.J);
     this.stateChanged(C.STATUS_TERMINATED);
@@ -2605,7 +2639,7 @@ var InviteServerTransaction = function(request, ua) {
   ua.newTransaction(this);
 
   this.resendProvisionalTimer = null;
-  
+
   request.reply(100);
 
   this.initEvents(events);
@@ -2618,12 +2652,12 @@ InviteServerTransaction.prototype.stateChanged = function(state) {
 };
 
 InviteServerTransaction.prototype.timer_H = function() {
-  this.logger.log('Timer H expired for INVITE server transaction ' + this.id);
+  this.logger.debug('Timer H expired for INVITE server transaction ' + this.id);
 
   if(this.state === C.STATUS_COMPLETED) {
-    this.logger.warn('transactions', 'ACK for INVITE server transaction was never received, call will be terminated');
+    this.logger.log('transactions', 'ACK for INVITE server transaction was never received, call will be terminated');
   }
-  
+
   this.stateChanged(C.STATUS_TERMINATED);
   this.ua.destroyTransaction(this);
 };
@@ -2635,7 +2669,7 @@ InviteServerTransaction.prototype.timer_I = function() {
 
 // RFC 6026 7.1
 InviteServerTransaction.prototype.timer_L = function() {
-  this.logger.log('Timer L expired for INVITE server transaction ' + this.id);
+  this.logger.debug('Timer L expired for INVITE server transaction ' + this.id);
 
   if(this.state === C.STATUS_ACCEPTED) {
     this.stateChanged(C.STATUS_TERMINATED);
@@ -2647,17 +2681,17 @@ InviteServerTransaction.prototype.onTransportError = function() {
   if (!this.transportError) {
     this.transportError = true;
 
-    this.logger.log('transport error occurred, deleting INVITE server transaction ' + this.id);
+    this.logger.debug('transport error occurred, deleting INVITE server transaction ' + this.id);
 
     if (this.resendProvisionalTimer !== null) {
       window.clearInterval(this.resendProvisionalTimer);
       this.resendProvisionalTimer = null;
     }
-    
+
     window.clearTimeout(this.L);
     window.clearTimeout(this.H);
     window.clearTimeout(this.I);
-    
+
     this.stateChanged(C.STATUS_TERMINATED);
     this.ua.destroyTransaction(this);
   }
@@ -2698,7 +2732,7 @@ InviteServerTransaction.prototype.receiveResponse = function(status_code, respon
         this.L = window.setTimeout(function() {
           tr.timer_L();
         }, JsSIP.Timers.TIMER_L);
-        
+
         if (this.resendProvisionalTimer !== null) {
           window.clearInterval(this.resendProvisionalTimer);
           this.resendProvisionalTimer = null;
@@ -2723,7 +2757,7 @@ InviteServerTransaction.prototype.receiveResponse = function(status_code, respon
           window.clearInterval(this.resendProvisionalTimer);
           this.resendProvisionalTimer = null;
         }
-        
+
         if(!this.transport.send(response)) {
           this.onTransportError();
           if (onFailure) {
@@ -2799,7 +2833,6 @@ var checkTransaction = function(ua, request) {
           return true;
         }
       }
-
       // ACK to 2XX Response.
       else {
         return false;
@@ -2972,7 +3005,7 @@ var Dialog,
 // RFC 3261 12.1
 Dialog = function(owner, message, type, state) {
   var contact;
-  
+
   this.uac_pending_reply = false;
   this.uas_pending_reply = false;
 
@@ -3029,7 +3062,7 @@ Dialog = function(owner, message, type, state) {
   this.logger = owner.ua.getLogger('jssip.dialog', this.id.toString());
   this.owner = owner;
   owner.ua.dialogs[this.id.toString()] = this;
-  this.logger.log('new ' + type + ' dialog created with status ' + (this.state === C.STATUS_EARLY ? 'EARLY': 'CONFIRMED'));
+  this.logger.debug('new ' + type + ' dialog created with status ' + (this.state === C.STATUS_EARLY ? 'EARLY': 'CONFIRMED'));
 };
 
 Dialog.prototype = {
@@ -3040,7 +3073,7 @@ Dialog.prototype = {
   update: function(message, type) {
     this.state = C.STATUS_CONFIRMED;
 
-    this.logger.log('dialog '+ this.id.toString() +'  changed to CONFIRMED state');
+    this.logger.debug('dialog '+ this.id.toString() +'  changed to CONFIRMED state');
 
     if(type === 'UAC') {
       // RFC 3261 13.2.2.4
@@ -3049,7 +3082,7 @@ Dialog.prototype = {
   },
 
   terminate: function() {
-    this.logger.log('dialog ' + this.id.toString() + ' deleted');
+    this.logger.debug('dialog ' + this.id.toString() + ' deleted');
     delete this.owner.ua.dialogs[this.id.toString()];
   },
 
@@ -3094,7 +3127,7 @@ Dialog.prototype = {
   // RFC 3261 12.2.2
   checkInDialogRequest: function(request) {
     var self = this;
-    
+
     if(!this.remote_seqnum) {
       this.remote_seqnum = request.cseq;
     } else if(request.cseq < this.remote_seqnum) {
@@ -3122,17 +3155,17 @@ Dialog.prototype = {
             if (e.sender.state === JsSIP.Transactions.C.STATUS_ACCEPTED ||
                 e.sender.state === JsSIP.Transactions.C.STATUS_COMPLETED ||
                 e.sender.state === JsSIP.Transactions.C.STATUS_TERMINATED) {
-                
+
               request.server_transaction.removeListener('stateChanged', stateChanged);
               self.uas_pending_reply = false;
-              
+
               if (self.uac_pending_reply === false) {
                 self.owner.onReadyToReinvite();
               }
             }
           });
         }
-        
+
         // RFC3261 12.2.2 Replace the dialog`s remote target URI if the request is accepted
         if(request.hasHeader('contact')) {
           request.server_transaction.on('stateChanged', function(e){
@@ -3351,7 +3384,7 @@ Registrator = function(ua, transport) {
 
   // Call-ID and CSeq values RFC3261 10.2
   this.call_id = JsSIP.Utils.createRandomToken(22);
-  this.cseq = 80;
+  this.cseq = 0;
 
   // this.to_uri
   this.to_uri = ua.configuration.uri;
@@ -3369,7 +3402,7 @@ Registrator = function(ua, transport) {
 
   // sip.ice media feature tag (RFC 5768)
   this.contact += ';+sip.ice';
-  
+
   this.extraHeaders = [];
 
   if(reg_id) {
@@ -3387,13 +3420,14 @@ Registrator.prototype = {
       self = this;
 
     options = options || {};
-    
+
     if (options.extraHeaders && Object.keys(options.extraHeaders).length !== 0) {
       this.extraHeaders = options.extraHeaders && options.extraHeaders.slice();
     }
-    
+
     extraHeaders = this.extraHeaders.slice();
     extraHeaders.push('Contact: '+ this.contact + ';expires=' + this.expires);
+    extraHeaders.push('Expires: '+ this.expires);
 
     this.request = new JsSIP.OutgoingRequest(JsSIP.C.REGISTER, this.registrar, this.ua, {
         'to_uri': this.to_uri,
@@ -3470,10 +3504,12 @@ Registrator.prototype = {
             this.ua.contact.pub_gruu = contact.getParam('pub-gruu').replace(/"/g,'');
           }
 
-          this.registered = true;
-          this.ua.emit('registered', this.ua, {
-            response: response
-          });
+          if (! this.registered) {
+            this.registered = true;
+            this.ua.emit('registered', this.ua, {
+              response: response
+            });
+          }
           break;
         // Interval too brief RFC3261 10.2.8
         case /^423$/.test(response.status_code):
@@ -3517,16 +3553,16 @@ Registrator.prototype = {
     var extraHeaders;
 
     if(!this.registered) {
-      this.logger.warn('already unregistered');
+      this.logger.debug('already unregistered');
       return;
     }
 
     options = options || {};
-    
+
     if (options.extraHeaders && Object.keys(options.extraHeaders).length !== 0) {
       this.extraHeaders = options.extraHeaders && options.extraHeaders.slice();
     }
-    
+
     extraHeaders = this.extraHeaders.slice();
 
     this.registered = false;
@@ -3548,6 +3584,7 @@ Registrator.prototype = {
         }, extraHeaders);
     } else {
       extraHeaders.push('Contact: '+ this.contact + ';expires=0');
+      extraHeaders.push('Expires: 0');
 
       this.request = new JsSIP.OutgoingRequest(JsSIP.C.REGISTER, this.registrar, this.ua, {
           'to_uri': this.to_uri,
@@ -3832,12 +3869,12 @@ RTCMediaHandler.prototype = {
   isReady: function() {
     return this.ready;
   },
-  
+
   createOffer: function(onSuccess, onFailure, constraints) {
     var self = this;
 
     function onSetLocalDescriptionSuccess() {
-      if (self.peerConnection.iceGatheringState === 'complete' && self.peerConnection.iceConnectionState === 'connected') {
+      if (self.peerConnection.iceGatheringState === 'complete' && (self.peerConnection.iceConnectionState === 'connected' || self.peerConnection.iceConnectionState === 'completed')) {
         self.ready = true;
         onSuccess(self.peerConnection.localDescription.sdp);
       } else {
@@ -3848,7 +3885,7 @@ RTCMediaHandler.prototype = {
         };
       }
     }
-    
+
     this.ready = false;
 
     this.peerConnection.createOffer(
@@ -3876,7 +3913,7 @@ RTCMediaHandler.prototype = {
     var self = this;
 
     function onSetLocalDescriptionSuccess() {
-      if (self.peerConnection.iceGatheringState === 'complete' && self.peerConnection.iceConnectionState === 'connected') {
+      if (self.peerConnection.iceGatheringState === 'complete' && (self.peerConnection.iceConnectionState === 'connected' || self.peerConnection.iceConnectionState === 'completed')) {
         self.ready = true;
         onSuccess(self.peerConnection.localDescription.sdp);
       } else {
@@ -3887,7 +3924,7 @@ RTCMediaHandler.prototype = {
         };
       }
     }
-    
+
     this.ready = false;
 
     this.peerConnection.createAnswer(
@@ -3944,7 +3981,7 @@ RTCMediaHandler.prototype = {
   */
   init: function(options) {
     options = options || {};
-    
+
     var idx, length, server,
       self = this,
       servers = [],
@@ -3960,15 +3997,15 @@ RTCMediaHandler.prototype = {
     if (!turn_servers) {
       turn_servers = config.turn_servers;
     }
-    
+
     /* Change 'url' to 'urls' whenever this issue is solved:
      * https://code.google.com/p/webrtc/issues/detail?id=2096
      */
-    
+
     if (stun_servers.length > 0) {
       servers.push({'url': stun_servers});
     }
-    
+
     length = turn_servers.length;
     for (idx = 0; idx < length; idx++) {
       server = turn_servers[idx];
@@ -3982,24 +4019,24 @@ RTCMediaHandler.prototype = {
     this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({'iceServers': servers}, constraints);
 
     this.peerConnection.onaddstream = function(e) {
-      self.logger.log('stream added: '+ e.stream.id);
+      self.logger.debug('stream added: '+ e.stream.id);
     };
 
     this.peerConnection.onremovestream = function(e) {
-      self.logger.log('stream removed: '+ e.stream.id);
+      self.logger.debug('stream removed: '+ e.stream.id);
     };
 
     this.peerConnection.onicecandidate = function(e) {
       if (e.candidate) {
-        self.logger.log('ICE candidate received: '+ e.candidate.candidate);
+        self.logger.debug('ICE candidate received: '+ e.candidate.candidate);
       } else if (self.onIceCompleted !== undefined) {
         self.onIceCompleted();
       }
     };
 
     this.peerConnection.oniceconnectionstatechange = function() {
-      self.logger.log('ICE connection state changed to "'+ this.iceConnectionState +'"');
-      
+      self.logger.debug('ICE connection state changed to "'+ this.iceConnectionState +'"');
+
       if (this.iceConnectionState === 'failed') {
         self.session.terminate({
             cause: JsSIP.C.causes.RTP_TIMEOUT,
@@ -4011,12 +4048,12 @@ RTCMediaHandler.prototype = {
 
 
     this.peerConnection.onstatechange = function() {
-      self.logger.log('PeerConnection state changed to "'+ this.readyState +'"');
+      self.logger.debug('PeerConnection state changed to "'+ this.readyState +'"');
     };
   },
 
   close: function() {
-    this.logger.log('closing PeerConnection');
+    this.logger.debug('closing PeerConnection');
     if(this.peerConnection) {
       this.peerConnection.close();
 
@@ -4034,11 +4071,11 @@ RTCMediaHandler.prototype = {
   getUserMedia: function(onSuccess, onFailure, constraints) {
     var self = this;
 
-    this.logger.log('requesting access to local media');
+    this.logger.debug('requesting access to local media');
 
     JsSIP.WebRTC.getUserMedia(constraints,
       function(stream) {
-        self.logger.log('got local media stream');
+        self.logger.debug('got local media stream');
         self.localMedia = stream;
         onSuccess(stream);
       },
@@ -4409,7 +4446,7 @@ RTCSession.prototype.terminate = function(options) {
     case C.STATUS_NULL:
     case C.STATUS_INVITE_SENT:
     case C.STATUS_1XX_RECEIVED:
-      this.logger.log('canceling RTCSession');
+      this.logger.debug('canceling RTCSession');
 
       if (status_code && (status_code < 200 || status_code >= 700)) {
         throw new TypeError('Invalid status_code: '+ status_code);
@@ -4423,12 +4460,8 @@ RTCSession.prototype.terminate = function(options) {
         this.isCanceled = true;
         this.cancelReason = cancel_reason;
       } else if (this.status === C.STATUS_INVITE_SENT) {
-        if(this.received_100) {
-          this.request.cancel(cancel_reason);
-        } else {
-          this.isCanceled = true;
-          this.cancelReason = cancel_reason;
-        }
+        this.isCanceled = true;
+        this.cancelReason = cancel_reason;
       } else if(this.status === C.STATUS_1XX_RECEIVED) {
         this.request.cancel(cancel_reason);
       }
@@ -4441,7 +4474,7 @@ RTCSession.prototype.terminate = function(options) {
       // - UAS -
     case C.STATUS_WAITING_FOR_ANSWER:
     case C.STATUS_ANSWERED:
-      this.logger.log('rejecting RTCSession');
+      this.logger.debug('rejecting RTCSession');
 
       status_code = status_code || 480;
 
@@ -4455,7 +4488,7 @@ RTCSession.prototype.terminate = function(options) {
 
     case C.STATUS_WAITING_FOR_ACK:
     case C.STATUS_CONFIRMED:
-      this.logger.log('terminating RTCSession');
+      this.logger.debug('terminating RTCSession');
 
       reason_phrase = options.reason_phrase || JsSIP.C.REASON_PHRASE[status_code] || '';
 
@@ -5057,7 +5090,7 @@ RTCSession.prototype.setACKTimer = function() {
 
   this.timers.ackTimer = window.setTimeout(function() {
     if(self.status === C.STATUS_WAITING_FOR_ACK) {
-      self.logger.log('no ACK received, terminating the call');
+      self.logger.debug('no ACK received, terminating the call');
       window.clearTimeout(self.timers.invite2xxTimer);
       self.sendRequest(JsSIP.C.BYE);
       self.ended('remote', null, JsSIP.C.causes.NO_ACK);
@@ -5142,7 +5175,6 @@ RTCSession.prototype.init_incoming = function(request) {
      * SDP Offer is valid. Fire UA newRTCSession
      */
     function() {
-      request.reply(180, null, ['Contact: ' + self.contact]);
       self.status = C.STATUS_WAITING_FOR_ANSWER;
 
       // Set userNoAnswerTimer
@@ -5165,7 +5197,16 @@ RTCSession.prototype.init_incoming = function(request) {
         );
       }
 
+      // Fire 'newRTCSession' event.
       self.newRTCSession('remote', request);
+
+      // Reply 180.
+      request.reply(180, null, ['Contact: ' + self.contact]);
+
+      // Fire 'progress' event.
+      // TODO: Document that 'response' field in 'progress' event is null for
+      // incoming calls.
+      self.progress('local', null);
     },
     /*
      * onFailure
@@ -5250,7 +5291,6 @@ RTCSession.prototype.connect = function(target, options) {
 
   // OutgoingSession specific parameters
   this.isCanceled = false;
-  this.received_100 = false;
 
   requestParams = {from_tag: this.from_tag};
 
@@ -5300,7 +5340,7 @@ RTCSession.prototype.close = function() {
     return;
   }
 
-  this.logger.log('closing INVITE session ' + this.id);
+  this.logger.debug('closing INVITE session ' + this.id);
 
   // 1st Step. Terminate media.
   if (this.rtcMediaHandler){
@@ -5502,7 +5542,7 @@ RTCSession.prototype.receiveRequest = function(request) {
         break;
       case JsSIP.C.INVITE:
         if(this.status === C.STATUS_CONFIRMED) {
-          this.logger.log('re-INVITE received');
+          this.logger.debug('re-INVITE received');
           this.receiveReinvite(request);
         }
         break;
@@ -5702,12 +5742,13 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
       return;
     }
 
-  } else if(this.status !== C.STATUS_INVITE_SENT && this.status !== C.STATUS_1XX_RECEIVED) {
-    return;
   }
 
   // Proceed to cancellation if the user requested.
   if(this.isCanceled) {
+    // Remove the flag. We are done.
+    this.isCanceled = false;
+
     if(response.status_code >= 100 && response.status_code < 200) {
       this.request.cancel(this.cancelReason);
     } else if(response.status_code >= 200 && response.status_code < 299) {
@@ -5716,9 +5757,12 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
     return;
   }
 
+  if(this.status !== C.STATUS_INVITE_SENT && this.status !== C.STATUS_1XX_RECEIVED) {
+    return;
+  }
+
   switch(true) {
     case /^100$/.test(response.status_code):
-      this.received_100 = true;
       break;
     case /^1[0-9]{2}$/.test(response.status_code):
       if(this.status !== C.STATUS_INVITE_SENT && this.status !== C.STATUS_1XX_RECEIVED) {
@@ -5739,9 +5783,10 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
         }
       }
 
+      this.status = C.STATUS_1XX_RECEIVED;
+      this.progress('remote', response);
+
       if (!response.body) {
-        session.status = C.STATUS_1XX_RECEIVED;
-        session.progress('remote', response);
         break;
       }
 
@@ -5752,10 +5797,7 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
         * OnSuccess.
         * SDP Answer fits with Offer.
         */
-        function() {
-          session.status = C.STATUS_1XX_RECEIVED;
-          session.progress('remote', response);
-        },
+        function() { },
         /*
         * OnFailure.
         * SDP Answer does not fit with Offer.
@@ -6468,6 +6510,9 @@ UA = function(configuration) {
     ict: {}
   };
 
+  // Custom UA empty object for high level use
+  this.data = {};
+
   this.transportRecoverAttempts = 0;
   this.transportRecoveryTimer = null;
 
@@ -6695,7 +6740,7 @@ UA.prototype.stop = function() {
 /**
  * Connect to the WS server if status = STATUS_INIT.
  * Resume UA after being closed.
- *
+ * @returns {Boolean} true if the start action takes place, false otherwise
  */
 UA.prototype.start = function() {
   var server;
@@ -6705,14 +6750,18 @@ UA.prototype.start = function() {
   if (this.status === C.STATUS_INIT) {
     server = this.getNextWsServer();
     new JsSIP.Transport(this, server);
+    return true;
   } else if(this.status === C.STATUS_USER_CLOSED) {
     this.logger.log('resuming');
     this.status = C.STATUS_READY;
     this.transport.connect();
+    return true;
   } else if (this.status === C.STATUS_READY) {
     this.logger.log('UA is in READY status, not resuming');
+    return false;
   } else {
     this.logger.error('Connection is down. Auto-Recovery system is trying to connect');
+    return false;
   }
 };
 
@@ -6771,7 +6820,7 @@ UA.prototype.onTransportClosed = function(transport) {
     client_transactions = ['nict', 'ict', 'nist', 'ist'];
 
   transport.server.status = JsSIP.Transport.C.STATUS_DISCONNECTED;
-  this.logger.log('connection state set to '+ JsSIP.Transport.C.STATUS_DISCONNECTED);
+  this.logger.debug('connection state set to '+ JsSIP.Transport.C.STATUS_DISCONNECTED);
 
   length = client_transactions.length;
   for (type = 0; type < length; type++) {
@@ -6809,6 +6858,11 @@ UA.prototype.onTransportError = function(transport) {
     reason: transport.lastTransportError.reason
   });
 
+  // Don't attempt to recover the connection if the user closes the UA.
+  if (this.status === C.STATUS_USER_CLOSED) {
+    return;
+  }
+
   // No reconnection possibility by config
   if(!this.configuration.connection_autorecovery) {
     return;
@@ -6842,7 +6896,7 @@ UA.prototype.onTransportConnected = function(transport) {
   this.transportRecoverAttempts = 0;
 
   transport.server.status = JsSIP.Transport.C.STATUS_READY;
-  this.logger.log('connection state set to '+ JsSIP.Transport.C.STATUS_READY);
+  this.logger.debug('connection state set to '+ JsSIP.Transport.C.STATUS_READY);
 
   if(this.status === C.STATUS_USER_CLOSED) {
     return;
@@ -6889,7 +6943,7 @@ UA.prototype.newTransaction = function(transaction) {
 
 
 /**
- * new Transaction
+ * Transaction destroyed.
  * @private
  * @param {JsSIP.Transaction} transaction.
  */
@@ -6937,7 +6991,7 @@ UA.prototype.receiveRequest = function(request) {
   // Create the server transaction
   if(method === JsSIP.C.INVITE) {
     new JsSIP.Transactions.InviteServerTransaction(request, this);
-  } else if(method !== JsSIP.C.ACK) {
+  } else if(method !== JsSIP.C.ACK && method !== JsSIP.C.CANCEL) {
     new JsSIP.Transactions.NonInviteServerTransaction(request, this);
   }
 
@@ -7194,6 +7248,7 @@ UA.prototype.loadConfig = function(configuration) {
 
       // Hacks
       hack_via_tcp: false,
+      hack_via_ws: false,
       hack_ip_in_contact: false
     };
 
@@ -7330,18 +7385,18 @@ UA.prototype.loadConfig = function(configuration) {
     UA.configuration_skeleton[parameter].value = '';
   }
 
-  this.logger.log('configuration parameters after validation:');
+  this.logger.debug('configuration parameters after validation:');
   for(parameter in settings) {
     switch(parameter) {
       case 'uri':
       case 'registrar_server':
-        this.logger.log('· ' + parameter + ': ' + settings[parameter]);
+        this.logger.debug('· ' + parameter + ': ' + settings[parameter]);
         break;
       case 'password':
-        this.logger.log('· ' + parameter + ': ' + 'NOT SHOWN');
+        this.logger.debug('· ' + parameter + ': ' + 'NOT SHOWN');
         break;
       default:
-        this.logger.log('· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
+        this.logger.debug('· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
     }
   }
 
@@ -7373,12 +7428,13 @@ UA.configuration_skeleton = (function() {
       "connection_recovery_max_interval",
       "connection_recovery_min_interval",
       "display_name",
-      "hack_via_tcp", // false.
+      "hack_via_tcp", // false
+      "hack_via_ws", // false
       "hack_ip_in_contact", //false
       "instance_id",
-      "no_answer_timeout", // 30 seconds.
+      "no_answer_timeout", // 30 seconds
       "password",
-      "register_expires", // 600 seconds.
+      "register_expires", // 600 seconds
       "registrar_server",
       "stun_servers",
       "trace_sip",
@@ -7540,6 +7596,12 @@ UA.configuration_check = {
     hack_via_tcp: function(hack_via_tcp) {
       if (typeof hack_via_tcp === 'boolean') {
         return hack_via_tcp;
+      }
+    },
+
+    hack_via_ws: function(hack_via_ws) {
+      if (typeof hack_via_ws === 'boolean') {
+        return hack_via_ws;
       }
     },
 
@@ -8191,31 +8253,45 @@ function rfc3261_8_2_2_2() {
     call_id = message.call_id,
     cseq = message.cseq;
 
-  if(!message.to_tag) {
-    if(message.method === JsSIP.C.INVITE) {
-      tr = ua.transactions.ist[message.via_branch];
-      if(!tr) {
-        return;
-      } else {
-        for(idx in ua.transactions.ist) {
-          tr = ua.transactions.ist[idx];
-          if(tr.request.from_tag === fromTag && tr.request.call_id === call_id && tr.request.cseq === cseq) {
-            reply(482);
-            return false;
-          }
+  // Accept any in-dialog request.
+  if(message.to_tag) {
+    return;
+  }
+
+  // INVITE request.
+  if (message.method === JsSIP.C.INVITE) {
+    // If the branch matches the key of any IST then assume it is a retransmission
+    // and ignore the INVITE.
+    // TODO: we should reply the last response.
+    if (ua.transactions.ist[message.via_branch]) {
+      return false;
+    }
+    // Otherwise check whether it is a merged request.
+    else {
+      for(idx in ua.transactions.ist) {
+        tr = ua.transactions.ist[idx];
+        if(tr.request.from_tag === fromTag && tr.request.call_id === call_id && tr.request.cseq === cseq) {
+          reply(482);
+          return false;
         }
       }
-    } else {
-      tr = ua.transactions.nist[message.via_branch];
-      if(!tr) {
-        return;
-      } else {
-        for(idx in ua.transactions.nist) {
-          tr = ua.transactions.nist[idx];
-          if(tr.request.from_tag === fromTag && tr.request.call_id === call_id && tr.request.cseq === cseq) {
-            reply(482);
-            return false;
-          }
+    }
+  }
+  // Non INVITE request.
+  else {
+    // If the branch matches the key of any NIST then assume it is a retransmission
+    // and ignore the request.
+    // TODO: we should reply the last response.
+    if (ua.transactions.nist[message.via_branch]) {
+      return false;
+    }
+    // Otherwise check whether it is a merged request.
+    else {
+      for(idx in ua.transactions.nist) {
+        tr = ua.transactions.nist[idx];
+        if(tr.request.from_tag === fromTag && tr.request.call_id === call_id && tr.request.cseq === cseq) {
+          reply(482);
+          return false;
         }
       }
     }
@@ -21115,7 +21191,7 @@ JsSIP.Grammar = (function(){
   return result;
 })();
 
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var parser = require('./lib/parser');
 var writer = require('./lib/writer');
 
