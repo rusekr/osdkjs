@@ -2016,7 +2016,7 @@
 
     // Initiation
 
-    module.on('connectionFailed', function() {
+    module.on(['connectionFailed', 'disconnecting'], function() {
       if (connection && connection.connected()) {
         connection.disconnect();
       }
