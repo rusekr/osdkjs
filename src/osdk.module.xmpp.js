@@ -1590,11 +1590,10 @@
 
       var handlers = self.getHandlers(params), error = false, contact, request;
 
-      if (!connection.connected()) error = '01';
-      if (module.utils.isEmpty(jid)) error = '02';
-      if (!module.utils.isString(jid)) error = '03';
-      if (!module.utils.isValidID(jid)) error = '04';
-      if (jid == storage.client.id) error = '05';
+      if (!connection.connected()) error = 1;
+      if (!error && (module.utils.isEmpty(jid) || !module.utils.isString(jid) || !module.utils.isValidID(jid))) error = 2;
+      if (jid == storage.client.id) error = 3;
+
       request = storage.requests.incoming.get(jid);
       if (request) {
         switch(request.ask) {
@@ -1635,10 +1634,25 @@
       }
       contact = storage.contacts.get(jid);
       if (contact && (contact.ask || contact.subscription != 'none')) {
-        if (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) error = '06';
+        if (contact.ask && contact.ask == self.OSDK_PRESENCE_TYPE_SUBSCRIBE) {
+          error = 4;
+        } else {
+          if (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) error = 6;
+        }
       }
       if (error) {
-        handlers.onError(error);
+        var messages = [
+          'No connection to the server',
+          'Wrong Login format',
+          'You can not add youself to contact list',
+          'The request has been already sent to this contact',
+          'This contact has already made request',
+          'This contact is already in your contact list'
+        ];
+        handlers.onError({
+          number: error,
+          message: messages[error - 1]
+        });
         return false;
       } else {
         self.sendPresence({
