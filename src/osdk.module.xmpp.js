@@ -1566,7 +1566,7 @@
           'This contact is already in your contact list'
         ];
         handlers.onError({
-          code: error,
+          number: error,
           message: messages[error - 1]
         });
         return false;
