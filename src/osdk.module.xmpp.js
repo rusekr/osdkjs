@@ -1541,23 +1541,34 @@
 
       var handlers = self.getHandlers(params), error = false, contact, request;
 
-      if (!connection.connected()) error = '01';
-      if (module.utils.isEmpty(jid)) error = '02';
-      if (!module.utils.isString(jid)) error = '03';
-      if (!module.utils.isValidID(jid)) error = '04';
-      if (jid == storage.client.id) error = '05';
+      if (!connection.connected()) error = 1;
+
+      if (!error && (module.utils.isEmpty(jid) || !module.utils.isString(jid) || !module.utils.isValidID(jid))) error = 2;
+
+      if (!error && jid == storage.client.id) error = 3;
 
       request = storage.requests.incoming.get(jid);
-      if (request) error = '06';
+      if (!error && request) error = 4;
 
       request = storage.requests.outgoing.get(jid);
-      if (request) error = '07';
+      if (!error && request) error = 5;
 
       contact = storage.contacts.get(jid);
-      if (contact) error = '08';
+      if (!error && contact) error = 6;
 
       if (error) {
-        handlers.onError(error);
+        var messages = [
+          'No connection to the server',
+          'Wrong Login format',
+          'You can not add youself to contact list',
+          'The request has been already sent to this contact',
+          'This contact has already made request',
+          'This contact is already in your contact list'
+        ];
+        handlers.onError({
+          code: error,
+          message: messages[error - 1]
+        });
         return false;
       }
 
