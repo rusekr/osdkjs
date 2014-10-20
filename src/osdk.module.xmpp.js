@@ -898,6 +898,7 @@
             }
             if (data.show || data.status) {
               contact = storage.contacts.get(data.from);
+              if (!contact) contact = oSDK.user(data.from);
               var oldStatus = contact.status;
               if (data.show) {
                 var show = self.decodeStatus(data.show);
