@@ -145,7 +145,7 @@ module.exports = function(grunt) {
           destination: 'builtdocs',
           private: false,
           template: 'temp/jsdoc/templates/teligent',
-          tutorials: 'temp/jsdoc/tutorials',
+          tutorials: 'temp/jsdoc/tutorials'
         }
       },
       developer: {
@@ -154,7 +154,7 @@ module.exports = function(grunt) {
           destination: 'builtdocs',
           private: false,
           template: 'jsdoc/templates/teligent',
-          tutorials: 'jsdoc/tutorials',
+          tutorials: 'jsdoc/tutorials'
         }
       }
     },
