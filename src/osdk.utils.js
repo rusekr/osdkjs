@@ -219,8 +219,14 @@
     return inObj;
   };
 
-  /*
-   * oSDK module object prototype
+  /**
+   * oSDK module object constructor.
+   *
+   * @alias Module
+   * @private
+   *
+   * @param {String} name - Name of module to create.
+   *
    */
   var Module = function oSDKModule(name) {
     var self = this;
@@ -251,7 +257,7 @@
         other: false,
         self: false,
         fired: false,
-        cancels: null,
+        clears: null,
         module: null,
         data: {}
       }, initObject);
@@ -458,6 +464,7 @@
 
       // ReadyStateChange handlers
       r.onreadystatechange = function () {
+        var responseText = '';
         if (r.readyState != 4) {
           return;
         }
@@ -467,13 +474,14 @@
         }
 
         try {
-          r.responseText = JSON.parse(r.responseText);
+          responseText = JSON.parse(r.responseText);
         } catch (e) {
           // Whoops, not a json..
           self.log(e);
+          responseText = r.responseText;
         }
 
-        config.success.call(config.success, r.responseText, r);
+        config.success.call(config.success, responseText, r);
       };
 
       r.send(config.data);
@@ -682,13 +690,16 @@
             return;
           }
 
-          // If ours event cancels some other
-          var cancelsEvents = events[eventType].emittersObject[self.name].cancels;
-          if(events[eventType].emittersObject[self.name].cancels) {
-            cancelsEvents.concat(events[eventType].emittersObject[self.name].cancels);
-            self.info(eventType, 'cancelling events', cancelsEvents);
-            each(cancelsEvents, function cancelEvent (eventToCancel) {
-              eventToCancel.fired = false;
+          // If ours event clears some other event which fires last for someone.
+          var clearsEvents = [].concat(events[eventType].emittersObject[self.name].clears);
+          if(clearsEvents.length) {
+            each(clearsEvents, function cancelEvent (eventToClear) {
+              if(!eventToClear || !events[eventToClear].emitters) {
+                return;
+              }
+              each(events[eventToClear].emitters, function (emitter) {
+                emitter.fired = false;
+              });
             });
           }
 
@@ -782,19 +793,28 @@
     };
     self.config = self.constructor.prototype.config.bind(self);
 
-    /*
-     * Method registerEvents.
-     * @alias <moduleName>.registerEvents
-     * @param eventsObject Object.
+    /**
+     * @typedef registerEventsObject
+     * @type {object}
+     * @instance
      *
-     * Configurated by eventsObject.
-     * Keys: events names.
-     * Every event configured by it's own configObject.
-     * configObject keys:
-     * self - fired only to listeners defined by module which registered that event.
-     * other - fired to listeners defined by other modules.
-     * client - fired to client listeners.
-     * cancels - firing of this event cancels other named event and its bound by "bind" directive relatives.
+     * @private
+     *
+     * @property {boolean} self - Fired only to listeners defined by module which registered that event.
+     * @property {boolean} other - Fired to listeners defined by other modules.
+     * @property {boolean} client - Fired to client listeners.
+     * @property {(string|string[])} clears - Firing of current event clears "fired" attributes of emitters of events named as array or string in this parameter.
+     */
+
+    /**
+     * This method registers event emitters for current module.
+     *
+     * @alias registerEvents
+     * @memberof Module
+     * @instance
+     * @private
+     *
+     * @param {registerEventsObject} registerEventsObject - Event registration object.
      */
     self.constructor.prototype.registerEvents = function oSDKregisterEvents (eventsObject) {
 

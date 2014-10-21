@@ -551,7 +551,7 @@
         // 'xmpp.disconnected': {self: true},
         'disconnected': {other: true, client: 'last'},
         // 'xmpp.connectionFailed': {self: true},
-        'connectionFailed': {other: true, client: true, cancels: 'connected'},
+        'connectionFailed': {other: true, client: true, clears: 'connected'},
 
         /**
          * Dispatched when XMPP module got a new roster from server and parsed him
@@ -1016,7 +1016,13 @@
         storage.clear();
         connection = null;
         techCapabilities.instantMessaging = false;
-        module.trigger('disconnected', [].slice.call(arguments, 0));
+
+        var disconnectInitiator = 'system';
+        if(module.disconnectedByUser) {
+          disconnectInitiator = 'user';
+          module.disconnectedByUser = false;
+        }
+        module.trigger('disconnected', { initiator: disconnectInitiator });
         return true;
       },
       fnOnError: function(error) {
@@ -2042,7 +2048,10 @@
 
     // Initiation
 
-    module.on(['connectionFailed', 'disconnecting'], function() {
+    module.on(['connectionFailed', 'disconnecting'], function(data) {
+      if (arguments[0].type == 'disconnecting') {
+        module.disconnectedByUser = (data.initiator == 'user')?true:false;
+      }
       if (connection && connection.connected()) {
         connection.disconnect();
       }
@@ -2137,6 +2146,9 @@
     // Inner exemplar of inner XMPP module
 
     module = new oSDK.utils.Module('xmpp');
+
+    // User manual disconnect flag.
+    module.disconnectedByUser = false;
 
     // Module specific DEBUG.
     module.debug = true;

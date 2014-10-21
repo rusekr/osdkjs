@@ -19,6 +19,8 @@
   // Status (disconnected, connecting, connected, disconnecting)
   auth.status = 'disconnected';
 
+  auth.disconnectedByUser = false;
+
   var user = {
     id: null,
     login: null,
@@ -32,7 +34,8 @@
       authURI: '{authorizePath}'
     },
     appID: null,
-    popup: false
+    popup: false,
+    connectionRecovery: false
   };
 
   // For not adding more than one event listener.
@@ -295,7 +298,6 @@
       },
       success: function(data) {
         var uris = {};
-        data = JSON.parse(data);
         if(data.error) {
           auth.trigger(['connectionFailed', 'auth_connectionError'], new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
         } else {
@@ -342,19 +344,33 @@
 
   };
 
-  // Imperative disconnection from openSDP network (optionally with clearing token
+  // Disconnect function for clearing system stuff.
   auth.disconnect = function (keepToken) {
     if(auth.status == 'disconnected' || auth.status == 'disconnecting') {
       return false;
     }
-    auth.trigger('disconnecting');
+
+    var disconnectInitiator = 'system';
+    if (auth.disconnectedByUser) {
+      disconnectInitiator = 'user';
+      auth.disconnectedByUser = false;
+    }
+
+    auth.status = 'disconnecting';
+    auth.trigger('disconnecting', { initiator: disconnectInitiator });
 
     if(keepToken !== true) {
       oauth.clearToken();
     }
 
     auth.status = 'disconnected';
-    auth.trigger('disconnected');
+    auth.trigger('disconnected', { initiator: disconnectInitiator });
+  };
+
+  // Disconnect function for client
+  auth.disconnectManually = function (keepToken) {
+    auth.disconnectedByUser = true;
+    auth.disconnect(keepToken);
   };
 
   // Returns status of user access token to client.
@@ -516,7 +532,7 @@
      * @alias oSDK.disconnect
      * @param {boolean} [keepToken=false] Keep authorization info while disconnecting. If true, token will be kept upon disconnect and you can reconnect afterwards without redirection to authorization page.
      */
-    'disconnect': auth.disconnect,
+    'disconnect': auth.disconnectManually,
     /**
      * Returns status of client's authorization on server. Thus client may want to know if it can connect to oSDP network without invoking user login form through popup or redirect.
      *
@@ -591,6 +607,8 @@
     * @memberof ConnectionAPI
     * @event disconnected
     *
+    * @param {String} initiator - Initiator of disconnected event. Can be "system" or "user".
+    *
     */
     'disconnected': { other: true, client: 'last' },
 
@@ -604,7 +622,7 @@
     * @param {Error} event The event object associated with this event.
     *
     */
-    'connectionFailed': { client: true, other: true, cancels: 'connected' },
+    'connectionFailed': { client: true, other: true, clears: 'connected' },
 
     /*
      * Inner events

@@ -8,10 +8,16 @@
    * @namespace MediaAPI
    */
 
+    /**
+   * @namespace CapabilitiesAPI
+   */
+
   var sip = new oSDK.utils.Module('sip');
 
   // Module specific DEBUG.
   sip.debug = true;
+
+  sip.disconnectedByUser = false;
 
   var defaultConfig = {
     sip: {
@@ -149,7 +155,7 @@
     'connected': 'sip_connected', // not needed now
     'disconnected': 'sip_disconnected',
     'registered': ['connected', 'sip_registered'],
-    'unregistered': 'sip_unregistered', // not needed now
+    'unregistered': ['sip_unregistered', 'connectionFailed'],
     'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
     'connectionFailed': 'connectionFailed',
     'newRTCSession': ['sip_gotMediaSession']
@@ -176,7 +182,7 @@
 
       sip.utils.each(outer, function (outerEvent) {
         triggerFunction.call(context || this, i, function (e) {
-          sip.trigger(outerEvent, e);
+          sip.trigger(outerEvent, { data: e });
         });
       });
     });
@@ -201,16 +207,16 @@
       } else {
         options.mediaConstraints.audio = false;
       }
-      delete options.audio;
     }
+    delete options.audio;
     if (!options.mediaConstraints.video) {
       if (options.video && options.video === true) {
         options.mediaConstraints.video = true;
       } else {
         options.mediaConstraints.video = false;
       }
-      delete options.video;
     }
+    delete options.video;
     sip.log('converted', options);
     return options;
   }
@@ -235,7 +241,6 @@
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
     currentSession.callOptions = evData.session.mediaConstraints;
-    sip.log('incoming session added', sessions.show(), currentSession);
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -878,8 +883,8 @@
 
   // On auth disconnecting event
   sip.on('disconnecting', function (data) {
+    sip.disconnectedByUser = (data.initiator == 'user')?true:false;
     sip.disconnect();
-    sessions.clear();
   });
 
   // On other modules connectionFailed event
@@ -890,7 +895,7 @@
   // TODO: replace with direct jssip listener
   sip.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
-    var mediaSession = new MediaSession(event);
+    var mediaSession = new MediaSession(event.data);
 
     sip.trigger('gotMediaSession', mediaSession);
     if(mediaSession.incoming) {
@@ -905,8 +910,16 @@
 
   });
 
-  sip.on('sip_disconnected', function (data) {
-    sip.trigger('disconnected');
+  sip.on('sip_disconnected', function (event) {
+    sessions.clear();
+
+    var disconnectInitiator = 'system';
+    if(sip.disconnectedByUser) {
+      disconnectInitiator = 'user';
+      sip.disconnectedByUser = false;
+    }
+
+    sip.trigger('disconnected', { initiator: disconnectInitiator });
   });
 
   /**
@@ -1140,7 +1153,7 @@
     /*
      * Described in auth module
      */
-    'connectionFailed': { client: true, other: true, cancels: 'connected' }
+    'connectionFailed': { client: true, other: true, clears: 'connected' }
   });
 
   sip.registerConfig(defaultConfig);

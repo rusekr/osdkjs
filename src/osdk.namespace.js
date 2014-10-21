@@ -37,7 +37,7 @@
  * @memberof CoreAPI
  * @property {string} appID - ID of application gained from {@link http://osdp.ru developer's portal}.
  * @property {boolean} [popup=false] - Whether to use popup for oAuth2 authentication of application user or to redirect to authentication page.
- *
+ * @property {boolean} [connectionRecovery=false] - Automatic reconnection on connection failures.
  */
 
 /**
