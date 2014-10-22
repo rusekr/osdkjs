@@ -355,9 +355,20 @@
 
     var self = this;
 
+    // JID
+
+    this.jid = params.login + '@' + params.domain;
+
     // Logged user
 
-    this.client = oSDK.user(params.login + '@' + params.domain, { history: false });
+    this.client = oSDK.user(this.jid, { history: false });
+
+    // Login & Domain
+
+    this.login = params.login;
+    this.domain = params.domain;
+
+    // Capabilities of logged user
 
     this.client.capabilities.setTechParams({
       audioCall: xmpp.techCapabilities().audioCall,
@@ -402,6 +413,11 @@
     };
 
     this.clear = function() {
+      // Client
+      this.jid = null;
+      this.client = null;
+      this.login = null;
+      this.domain = null;
       // Roster
       this.roster = new SDKList();
       // Contacts
@@ -897,8 +913,7 @@
               }
             }
             if (data.show || data.status) {
-              contact = storage.contacts.get(data.from);
-              if (!contact) contact = oSDK.user(data.from);
+              contact = storage.contacts.get(data.from) || oSDK.user(data.from);
               var oldStatus = contact.status;
               if (data.show) {
                 var show = self.decodeStatus(data.show);
@@ -1424,6 +1439,12 @@
             for (i = 0; i != len; i ++) {
 
               var jid = nodes.childNodes[i].getAttribute('jid').toLowerCase();
+
+              if (!oSDK.utils.isValidID(jid)) {
+                if (oSDK.utils.isValidLogin(jid)) {
+                  continue;
+                }
+              }
 
               if (jid != storage.client.id) {
 
@@ -2042,10 +2063,6 @@
     this.getIncomingRequests = function() { return storage.requests.incoming.get(); };
     this.getOutgoingRequests = function() { return storage.requests.outgoing.get(); };
 
-    this.getDomain = function() {
-      return storage.client.domain;
-    };
-
     // Initiation
 
     module.on(['connectionFailed', 'disconnecting'], function(data) {
@@ -2449,15 +2466,7 @@
        * @param {function} Callbacks.onError
        * @param {function} Callbacks.onSuccess
        */
-      "removeContact": xmpp.removeContact,
-
-      /**
-       * Return current client domain
-       *
-       * @memberof RosterAPI
-       * @method oSDK.getDomain
-       */
-      "getDomain": xmpp.getDomain
+      "removeContact": xmpp.removeContact
 
     });
 
