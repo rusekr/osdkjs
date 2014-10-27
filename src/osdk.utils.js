@@ -565,9 +565,9 @@
      * @private
      *
      * @property {(string|string[])} type - Name or array of names for events to trigger.
-     * @property {string} data - your name.
-     * @property {number} context - your age.
-     * @property {boolean} arguments -
+     * @property {string} data - Data to pass to event.
+     * @property {number} context - Context to trigger event within.
+     * @property {Array.<*>} arguments - Pass this arguments to event as is, without normalization to standart object.
      */
 
     /**
@@ -607,7 +607,7 @@
           earlyEvents.map(function (args) {
             var module = args.shift();
             var name = args.shift();
-            module.trigger(name, args);
+            module.trigger.apply(module, [name].concat(args));
           });
         }
       }
@@ -648,20 +648,15 @@
           throw new self.Error('Emitter for ' + eventType + ' event type is not registered.');
         }
 
-        // Normalizing configObject.data to object
-        if (!isObject(configObject.data)) {
-          configObject.data = {
-            data: configObject.data
-          };
-        }
-        // Addition of system properties to data
+        // Addition of system properties to data.
         if(!configObject.data.type) {
           configObject.data.type = eventType;
         }
-        // Subtype for some events
+        // Subtype for some events.
         if(!configObject.data.subType) {
           configObject.data.subType = false;
         }
+        // First fired module gets priority.
         if(!configObject.data.module) {
           configObject.data.module = self.name;
         }
@@ -803,7 +798,7 @@
      * @property {boolean} self - Fired only to listeners defined by module which registered that event.
      * @property {boolean} other - Fired to listeners defined by other modules.
      * @property {boolean} client - Fired to client listeners.
-     * @property {(string|string[])} clears - Firing of current event clears "fired" attributes of emitters of events named as array or string in this parameter.
+     * @property {(string|string[])} clears - Firing of current event clears "fired" attributes of emitters of events named as array or string in this parameter. Can be registered by any emitter event-wide.
      */
 
     /**
