@@ -520,7 +520,7 @@
         // Connection
         connection: {
           // Inner JSJaC debuger
-          debug: false,
+          debug: true,
           // Timer
           timer: 2000,
           // Resource name
@@ -563,11 +563,11 @@
       return {
         // Inner
         // 'xmpp.connected': {self: true},
-        'connected': {other: true, client: 'last'},
+        'connected': { other: true, client: 'last' },
         // 'xmpp.disconnected': {self: true},
-        'disconnected': {other: true, client: 'last'},
+        'disconnected': { other: true, client: 'last' },
         // 'xmpp.connectionFailed': {self: true},
-        'connectionFailed': {other: true, client: true, clears: 'connected'},
+        'connectionFailed': { other: true, client: true },
 
         /**
          * Dispatched when XMPP module got a new roster from server and parsed him
@@ -956,15 +956,17 @@
       },
       fnOutgoingPresence: function(packet) {
         module.info('XMPP HANDLER(outgoing presence)');
-        var data = xmpp.getPresenceData(packet);
-        if (!data) {
-          /* TODO */
-        } else {
-          module.log('Presence data: ', data);
-          if (data.from == data.to) {
+        if (connection && connection.connected()) {
+          var data = xmpp.getPresenceData(packet);
+          if (!data) {
             /* TODO */
           } else {
-            /* TODO */
+            module.log('Presence data: ', data);
+            if (data.from == data.to) {
+              /* TODO */
+            } else {
+              /* TODO */
+            }
           }
         }
       },
@@ -1011,11 +1013,13 @@
         self.getRoster({
           onError: function(data) {
             /* TODO */
+            module.error('Can`t get roster', data);
           },
           onSuccess: function(data) {
             self.iAmLogged({
               onError: function(data) {
                 /* TODO */
+                module.error('Can`t login', data);
               },
               onSuccess: function(data) {
                 storage.logged = true;
@@ -1042,10 +1046,16 @@
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
+        if (connection && connection.connected()) {
+          connection.disconnect();
+        } else {
+          module.trigger('disconnected', { initiator: 'system' });
+        }
         storage.clear();
         connection = null;
         techCapabilities.instantMessaging = false;
         module.trigger('connectionFailed', new module.Error({ data: arguments }));
+
         return false;
       },
       fnOnResume: function() {
@@ -1616,13 +1626,15 @@
 
     this.addContact = function(jid, params) {
 
-      var handlers = self.getHandlers(params), error = false, contact, request;
+      var handlers = self.getHandlers(params), error = false, contact = false, request = false;
 
       if (!connection.connected()) error = 1;
       if (!error && (module.utils.isEmpty(jid) || !module.utils.isString(jid) || !module.utils.isValidID(jid))) error = 2;
       if (jid == storage.client.id) error = 3;
 
-      request = storage.requests.incoming.get(jid);
+      if (!error) {
+        request = storage.requests.incoming.get(jid);
+      }
       if (request) {
         switch(request.ask) {
           case self.OSDK_ROSTER_ASK_SUBSCRIBE :
@@ -1649,7 +1661,10 @@
             break;
         }
       }
-      request = storage.requests.outgoing.get(jid);
+      request = false;
+      if (!error) {
+        request = storage.requests.outgoing.get(jid);
+      }
       if (request) {
         switch(request.ask) {
           case self.OSDK_ROSTER_ASK_SUBSCRIBE :
@@ -1660,7 +1675,9 @@
             break;
         }
       }
-      contact = storage.contacts.get(jid);
+      if (!error) {
+        contact = storage.contacts.get(jid);
+      }
       if (contact && (contact.ask || contact.subscription != 'none')) {
         if (contact.ask && contact.ask == self.OSDK_PRESENCE_TYPE_SUBSCRIBE) {
           error = 4;
@@ -1870,20 +1887,28 @@
     // Send free date to other contact
 
     this.sendData = function(to, data, params) {
-      if (!utils.isObject(data)) data = {data: data};
-      self.sendPresence({to: to, data: data}, params);
-      return true;
+      if (connection && connection.connected()) {
+        if (!utils.isObject(data)) data = {data: data};
+        self.sendPresence({to: to, data: data}, params);
+        return true;
+      } else {
+        throw new oSDK.Error('Not connected to send data!');
+      }
     };
 
     this.sendDataToAll = function(data, params) {
-      if (!utils.isObject(data)) data = {data: data};
-      var contacts = storage.contacts.get(), len = storage.contacts.len(), i;
-      for (i = 0; i != len; i ++) {
-        if ((contacts[i].subscription == self.OSDK_SUBSCRIPTION_FROM || contacts[i].subscription == self.OSDK_SUBSCRIPTION_BOTH) && contacts[i].status != 'offline') {
-          self.sendPresence({to: contacts[i].id, data: data}, params);
+      if (connection && connection.connected()) {
+        if (!utils.isObject(data)) data = {data: data};
+        var contacts = storage.contacts.get(), len = storage.contacts.len(), i;
+        for (i = 0; i != len; i ++) {
+          if ((contacts[i].subscription == self.OSDK_SUBSCRIPTION_FROM || contacts[i].subscription == self.OSDK_SUBSCRIPTION_BOTH) && contacts[i].status != 'offline') {
+            self.sendPresence({to: contacts[i].id, data: data}, params);
+          }
         }
+        return true;
+      } else {
+        throw new oSDK.Error('Not connected to send data!');
       }
-      return true;
     };
 
     // Set status & capabilities, system or not
@@ -2070,7 +2095,11 @@
         module.disconnectedByUser = (data.initiator == 'user')?true:false;
       }
       if (connection && connection.connected()) {
+        // Disconnect and generate `disconnected` event.
         connection.disconnect();
+      } else {
+        // Just generate `disconnected` event.
+        module.trigger('disconnected');
       }
       return true;
     });

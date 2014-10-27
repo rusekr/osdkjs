@@ -157,7 +157,7 @@
     'registered': ['connected', 'sip_registered'],
     'unregistered': ['sip_unregistered', 'connectionFailed'],
     'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
-    'connectionFailed': 'connectionFailed',
+    'connectionFailed': 'sip_connectionFailed',
     'newRTCSession': ['sip_gotMediaSession']
   };
 
@@ -807,6 +807,7 @@
         ecode: 'sip0001',
         data: data
       }));
+      sip.trigger(['disconnected'], { initiator: 'system' });
     }
 
     // TODO: merge with other module stuff
@@ -821,8 +822,11 @@
 
   // Sip stop method
   sip.disconnect = function () {
-    if (sip.JsSIPUA) {
+    if (sip.JsSIPUA && sip.JsSIPUA.isConnected()) {
       sip.JsSIPUA.stop();
+    } else {
+      // If sip is already in disconnected state - signaling about that.
+      sip.trigger('disconnected');
     }
   };
 
@@ -920,6 +924,16 @@
     }
 
     sip.trigger('disconnected', { initiator: disconnectInitiator });
+  });
+
+  // Handling internal connectionFailed event
+  sip.on('sip_connectionFailed', function (event) {
+    sip.trigger('connectionFailed', new sip.Error({
+      message: "SIP connection failure.",
+      ecode: 'sip0125',
+      data: event
+    }));
+    sip.trigger('disconnected', { initiator: 'system' });
   });
 
   /**
@@ -1153,7 +1167,7 @@
     /*
      * Described in auth module
      */
-    'connectionFailed': { client: true, other: true, clears: 'connected' }
+    'connectionFailed': { client: true, other: true }
   });
 
   sip.registerConfig(defaultConfig);
