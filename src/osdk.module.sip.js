@@ -233,7 +233,7 @@
         eventNamesMap = {
           'connecting': 'connecting',
           'progress': 'progress',
-          'started': 'started',
+          'started': 'accepted',
           'gotDTMF': 'newDTMF',
           'failed': 'failed',
           'ended': 'ended'
