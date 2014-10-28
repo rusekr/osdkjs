@@ -2220,7 +2220,7 @@
        * @memberof RosterAPI
        * @method oSDK.getRoster
        * @param {object} Callbacks
-       * @param {object} Callbacks.onClient
+       * @param {object} Callbacks.onError
        * @param {object} Callbacks.onSuccess
        * @returns {bool}
        */
