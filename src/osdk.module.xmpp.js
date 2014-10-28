@@ -1294,7 +1294,7 @@
       }
       var handlers = self.getHandlers(params);
       var contact = storage.contacts.get(to);
-      if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
+      if ((connection && connection.connected()) && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_TO || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH)) {
         this.sendPresence({
           to: to,
           command: {
@@ -1313,7 +1313,7 @@
 
       var handlers = self.getHandlers(params);
 
-      if (connection.connected()) {
+      if (connection && connection.connected()) {
 
         var thatICan = {};
         thatICan.tech = storage.client.capabilities.getTechParams();
@@ -1362,7 +1362,7 @@
 
       var contact = storage.contacts.get(to);
 
-      if (connection.connected() && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_FROM || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) && contact.status != 'offline') {
+      if ((connection && connection.connected()) && contact && (contact.subscription == self.OSDK_SUBSCRIPTION_FROM || contact.subscription == self.OSDK_SUBSCRIPTION_BOTH) && contact.status != 'offline') {
 
         var thatICan = {};
         thatICan.tech = storage.client.capabilities.getTechParams();
@@ -1579,7 +1579,7 @@
 
       var handlers = self.getHandlers(params), error = false, contact, request;
 
-      if (!connection.connected()) error = 1;
+      if (!connection || !connection.connected()) error = 1;
 
       if (!error && (module.utils.isEmpty(jid) || !module.utils.isString(jid) || !module.utils.isValidID(jid))) error = 2;
 
@@ -1628,7 +1628,7 @@
 
       var handlers = self.getHandlers(params), error = false, contact = false, request = false;
 
-      if (!connection.connected()) error = 1;
+      if (!connection || !connection.connected()) error = 1;
       if (!error && (module.utils.isEmpty(jid) || !module.utils.isString(jid) || !module.utils.isValidID(jid))) error = 2;
       if (jid == storage.client.id) error = 3;
 
@@ -1717,7 +1717,7 @@
 
       var handlers = self.getHandlers(params), contact = false;
 
-      if (!connection.connected()) {
+      if (!connection || !connection.connected()) {
         handlers.onError();
         return false;
       } else {
@@ -1754,7 +1754,7 @@
 
       var handlers = self.getHandlers(params);
 
-      if (!connection.connected()) {
+      if (!connection || !connection.connected()) {
         handlers.onError();
         return false;
       } else {
@@ -1959,7 +1959,7 @@
           }
           break;
       }
-      if (!connection.connected()) {
+      if (!connection || !connection.connected()) {
         handlers.onError();
         return false;
       } else {
@@ -2034,7 +2034,7 @@
 
       var handlers = self.getHandlers(params);
 
-      if (!connection.connected()) {
+      if (!connection || !connection.connected()) {
         handlers.onError();
         return false;
       }
