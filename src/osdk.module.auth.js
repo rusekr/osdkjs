@@ -165,6 +165,7 @@
         if(oauth.isTokenAlive()) {
           // Bearer, query string or both authorization
           if(!options.oauthType) {
+            // Default type => bearer.
             options.oauthType = 'bearer';
           }
           if(options.oauthType == 'bearer' || options.oauthType == 'both') {
@@ -283,6 +284,12 @@
     auth.log('connect method before token check.');
     if(!auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect.
+      // For popup doing personal status for second try after popup close.
+      if (auth.config('popup')) {
+        auth.status = 'waitingForPopup';
+      } else {
+        auth.status = 'disconnected';
+      }
       return;
     }
     auth.log('connect method resumed after token check.');
@@ -292,7 +299,6 @@
 
       url: auth.config('apiServerURL')+auth.config('credsURI'),
       type: 'get',
-      oauthType: 'bearer',
       data: {
         //service: 'sip' // Not needed now.
       },
@@ -460,6 +466,11 @@
       oauth.popup().addEventListener('unload', function () {
         auth.log('auth popup closed');
         oauth.configure(event.data);
+
+        if(auth.status == 'waitingForPopup') {
+          auth.status = 'disconnected';
+        }
+
         auth.connect();
       }, false);
       oauth.popup().close();
@@ -469,6 +480,11 @@
       oauth.popup().addEventListener('unload', function () {
         // Clearing token right away.
         oauth.clearToken();
+
+        if(auth.status == 'waitingForPopup') {
+          auth.status = 'disconnected';
+        }
+
         // Proxying ours Error object. May be triggered after DOMContentLoaded.
         auth.trigger('auth_oAuthError', event);
       });
@@ -476,6 +492,11 @@
     } else if (event.subType == 'gotManualCloseFromPopup') {
       // User closed popup manually.
       oauth.clearPopupInterval();
+
+      if(auth.status == 'waitingForPopup') {
+        auth.status = 'disconnected';
+      }
+
       auth.trigger('auth_oAuthError', event);
     }
   });
