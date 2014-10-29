@@ -520,7 +520,7 @@
         // Connection
         connection: {
           // Inner JSJaC debuger
-          debug: true,
+          debug: false,
           // Timer
           timer: 2000,
           // Resource name
@@ -1770,7 +1770,11 @@
         iq.setQuery(NS_ROSTER).appendChild(itemNode);
         connection.sendIQ(iq, {
           error_handler: handlers.onError,
-          result_handler: handlers.onSuccess
+          result_handler: function() {
+            storage.requests.wasAccepted.rem(jid);
+            storage.requests.wasRejected.rem(jid);
+            handlers.onSuccess();
+          }
         });
       }
       return true;
