@@ -48,5 +48,9 @@
     {
       "from": "{buildPortalURI}",
       "to": "https://build.osdp.ru"
-    }]
+    }],
+
+    "remoteHostWIP": "osdp-sandbox.teligent.ru",
+    "remotePathWIP": "/usr/share/nginx/html",
+    "remoteUserWIP":"teligent"
 }

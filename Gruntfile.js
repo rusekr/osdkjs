@@ -82,8 +82,8 @@ module.exports = function(grunt) {
   console.log('Building from src files:');
   console.log(srcfiles);
 
-  // Replacements strings for building profile.
-  var replacements = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacements;
+  // Configuration file according to profile.
+  var currentConfig = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json');
   // Last tag version (plus commits if exists) from git repository. (No "--dirty" because "releasetag" ignores current tree)
   var tagversionfromgit = exec('git describe');
   // Dirty flag
@@ -121,12 +121,12 @@ module.exports = function(grunt) {
       test: {
         src: ['built/**/*.js'],             // source files array (supports minimatch)
         overwrite: true,
-        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsTEST
+        replacements: currentConfig.replacementsTEST
       },
       wip: {
         src: ['built/**/*.js','builtdocs/**/*.html'],             // source files array (supports minimatch)
         overwrite: true,
-        replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsWIP
+        replacements: currentConfig.replacementsWIP
       }
     },
     uglify: {
@@ -184,6 +184,21 @@ module.exports = function(grunt) {
       developer: [
         'src/*.js'
       ]
+    },
+    rsync: {
+      options: {
+          args: ["--verbose -c --rsh='ssh -p22'"],
+          exclude: [],
+          recursive: true
+      },
+      docswip: {
+          options: {
+              src: "builtdocs/",
+              dest: currentConfig.remotePathWIP + "/doc",
+              host: currentConfig.remoteUserWIP + "@" + currentConfig.remoteHostWIP,
+              syncDestIgnoreExcl: true
+          }
+      }
     }
   });
 
@@ -194,6 +209,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-rsync');
   grunt.loadNpmTasks('grunt-text-replace');
 
   // Our custom tasks.
@@ -219,6 +235,7 @@ module.exports = function(grunt) {
   grunt.registerTask('check', ['jshint:developer']);
   grunt.registerTask('builddev', ['releasedevel', 'check', 'clean:developer', 'concat:developer']);
   grunt.registerTask('builddocsdev', ['releasedevel', 'clean:docsdeveloper', 'jsdoc:developer', 'copy:developer']);
+  grunt.registerTask('deploydocsdev', ['rsync:docswip']);
 
   grunt.registerTask('replacetest', ['replace:test']);
   grunt.registerTask('replacewip', ['replace:wip']);

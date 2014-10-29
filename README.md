@@ -39,6 +39,8 @@ If you have problems with SSL while downloading node modules you can change down
 
 `builddocsdev` - Build documentation from current source code.
 
+`deploydocsdev` - Deploy prebuilt documentation to developers server.
+
 `build` - Build production minified version.
 
 `buildclean` - Build production unminified version.
