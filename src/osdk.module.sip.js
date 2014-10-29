@@ -155,10 +155,10 @@
     'connected': 'sip_connected', // not needed now
     'disconnected': 'sip_disconnected',
     'registered': ['connected', 'sip_registered'],
-    'unregistered': ['sip_unregistered', 'connectionFailed'],
+    'unregistered': 'sip_unregistered',
     'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
     'connectionFailed': 'sip_connectionFailed',
-    'newRTCSession': ['sip_gotMediaSession']
+    'newRTCSession': 'sip_gotMediaSession'
   };
 
   var clientInt = {
@@ -926,6 +926,17 @@
     sip.trigger('disconnected', { initiator: disconnectInitiator });
   });
 
+    // Handling internal sip_unregistered event
+  sip.on('sip_unregistered', function (event) {
+
+    if (sip.disconnectedByUser) {
+      return;
+    }
+
+    sip.trigger('sip_connectionFailed', event);
+
+  });
+
   // Handling internal connectionFailed event
   sip.on('sip_connectionFailed', function (event) {
     sip.trigger('connectionFailed', new sip.Error({
@@ -1124,7 +1135,7 @@
     * @param {oSDK~SipRegisteredEvent} event The event object associated with this event.
     *
     */
-    'sip_registered': { client: false },
+    'sip_registered': { self: true },
 
     /**
     * Dispatched when SIP module successfully unregistered on sip server inside openSDP network.
@@ -1134,7 +1145,7 @@
     * @param {oSDK~SipUnregisteredEvent} event The event object associated with this event.
     *
     */
-    'sip_unregistered': { client: false },
+    'sip_unregistered': { self: true },
 
     /**
     * Dispatched when SIP module failed to register on sip server inside openSDP network.
@@ -1144,7 +1155,7 @@
     * @param {oSDK~SipRegistrationFailedEvent} event The event object associated with this event.
     *
     */
-    'sip_registrationFailed': { client: false },
+    'sip_registrationFailed': { self: true },
 
     /*
      * Inner events
