@@ -124,7 +124,7 @@ module.exports = function(grunt) {
         replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsTEST
       },
       wip: {
-        src: ['built/**/*.js'],             // source files array (supports minimatch)
+        src: ['built/**/*.js','builtdocs/**/*.html'],             // source files array (supports minimatch)
         overwrite: true,
         replacements: grunt.file.readJSON('teligent-osdk-config-' + profile + '.json').replacementsWIP
       }

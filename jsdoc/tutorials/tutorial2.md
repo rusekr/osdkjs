@@ -1,6 +1,6 @@
 ## Part 1: Preparing html document
 
-Lets assume that you already got yours `appID` by providing application's name and link on [developers portal](http://portal.osdp.ru), [downloaded](http://download.osdp.ru) or [built](http://build.osdp.ru) oSDK library and created link to it inside the `head` tag of your application's html page like that:
+Lets assume that you already got yours `appID` by providing application's name and link on [developers portal]({developersPortalURI}), [downloaded]({downloadPortalURI}) or [built]({buildPortalURI}) oSDK library and created link to it inside the `head` tag of your application's html page like that:
 
 ```
 &#60;script type="text/javascript" src="libraries/opensdp.osdk.js"&#62;&#60;/script&#62;

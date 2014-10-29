@@ -11,6 +11,18 @@
     {
       "from": "{authorizePath}",
       "to": "/authorize/"
+    },
+    {
+      "from": "{developersPortalURI}",
+      "to": "https://developers.osdp.ru"
+    },
+    {
+      "from": "{downloadPortalURI}",
+      "to": "https://download.osdp.ru"
+    },
+    {
+      "from": "{buildPortalURI}",
+      "to": "https://build.osdp.ru"
     }],
     "replacementsWIP": [
     {
@@ -24,5 +36,17 @@
     {
       "from": "{authorizePath}",
       "to": "/authorize/"
+    },
+    {
+      "from": "{developersPortalURI}",
+      "to": "https://developers.osdp.ru"
+    },
+    {
+      "from": "{downloadPortalURI}",
+      "to": "https://download.osdp.ru"
+    },
+    {
+      "from": "{buildPortalURI}",
+      "to": "https://build.osdp.ru"
     }]
 }
