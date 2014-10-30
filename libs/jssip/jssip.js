@@ -1,5 +1,5 @@
 /*
- * JsSIP 0.4.2
+ * JsSIP 0.4.3
  * Copyright (c) 2012-2014 José Luis Millán - Versatica <http://www.versatica.com>
  * Homepage: http://jssip.net
  * License: http://jssip.net/license
@@ -32,7 +32,7 @@ Object.defineProperties(JsSIP, {
 	 * console.log(JsSIP.version)
 	 */
 	version: {
-		get: function(){ return '0.4.2'; }
+		get: function(){ return '0.4.3'; }
 	}
 });
 
@@ -387,7 +387,7 @@ EventEmitter.prototype = {
       try {
         callback();
       } catch(err) {
-        self.logger.error(err.stack);
+        self.logger.error(err);
       }
     });
 
@@ -5078,7 +5078,7 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
         */
         function(e) {
           session.logger.warn(e);
-          this.earlyDialogs[response.call_id + response.from_tag + response.to_tag].terminate();
+          session.earlyDialogs[response.call_id + response.from_tag + response.to_tag].terminate();
         }
       );
       break;
@@ -6984,7 +6984,7 @@ UA.prototype.loadConfig = function(configuration) {
       throw new JsSIP.Exceptions.ConfigurationError(parameter);
     } else {
       value = configuration[parameter];
-      checked_value = UA.configuration_check.mandatory[parameter](value);
+      checked_value = UA.configuration_check.mandatory[parameter].call(this, value);
       if (checked_value !== undefined) {
         settings[parameter] = checked_value;
       } else {
@@ -7005,7 +7005,7 @@ UA.prototype.loadConfig = function(configuration) {
         continue;
       }
 
-      checked_value = UA.configuration_check.optional[parameter](value);
+      checked_value = UA.configuration_check.optional[parameter].call(this, value);
       if (checked_value !== undefined) {
         settings[parameter] = checked_value;
       } else {

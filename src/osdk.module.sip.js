@@ -1164,6 +1164,7 @@
     'sip_connected': { self: true },
     'sip_disconnected': { self: true },
     'sip_gotMediaSession': { self: true },
+    'sip_connectionFailed': { self: true },
 
     /*
      * Described in auth module
