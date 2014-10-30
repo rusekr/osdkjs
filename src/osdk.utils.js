@@ -307,7 +307,7 @@
       };
     };
 
-    ["log","info","warn","error","assert","dir","clear","profile","profileEnd"].forEach( function (method) {
+    ["assert","clear","dir","error","group", "groupCollapsed", "groupEnd", "info","log","profile","profileEnd","time", "timeEnd", "trace", "warn"].forEach( function (method) {
       self.constructor.prototype[method] = lf(method);
       self[method] = self.constructor.prototype[method].bind(self);
     });
