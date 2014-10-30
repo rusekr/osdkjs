@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "jssip": "git+ssh://git@github.com:rusekr/JsSIP.git",
-    "jsjac": "git+ssh://git@github.com:sstrigler/JSJaC.git#bed823976cd49404d1fadb34b195da153f6c86df"
+    "jsjac": "git+ssh://git@github.com:sstrigler/JSJaC.git#937bc25681b9dc16d435b011ef8b51fee469847a"
   },
   "bundledDependencies": [
     "jssip",
