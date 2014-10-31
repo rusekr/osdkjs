@@ -43,47 +43,29 @@ all: build do-report
 build_tools/global_start.mak :.
 	svn co -q $(SVN_SERVER)/$(BUILD_TOOLS_SVN_PATH)/tags/$(BUILD_TOOLS_SVN_TAG) $(BUILD_TOOLS_MODULE)
 
+BUILD_OSDKJS = (grunt --osdktag="$(VERSION)" build $(1); \
+mv built/minified $(2); \
+tar cvzf $(BP)/$(2)-$(VERSION).tar.gz $(2); \
+echo "Wrote: $(BP)/$(2)-$(VERSION).tar.gz"; \
+mv built/clean $(2)-devel; \
+tar cvzf $(BP)/$(2)-devel-$(VERSION).tar.gz $(2)-devel; \
+echo "Wrote: $(BP)/$(2)-devel-$(VERSION).tar.gz"; \
+if [ -d builtdocs ]; then \
+mv builtdocs $(2)-docs; \
+tar cvzf $(BP)/$(2)-docs-$(VERSION).tar.gz $(2)-docs; \
+echo "Wrote: $(BP)/$(2)-docs-$(VERSION).tar.gz"; \
+fi ) | tee -a $(LOGFILE)
+
 build:
 	npm install | tee -a $(LOGFILE)
-
-	#all modules devel + prod + docs
-	grunt --osdktag="$(VERSION)" build builddocs | tee -a $(LOGFILE)
-	mv built/minified osdkjs | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-$(VERSION).tar.gz"
-	mv built/clean osdkjs-devel | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-devel-$(VERSION).tar.gz osdkjs-devel | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-devel-$(VERSION).tar.gz"
-	mv builtdocs osdkjs-docs | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-docs-$(VERSION).tar.gz osdkjs-docs | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-docs-$(VERSION).tar.gz"
-
-	#all modules except sip, devel + prod
-	grunt --osdktag="$(VERSION)" build --nosip=true | tee -a $(LOGFILE)
-	mv built/minified osdkjs-nosip | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-nosip-$(VERSION).tar.gz osdkjs-nosip | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-nosip-$(VERSION).tar.gz"
-	mv built/clean osdkjs-nosip-devel | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-nosip-devel-$(VERSION).tar.gz osdkjs-nosip-devel | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-nosip-devel-$(VERSION).tar.gz"
-
-	#all modules except xmpp, devel + prod
-	grunt --osdktag="$(VERSION)" build --noxmpp=true | tee -a $(LOGFILE)
-	mv built/minified osdkjs-noxmpp | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-noxmpp-$(VERSION).tar.gz osdkjs-noxmpp | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-noxmpp-$(VERSION).tar.gz"
-	mv built/clean osdkjs-noxmpp-devel | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-noxmpp-devel-$(VERSION).tar.gz osdkjs-noxmpp-devel | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-noxmpp-devel-$(VERSION).tar.gz"
-
-	#all modules except sip and xmpp, devel + prod
-	grunt --osdktag="$(VERSION)" build --nosip=true --noxmpp=true | tee -a $(LOGFILE)
-	mv built/minified osdkjs-nosip-noxmpp | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-nosip-noxmpp-$(VERSION).tar.gz osdkjs-nosip-noxmpp | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-nosip-noxmpp-$(VERSION).tar.gz"
-	mv built/clean osdkjs-nosip-noxmpp-devel | tee -a $(LOGFILE)
-	tar cvzf $(BP)/osdkjs-nosip-noxmpp-devel-$(VERSION).tar.gz osdkjs-nosip-noxmpp-devel | tee -a $(LOGFILE)
-	echo "Wrote: $(BP)/osdkjs-nosip-noxmpp-devel-$(VERSION).tar.gz"
+#all modules devel + prod + docs
+	$(call BUILD_OSDKJS,builddocs,osdkjs)
+#all modules except sip, devel + prod
+	$(call BUILD_OSDKJS,--nosip=true,osdkjs-nosip)
+#all modules except xmpp, devel + prod
+	$(call BUILD_OSDKJS,--noxmpp=true,osdkjs-noxmpp)
+#all modules except sip and xmpp, devel + prod
+	$(call BUILD_OSDKJS,--nosip=true --noxmpp=true,osdkjs-nosip-noxmpp)
 
 clean:
 	git clean -dxf
