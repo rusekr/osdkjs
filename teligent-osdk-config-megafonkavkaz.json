@@ -1,0 +1,27 @@
+{
+    "replacementsTEST": [
+    {
+      "from": "{APIServerURI}",
+      "to": "https://apilb.megafonkavkaz.ru"
+    },
+    {
+      "from": "{ephemeralsPath}",
+      "to": "/osdp/sm/common/1.0.2/ephemerals"
+    },
+    {
+      "from": "{authorizePath}",
+      "to": "/authorize/"
+    },
+    {
+      "from": "{developersPortalURI}",
+      "to": "https://smweb.megafonkavkaz.ru/dpwfe"
+    },
+    {
+      "from": "{downloadPortalURI}",
+      "to": "https://smweb.megafonkavkaz.ru/dpwfe"
+    },
+    {
+      "from": "{buildPortalURI}",
+      "to": "https://smweb.megafonkavkaz.ru/dpwfe"
+    }]
+}
