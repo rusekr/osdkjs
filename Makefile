@@ -45,6 +45,8 @@ build_tools/global_start.mak :.
 
 build:
 	npm install | tee -a $(LOGFILE)
+
+	#all
 	grunt --osdktag="$(VERSION)" build builddocs | tee -a $(LOGFILE)
 	mv built/minified osdkjs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-$(VERSION).tar.gz osdkjs | tee -a $(LOGFILE)
@@ -55,6 +57,39 @@ build:
 	mv builtdocs osdkjs-docs | tee -a $(LOGFILE)
 	tar cvzf $(BP)/osdkjs-docs-$(VERSION).tar.gz osdkjs-docs | tee -a $(LOGFILE)
 	echo "Wrote: $(BP)/osdkjs-docs-$(VERSION).tar.gz"
+
+	grunt --osdktag="$(VERSION)" build builddocs --nosip | tee -a $(LOGFILE)
+	mv built/minified osdkjs-nosip | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-$(VERSION).tar.gz osdkjs-nosip | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-$(VERSION).tar.gz"
+	mv built/clean osdkjs-nosip-devel | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-devel-$(VERSION).tar.gz osdkjs-nosip-devel | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-devel-$(VERSION).tar.gz"
+	mv builtdocs osdkjs-nosip-docs | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-docs-$(VERSION).tar.gz osdkjs-nosip-docs | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-docs-$(VERSION).tar.gz"
+
+	grunt --osdktag="$(VERSION)" build builddocs --noxmpp | tee -a $(LOGFILE)
+	mv built/minified osdkjs-noxmpp | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-noxmpp-$(VERSION).tar.gz osdkjs-noxmpp | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-noxmpp-$(VERSION).tar.gz"
+	mv built/clean osdkjs-noxmpp-devel | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-noxmpp-devel-$(VERSION).tar.gz osdkjs-noxmpp-devel | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-noxmpp-devel-$(VERSION).tar.gz"
+	mv builtdocs osdkjs-noxmpp-docs | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-noxmpp-docs-$(VERSION).tar.gz osdkjs-noxmpp-docs | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-noxmpp-docs-$(VERSION).tar.gz"
+
+	grunt --osdktag="$(VERSION)" build builddocs --nosip --noxmpp | tee -a $(LOGFILE)
+	mv built/minified osdkjs-nosip-noxmpp | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-noxmpp-$(VERSION).tar.gz osdkjs-nosip-noxmpp | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-noxmpp-$(VERSION).tar.gz"
+	mv built/clean osdkjs-nosip-noxmpp-devel | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-noxmpp-devel-$(VERSION).tar.gz osdkjs-nosip-noxmpp-devel | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-noxmpp-devel-$(VERSION).tar.gz"
+	mv builtdocs osdkjs-nosip-noxmpp-docs | tee -a $(LOGFILE)
+	tar cvzf $(BP)/osdkjs-nosip-noxmpp-docs-$(VERSION).tar.gz osdkjs-nosip-noxmpp-docs | tee -a $(LOGFILE)
+	echo "Wrote: $(BP)/osdkjs-nosip-noxmpp-docs-$(VERSION).tar.gz"
 
 clean:
 	git clean -dxf
