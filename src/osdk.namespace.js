@@ -38,6 +38,7 @@
  * @property {string} appID - ID of application gained from {@link http://osdp.ru developer's portal}.
  * @property {boolean} [popup=false] - Whether to use popup for oAuth2 authentication of application user or to redirect to authentication page.
  * @property {boolean} [connectionRecovery=false] - Automatic reconnection on connection failures.
+ * @property {string} [xmppResource=random] - User configurable XMPP resource or random string
  */
 
 /**
@@ -58,7 +59,7 @@
  * @alias oSDK
  *
  * @global
- * 
+ *
  * @param {CoreAPI~ConfigObject} config
  *            <p>
  *            The <code>config</code> parameter should be an object

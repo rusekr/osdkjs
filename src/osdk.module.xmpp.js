@@ -512,31 +512,34 @@
     // Default config
 
     this.config = function() {
-      return { xmpp: {
-        // Settings
-        settings: {
+      return {
 
-        },
-        // Connection
-        connection: {
-          // Inner JSJaC debuger
-          debug: false,
-          // Timer
-          timer: 2000,
-          // Resource name
-          resource: 'oClient-' + utils.uuid().replace('-', ''),
-          /*
-          * Server params
-          * Mey be {String} or {Object}
-          */
-          server: {
-            protocol: 'wss',
-            domain: null,
-            port: 5280,
-            url: 'http-bind'
+        xmppResource: false,
+
+        xmpp: {
+          // Settings
+          settings: {
+
+          },
+          // Connection
+          connection: {
+            // Inner JSJaC debuger
+            debug: false,
+            // Timer
+            timer: 2000,
+            /*
+            * Server params
+            * Mey be {String} or {Object}
+            */
+            server: {
+              protocol: 'wss',
+              domain: null,
+              port: 5280,
+              url: 'http-bind'
+            }
           }
         }
-      } };
+      };
     };
 
     // Expand user capabilities (add "instantMessaging")
@@ -665,6 +668,7 @@
 
     this.commands = {
       thatICan: function(p) {
+        module.info('XMPP command(thatICan): ', p);
         var contact = storage.contacts.get(p.info.from);
         if (p.data.status) {
           if (contact) {
@@ -684,10 +688,12 @@
         module.trigger('contactStatusChanged', {contact: contact});
       },
       thatICanOnStart: function(p) {
+        module.info('XMPP command(thatICanOnStart): ', p);
         this.thatICan(p);
         this.sendMeWhatYouCan(p);
       },
       sendMeWhatYouCan: function(p) {
+        module.info('XMPP command(sendMeWhatYouCan): ', p);
         self.thatICan(p.info.from);
       }
     };
@@ -877,9 +883,14 @@
                     to: data.from,
                     type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
                   });
-                  self.getRoster({
-
+                  self.getRoster({});
+                  /*
+                  self.deleteContact(data.from, {
+                    "onSuccess": function(params) {
+                      self.getRoster();
+                    }
                   });
+                  */
                   break;
                 // UNSUBSCRIBED
                 case self.OSDK_PRESENCE_TYPE_UNSUBSCRIBED :
@@ -918,20 +929,22 @@
             }
             if (data.show || data.status) {
               contact = storage.contacts.get(data.from) || oSDK.user(data.from);
-              var oldStatus = contact.status;
-              if (data.show) {
-                var show = self.decodeStatus(data.show);
-                if (show.unreal) {
-                  contact.status = show.unreal;
-                } else {
-                  contact.status = show.real;
+              if (contact) {
+                var oldStatus = contact.status;
+                if (data.show) {
+                  var show = self.decodeStatus(data.show);
+                  if (show.unreal) {
+                    contact.status = show.unreal;
+                  } else {
+                    contact.status = show.real;
+                  }
                 }
-              }
-              if (data.status) {
-                contact.signature = data.status;
-              }
-              if (data.status || oldStatus != contact.status) {
-                module.trigger('contactStatusChanged', {contact: contact});
+                if (data.status) {
+                  contact.signature = data.status;
+                }
+                if (data.status || oldStatus != contact.status) {
+                  module.trigger('contactStatusChanged', {contact: contact});
+                }
               }
             }
             if (data.data) {
@@ -942,6 +955,7 @@
               });
             }
             if (data.command) {
+              module.info('XMPP command in presence: ', data.command);
               var commandName = data.command.name;
               var commandData = data.command.data;
               if (typeof self.commands[commandName] == 'function') {
@@ -1037,29 +1051,28 @@
       fnOnDisconnect: function() {
         module.info('XMPP HANDLER(disconnect)');
         storage.clear();
-        connection = null;
-        techCapabilities.instantMessaging = false;
-
-        var disconnectInitiator = 'system';
-        if(module.disconnectedByUser) {
-          disconnectInitiator = 'user';
-          module.disconnectedByUser = false;
-        }
-        module.trigger('disconnected', { initiator: disconnectInitiator });
+        xmpp.destroyConnection(function() {
+          techCapabilities.instantMessaging = false;
+          var disconnectInitiator = 'system';
+          if(module.disconnectedByUser) {
+            disconnectInitiator = 'user';
+            module.disconnectedByUser = false;
+          }
+          module.trigger('disconnected', { initiator: disconnectInitiator });
+        });
         return true;
       },
       fnOnError: function(error) {
         module.info('XMPP HANDLER(error)');
+        module.trigger('connectionFailed', new module.Error({ data: arguments }));
+        techCapabilities.instantMessaging = false;
         if (connection && connection.connected()) {
           connection.disconnect();
         } else {
           module.trigger('disconnected', { initiator: 'system' });
         }
         storage.clear();
-        connection = null;
-        techCapabilities.instantMessaging = false;
-        module.trigger('connectionFailed', new module.Error({ data: arguments }));
-
+        xmpp.destroyConnection();
         return false;
       },
       fnOnResume: function() {
@@ -1093,6 +1106,32 @@
       if (params.url) result += '/' + params.url;
       result += '/';
       return result;
+    };
+
+    // Destroy connection
+
+    this.destroyConnection = function(callback) {
+      if (connection) {
+        var empty = function() {/* destroyer */};
+        connection.registerHandler('onConnect', empty);
+        connection.registerHandler('onDisconnect', empty);
+        connection.registerHandler('onError', empty);
+        connection.registerHandler('onResume', empty);
+        connection.registerHandler('onStatusChanged', empty);
+        connection.registerHandler('iq', empty);
+        connection.registerHandler('message_in', empty);
+        connection.registerHandler('message_out', empty);
+        connection.registerHandler('presence_in', empty);
+        connection.registerHandler('presence_out', empty);
+        connection.registerHandler('packet_in', empty);
+        connection.registerHandler('packet_out', empty);
+        connection.registerIQGet('query', NS_VERSION, empty);
+        connection.registerIQGet('query', NS_TIME, empty);
+        connection = null;
+        return true;
+      }
+      if (callback) callback();
+      return false;
     };
 
     // Generate roster id
@@ -1407,6 +1446,81 @@
         return false;
 
       }
+    };
+
+    /* +------------------+ */
+    /* | Work with roster | */
+    /* +------------------+ */
+
+    this.roster = {
+
+      // Generate roster id
+      id: function() {
+        return 'roster_' + utils.md5(storage.client.id);
+      },
+
+      // Load roster
+      load: function(params) {
+        var handlers = self.getHandlers(params);
+        if (!xmpp.connected()) {
+          handlers.onError(new module.Error(xmpp.error(2)));
+          return false;
+        } else {
+          var iq = new JSJaCIQ();
+          iq.setIQ(null, 'get', self.generateRosterId());
+          iq.setFrom(storage.fjid);
+          iq.setQuery(NS_ROSTER);
+          connection.sendIQ(iq, {
+            error_handler: function(aiq) {
+              handlers.onError(aiq);
+              return false;
+            },
+            result_handler: function(aiq, arg) {
+              if (aiq.getQuery().childNodes && aiq.getQuery().childNodes.length) {
+                handlers.onSuccess(aiq.getQuery().childNodes);
+              } else {
+                handlers.onSuccess([]);
+              }
+              return true;
+            }
+          });
+        }
+        return true;
+      },
+
+      // Parse roster to inner lists
+      parse: function(params) {
+
+      }
+
+    };
+
+    this.loadRoster = function(params) {
+      var handlers = self.getHandlers(params);
+      if (!xmpp.connected()) {
+        handlers.onError(new module.Error(xmpp.error(2)));
+        return false;
+      } else {
+        var iq = new JSJaCIQ();
+        iq.setIQ(null, 'get', self.generateRosterId());
+        iq.setFrom(storage.fjid);
+        iq.setQuery(NS_ROSTER);
+        connection.sendIQ(iq, {
+          error_handler: function(aiq) {
+            handlers.onError(aiq);
+            return false;
+          },
+          result_handler: function(aiq, arg) {
+            if (aiq.getQuery().childNodes && aiq.getQuery().childNodes.length) {
+              handlers.onSuccess(aiq.getQuery().childNodes);
+            } else {
+              handlers.onSuccess([]);
+            }
+            return true;
+          }
+        });
+      }
+      return true;
     };
 
     // Get roster
@@ -2123,7 +2237,7 @@
         login: arguments[0].data.username.split(':')[1].split('@')[0],
         password: arguments[0].data.password,
         domain: arguments[0].data.username.split(':')[1].split('@')[1],
-        resource: module.config('connection.resource'),
+        resource: (module.config('xmppResource') || 'oClient-' + utils.uuid().replace('-', '')),
         timestamp: arguments[0].data.username.split(':')[0]
       };
       // Create storage
