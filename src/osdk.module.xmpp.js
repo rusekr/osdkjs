@@ -872,14 +872,13 @@
                   break;
                 // UNSUBSCRIBE
                 case xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBE :
+                  storage.contacts.rem(data.from);
                   self.sendPresence({
                     to: data.from,
                     type: xmpp.OSDK_PRESENCE_TYPE_UNSUBSCRIBED
                   });
-                  self.deleteContact(data.from, {
-                    "onSuccess": function(params) {
-                      self.getRoster();
-                    }
+                  self.getRoster({
+
                   });
                   break;
                 // UNSUBSCRIBED
@@ -891,7 +890,12 @@
                         case self.OSDK_PRESENCE_TYPE_SUBSCRIBE :
                           storage.requests.wasRejected.put(user);
                           storage.requests.outgoing.rem(data.from);
-                          self.deleteContact(data.from, {
+                          self.getRoster({
+                                "onSuccess": function(params) {
+                                  module.trigger('requestWasRejected', {contact: user});
+                                }
+                          });
+                          /*self.deleteContact(data.from, {
                             "onSuccess": function(params) {
                               self.getRoster({
                                 "onSuccess": function(params) {
@@ -899,7 +903,7 @@
                                 }
                               });
                             }
-                          });
+                          });*/
                           break;
                         case self.OSDK_PRESENCE_TYPE_UNSUBSCRIBE :
                           /* TODO */
