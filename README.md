@@ -53,9 +53,9 @@ If you have problems with SSL while downloading node modules you can change down
 
 `--profile=<configname>` - Build with custom configuration where `<configname>` is the part of file `./teligent-osdk-config-<configname>.json`. By defauld build script uses `./teligent-osdk-config-default.json`.
 
-`--nosip` - Build oSDK without SIP module.
+`--nosip=true` - Build oSDK without SIP module.
 
-`--noxmpp` - Build oSDK without XMPP module.
+`--noxmpp=true` - Build oSDK without XMPP module.
 
 ## Defaults:
 
