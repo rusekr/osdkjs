@@ -1,6 +1,6 @@
 ## Part 1: Preparing html document
 
-Lets assume that you already got yours `appID` by providing application's name and link on [developers portal]({developersPortalURI}), [downloaded]({downloadPortalURI}) or [built]({buildPortalURI}) oSDK library and created link to it inside the `head` tag of your application's html page like that:
+Lets assume that you already got yours `Consumer Key` by providing application's name and link on [developers portal]({developersPortalURI}), [downloaded]({downloadPortalURI}) or [built]({buildPortalURI}) oSDK library and created link to it inside the `head` tag of your application's html page like that:
 
 ```
 &#60;script type="text/javascript" src="libraries/opensdp.osdk.js"&#62;&#60;/script&#62;
@@ -257,13 +257,13 @@ endcallbutton.on('click', function () {
 
 That's all we needed for simple making call and receiving call application.
 
-## Part 5: Initializing oSDK with appID ##
+## Part 5: Initializing oSDK with application's Consumer Key ##
 
 For that you simply write:
 
 ```
 oSDK({
-  appID: '&#60;your appID as string&#62;'
+  appID: '&#60;your Consumer Key as string&#62;'
 });
 ```
 

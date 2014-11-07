@@ -12,7 +12,7 @@
   * <p>For example to initialize oSDK you can write code:
   *
   * <pre><code>oSDK({
-  *   appID: '{yourDeveloperKey}'
+  *   appID: '{ConsumerKeyForApplication}'
   * });</code></pre>
   *
   * <p>It's recommended to initialize oSDK instantly when page loads without using DOMContentLoaded and similar events callbacks. oSDK handles such events itself.
@@ -35,7 +35,7 @@
 /**
  * @typedef {object} CoreAPI~ConfigObject
  * @memberof CoreAPI
- * @property {string} appID - ID of application gained from {@link http://osdp.ru developer's portal}.
+ * @property {string} appID - Consumer Key for application gained from developer's portal.
  * @property {boolean} [popup=false] - Whether to use popup for oAuth2 authentication of application user or to redirect to authentication page.
  * @property {boolean} [connectionRecovery=false] - Automatic reconnection on connection failures.
  * @property {string} [xmppResource=random] - User configurable XMPP resource or random string
