@@ -12,7 +12,7 @@
   * <p>For example to initialize oSDK you can write code:
   *
   * <pre><code>oSDK({
-  *   appID: '{ConsumerKeyForApplication}'
+  *   appID: '{Consumer Key}'
   * });</code></pre>
   *
   * <p>It's recommended to initialize oSDK instantly when page loads without using DOMContentLoaded and similar events callbacks. oSDK handles such events itself.
