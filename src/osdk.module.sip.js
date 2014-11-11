@@ -217,6 +217,12 @@
       }
     }
     delete options.video;
+
+    // Use or create options.data object.
+    options.data = (sip.utils.isObject(options.data))?options.data:{};
+    // Passing mediaConstraints to future session object.
+    options.data.mediaConstraints = options.mediaConstraints;
+
     sip.log('converted', options);
     return options;
   }
@@ -240,7 +246,7 @@
         },
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
-    currentSession.callOptions = evData.session.mediaConstraints;
+    currentSession.callOptions = evData.session.data.mediaConstraints;
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -869,6 +875,7 @@
         'level': sip.debug?3:0
       },
       'ws_servers': hosts,
+      'no_answer_timeout': 15,
       'connection_autorecovery': false,
       'uri': 'sip:' + event.data.username.split(':')[1],
       'password': event.data.password,
