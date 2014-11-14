@@ -2,7 +2,7 @@
     "replacementsTEST": [
     {
       "from": "{APIServerURI}",
-      "to": "https://osdp-teligent-test-apigw.virt.teligent.ru:8243"
+      "to": "https://osdp-teligent-test-apigw.virt.teligent.ru"
     },
     {
       "from": "{ephemeralsPath}",
@@ -27,7 +27,7 @@
     "replacementsWIP": [
     {
       "from": "{APIServerURI}",
-      "to": "https://osdp-teligent-dev-apigw.virt.teligent.ru:8243"
+      "to": "https://osdp-teligent-dev-apigw.virt.teligent.ru"
     },
     {
       "from": "{ephemeralsPath}",
