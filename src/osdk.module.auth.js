@@ -31,7 +31,8 @@
     auth: {
       apiServerURL: '{APIServerURI}', //TODO: replace this and following with sdk build parameter
       credsURI: '{ephemeralsPath}',
-      authURI: '{authorizePath}'
+      authURI: '{authorizePath}',
+      expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
     },
     appID: null,
     popup: false,
@@ -130,7 +131,7 @@
             // Configuring us
             oauth.configure({
                 access_token: token,
-                expires_in: auth.utils.hash.getItem('expires_in')*1000,
+                expires_in: parseInt(config('expiresInOverride'))?parseInt(config('expiresInOverride'))*1000:auth.utils.hash.getItem('expires_in')*1000,
                 expires_start: new Date().getTime()
             });
 
