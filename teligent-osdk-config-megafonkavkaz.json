@@ -13,6 +13,10 @@
       "to": "/authorize/"
     },
     {
+      "from": "{expiresInOverride}",
+      "to": "86400"
+    },
+    {
       "from": "{developersPortalURI}",
       "to": "https://smweb.megafonkavkaz.ru/dpwfe"
     },

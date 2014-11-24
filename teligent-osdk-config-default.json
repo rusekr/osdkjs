@@ -13,6 +13,10 @@
       "to": "/authorize/"
     },
     {
+      "from": "{expiresInOverride}",
+      "to": "86400"
+    },
+    {
       "from": "{developersPortalURI}",
       "to": "https://developers.osdp.ru"
     },
@@ -36,6 +40,10 @@
     {
       "from": "{authorizePath}",
       "to": "/authorize/"
+    },
+    {
+      "from": "{expiresInOverride}",
+      "to": "86400"
     },
     {
       "from": "{developersPortalURI}",

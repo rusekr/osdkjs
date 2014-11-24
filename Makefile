@@ -43,8 +43,7 @@ all: build do-report
 build_tools/global_start.mak :.
 	svn co -q $(SVN_SERVER)/$(BUILD_TOOLS_SVN_PATH)/tags/$(BUILD_TOOLS_SVN_TAG) $(BUILD_TOOLS_MODULE)
 
-BUILD_OSDKJS = (grunt --osdktag="$(VERSION)" build $(1); \
-mv built/minified $(2); \
+BUILD_OSDKJS = ( mv built/minified $(2); \
 tar cvzf $(BP)/$(2)-$(VERSION).tar.gz $(2); \
 echo "Wrote: $(BP)/$(2)-$(VERSION).tar.gz"; \
 mv built/clean $(2)-devel; \
@@ -58,6 +57,7 @@ fi ) | tee -a $(LOGFILE)
 
 build:
 	npm install | tee -a $(LOGFILE)
+	grunt --osdktag="$(VERSION)" build
 #all modules devel + prod + docs
 	$(call BUILD_OSDKJS,builddocs,osdkjs)
 #all modules except sip, devel + prod

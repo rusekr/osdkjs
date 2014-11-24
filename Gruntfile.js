@@ -1,58 +1,5 @@
 module.exports = function(grunt) {
 
-  // Source files to build.
-  var srcfiles = [
-//  'temp/libs/crocodile-msrp/crocodile-msrp.js',
-
-    'src/osdk.namespace.js',
-    'src/osdk.utils.js',
-
-    'src/osdk.module.errors.js',
-    'src/osdk.module.auth.js',
-    'src/osdk.module.user.js',
-
-    'src/osdk.module.client.js',
-
-    'src/osdk.module.test.js'
-  ];
-
-  var srcfilessip = [
-    'libs/jssip/jssip.js',
-    'src/osdk.module.sip.js'
-  ];
-
-  var srcfilesxmpp = [
-    'libs/jsjac/jsjac.js',
-    'src/osdk.module.xmpp.js'
-  ];
-
-  // Banner for built file.
-  var banner = '/*! <%= pkg.title || pkg.name %> - v<%= buildversion %> - ' +
-      '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
-      '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
-      ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n' +
-      '*\n' +
-      '* Incorporates the following third-party open source software:\n' +
-      '*\n' +
-      '* JsSIP (http://www.jssip.net/)\n' +
-      '*  Copyright (c) 2012-2013 José Luis Millán - Versatica\n' +
-      '*  License: MIT\n' +
-      '*\n' +
-      '* JSJaC (https://github.com/sstrigler/JSJaC)\n' +
-      '*  Copyright (c) 2004-2008 Stefan Strigler\n' +
-      '*  License: MPL-1.1/GPL-2.0+/LGPL-2.1+\n' +
-      '*/\n';
-//       +
-//       '/* Crocodile MSRP (https://github.com/crocodilertc/crocodile-msrp)\n' +
-//       '*  Copyright (c) 2012-2013 Crocodile RCS Ltd\n' +
-//       '*  License: MIT\n' +
-//       '*/\n'
-
-  // Profile for config selection to build.
-  var profile = grunt.option('profile')?grunt.option('profile'):'default';
-  // Git tag to build.
-  var tagversion = grunt.option('osdktag')?grunt.option('osdktag'):false;
-
   // Wrapper to exec function.
   var exec = function () {
     var shjs = require('shelljs');
@@ -66,21 +13,29 @@ module.exports = function(grunt) {
     }
   };
 
-  //No SIP module
-  if (!grunt.option('nosip')) {
-    srcfiles = srcfiles.concat(srcfilessip);
-  } else {
-    console.log('Building without SIP module.');
-  }
-  //No XMPP module
-  if (!grunt.option('noxmpp')) {
-    srcfiles = srcfiles.concat(srcfilesxmpp);
-  } else {
-    console.log('Building without XMPP module.');
+  // Module names to source files converter function.
+  var srcToBuild = function (toBuild) {
+
+    toBuild = (typeof toBuild === 'undefined' || !toBuild)?pkg.modulesDefault:toBuild;
+
+    var srcToBuild = [];
+    for(var moduleName in pkg.srcFiles) {
+      if(toBuild.indexOf(moduleName) !== -1)
+      srcToBuild = srcToBuild.concat(pkg.srcFiles[moduleName]);
+    }
+    return srcToBuild;
   }
 
-  console.log('Building from src files:');
-  console.log(srcfiles);
+  var pkg = grunt.file.readJSON('teligent-osdk.json');
+
+  // Profile for config selection to build.
+  var profile = grunt.option('profile') ? grunt.option('profile') : 'default';
+  // Git tag to build.
+  var tagversion = grunt.option('osdktag') ? grunt.option('osdktag') : false;
+
+  var toBuild = grunt.option('modules') ? ['base'].concat(grunt.option('modules').split(/,;/)) : pkg.modulesDefault;
+
+  var namePostfix = (pkg.modulesDefault === toBuild) ? '' : '-' + toBuild.join('-');
 
   // Configuration file according to profile.
   var currentConfig = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json');
@@ -95,46 +50,95 @@ module.exports = function(grunt) {
 
   // Project configuration.
   grunt.config.init({
-    pkg: grunt.file.readJSON('teligent-osdk.json'),
+    pkg: pkg,
     clean: {
-      milestone: ['built'],
+      milestone: ['built/clean', 'built/minified'],
       developer: ['<%= clean.milestone %>'],
-      docsmilestone: ['builtdocs'],
+      docsmilestone: ['built/documentation'],
       docsdeveloper: ['<%= clean.docsmilestone %>']
     },
     concat: {
       options: {
-        banner: banner,
+        banner: '<%= pkg.banner.join("\\n") %>',
         stripBanners: true,
         process: true
       },
       milestone: {
-        src: srcfiles.map(function (value) { return 'temp/' + value; }),
-        dest: 'built/clean/<%= pkg.name %>.js'
+        src: srcToBuild(toBuild).map(function (value) { return 'temp/' + value; }),
+        dest: 'built/clean/<%= pkg.name %>' + namePostfix + '/<%= pkg.name %>.js'
+      },
+      milestonebasesip: {
+        src: srcToBuild(['base', 'sip']).map(function (value) { return 'temp/' + value; }),
+        dest: 'built/clean/<%= pkg.name %>-base-sip/<%= pkg.name %>.js'
+      },
+      milestonebasexmpp: {
+        src: srcToBuild(['base', 'xmpp']).map(function (value) { return 'temp/' + value; }),
+        dest: 'built/clean/<%= pkg.name %>-base-xmpp/<%= pkg.name %>.js'
+      },
+      milestonebase: {
+        src: srcToBuild(['base']).map(function (value) { return 'temp/' + value; }),
+        dest: 'built/clean/<%= pkg.name %>-base/<%= pkg.name %>.js'
       },
       developer: {
-        src: srcfiles,
+        src: srcToBuild(toBuild),
         dest: '<%= concat.milestone.dest %>'
+      },
+      developerbasesip: {
+        src: srcToBuild(['base', 'sip']),
+        dest: '<%= concat.milestonebasesip.dest %>'
+      },
+      developerbasexmpp: {
+        src: srcToBuild(['base', 'xmpp']),
+        dest: '<%= concat.milestonebasexmpp.dest %>'
+      },
+      developerbase: {
+        src: srcToBuild(['base']),
+        dest: '<%= concat.milestonebase.dest %>'
       }
     },
     replace: {
       test: {
-        src: ['built/**/*.js'],             // source files array (supports minimatch)
+        src: ['built/**/*.js','built/**/*.html'],
         overwrite: true,
         replacements: currentConfig.replacementsTEST
       },
       wip: {
-        src: ['built/**/*.js','builtdocs/**/*.html'],             // source files array (supports minimatch)
+        src: ['built/**/*.js','built/**/*.html'],
         overwrite: true,
         replacements: currentConfig.replacementsWIP
       }
     },
     uglify: {
       options: {
-        banner: banner
+        banner: '<%= pkg.banner.join("\\n") %>'
       },
       milestone: {
         src: '<%= concat.milestone.dest %>',
+        dest: 'built/minified/<%= pkg.name %>' + namePostfix + '/<%= pkg.name %>.js'
+      },
+      milestonebasesip: {
+        src: '<%= concat.milestonebasesip.dest %>',
+        dest: 'built/minified/<%= pkg.name %>-base-sip/<%= pkg.name %>.js'
+      },
+      milestonebasexmpp: {
+        src: '<%= concat.milestonebasexmpp.dest %>',
+        dest: 'built/minified/<%= pkg.name %>-base-xmpp/<%= pkg.name %>.js'
+      },
+      milestonebase: {
+        src: '<%= concat.milestonebase.dest %>',
+        dest: 'built/minified/<%= pkg.name %>-base/<%= pkg.name %>.js'
+      }
+    },
+    symlink: {
+      options: {
+        overwrite: true
+      },
+      clean: {
+        src: '<%= concat.milestone.dest %>',
+        dest: 'built/clean/<%= pkg.name %>.js'
+      },
+      minified: {
+        src: '<%= uglify.milestone.dest %>',
         dest: 'built/minified/<%= pkg.name %>.js'
       }
     },
@@ -142,7 +146,7 @@ module.exports = function(grunt) {
       milestone: {
         src: ['temp/src/*.js', 'temp/jsdoc/index.md'],
         options: {
-          destination: 'builtdocs',
+          destination: 'built/documentation',
           private: false,
           template: 'temp/jsdoc/templates/teligent',
           tutorials: 'temp/jsdoc/tutorials'
@@ -151,7 +155,7 @@ module.exports = function(grunt) {
       developer: {
         src: ['src/*.js', 'jsdoc/index.md'],
         options: {
-          destination: 'builtdocs',
+          destination: 'built/documentation',
           private: false,
           template: 'jsdoc/templates/teligent',
           tutorials: 'jsdoc/tutorials'
@@ -165,7 +169,7 @@ module.exports = function(grunt) {
             expand: true,
             cwd: 'temp/jsdoc/static/',
             src: ['**'],
-            dest: 'builtdocs/'
+            dest: 'built/documentation'
           }
         ]
       },
@@ -175,7 +179,7 @@ module.exports = function(grunt) {
             expand: true,
             cwd: 'jsdoc/static/',
             src: ['**'],
-            dest: 'builtdocs/'
+            dest: 'built/documentation'
           }
         ]
       }
@@ -193,7 +197,7 @@ module.exports = function(grunt) {
       },
       docswip: {
           options: {
-              src: "builtdocs/",
+              src: "built/documentation/",
               dest: currentConfig.remotePathWIP + "/doc",
               host: currentConfig.remoteUserWIP + "@" + currentConfig.remoteHostWIP,
               syncDestIgnoreExcl: true
@@ -207,20 +211,21 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-contrib-symlink');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-rsync');
   grunt.loadNpmTasks('grunt-text-replace');
 
   // Our custom tasks.
-  grunt.registerTask('releasedevel', 'Manages building developer version', function () {
+  grunt.registerTask('releasedevel', 'Manages building of developer version.', function () {
     var done = this.async();
     tagversion = tagversionfromgit + (tagversionfromgitdev != tagversionfromgit?'-dev':'');
     grunt.config('buildversion', tagversion);
     console.log('Building developer version:', tagversion);
     done();
   });
-  grunt.registerTask('releasetag', 'Copies tree by specified as "--osdktag" option tag or from last commit to ./temp', function() {
+  grunt.registerTask('releasetag', 'Manages building of tagged version. Copies tree by specified as "--osdktag" option tag or from last commit to ./temp.', function() {
     var done = this.async();
     grunt.config('buildversion', tagversion);
     console.log('Building release version:', tagversion);
@@ -233,16 +238,33 @@ module.exports = function(grunt) {
 
   // Check code (only developer version in src)
   grunt.registerTask('check', ['jshint:developer']);
-  grunt.registerTask('builddev', ['releasedevel', 'check', 'clean:developer', 'concat:developer']);
-  grunt.registerTask('builddocsdev', ['releasedevel', 'clean:docsdeveloper', 'jsdoc:developer', 'copy:developer']);
+
+  grunt.registerTask('preparedev', ['releasedevel', 'check', 'clean:developer']);
+  grunt.registerTask('builddev', ['concat:developer', 'symlink:clean']);
+  grunt.registerTask('buildbasesipdev', ['concat:developerbasesip']);
+  grunt.registerTask('buildbasexmppdev', ['concat:developerbasexmpp']);
+  grunt.registerTask('buildbasedev', ['concat:developerbase']);
+
+  grunt.registerTask('preparedocsdev', ['releasedevel', 'clean:docsdeveloper']);
+  grunt.registerTask('builddocsdev', ['jsdoc:developer', 'copy:developer']);
+
+  grunt.registerTask('buildalldev', ['preparedev', 'builddev', 'buildbasesipdev', 'buildbasexmppdev', 'buildbasedev', 'preparedocsdev', 'builddocsdev']);
+
   grunt.registerTask('deploydocsdev', ['rsync:docswip']);
 
   grunt.registerTask('replacetest', ['replace:test']);
   grunt.registerTask('replacewip', ['replace:wip']);
 
-  grunt.registerTask('build', ['releasetag', 'clean:milestone', 'concat:milestone', 'uglify:milestone']);
-  grunt.registerTask('buildclean', ['releasetag', 'clean:milestone', 'concat:milestone']);
-  grunt.registerTask('builddocs', ['releasetag', 'clean:docsmilestone', 'jsdoc:milestone', 'copy:milestone']);
+  grunt.registerTask('prepare', ['releasetag', 'clean:milestone']);
+  grunt.registerTask('build', ['concat:milestone', 'symlink:clean', 'uglify:milestone', 'symlink:minified']);
+  grunt.registerTask('buildbasesip', ['concat:milestonebasesip', 'uglify:milestonebasesip']);
+  grunt.registerTask('buildbasexmpp', ['concat:milestonebasexmpp', 'uglify:milestonebasexmpp']);
+  grunt.registerTask('buildbase', ['concat:milestonebase', 'uglify:milestonebase']);
+
+  grunt.registerTask('preparedocs', ['releasetag', 'clean:docsmilestone']);
+  grunt.registerTask('builddocs', ['jsdoc:milestone', 'copy:milestone']);
+
+  grunt.registerTask('buildall', ['prepare', 'build', 'buildbasesip', 'buildbasexmpp', 'buildbase', 'preparedocs', 'builddocs']);
 
   grunt.registerTask('default', ['build', 'builddocs']);
 

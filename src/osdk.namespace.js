@@ -8,29 +8,29 @@
 
 
 /**
-  * <p>CoreAPI allows you to configure oSDK and to add/remove functions which listen to oSDK events.
-  * <p>For example to initialize oSDK you can write code:
-  *
-  * <pre><code>oSDK({
-  *   appID: '{Consumer Key}'
-  * });</code></pre>
-  *
-  * <p>It's recommended to initialize oSDK instantly when page loads without using DOMContentLoaded and similar events callbacks. oSDK handles such events itself.
-  *
-  * <p>Next you can add listeners for some events like connected and disconnected with oSDK.on method:
-  *
-  * <pre><code>oSDK.on(['connected', 'disconnected'], function (event) {
-  *   if (event.type == 'connected') {
-  *     alert('Application connected!');
-  *   } else {
-  *     alert('Application disconnected!');
-  *   }
-  * });</code></pre>
-  *
-  * <p>After configuring and adding your listeners you can switch to {@link ConnectionAPI ConnectionAPI} for connection related topics such methods you must invoke to start oSDK.
-  *
-  * @namespace CoreAPI
-  */
+ * <p>CoreAPI allows you to configure oSDK and to add/remove functions which listen to oSDK events.
+ * <p>For example to initialize oSDK you can write code:
+ *
+ * <pre><code>oSDK({
+ *   appID: '{Consumer Key}'
+ * });</code></pre>
+ *
+ * <p>It's recommended to initialize oSDK instantly when page loads without using DOMContentLoaded and similar events callbacks. oSDK handles such events itself.
+ *
+ * <p>Next you can add listeners for some events like connected and disconnected with oSDK.on method:
+ *
+ * <pre><code>oSDK.on(['connected', 'disconnected'], function (event) {
+ *   if (event.type == 'connected') {
+ *     alert('Application connected!');
+ *   } else {
+ *     alert('Application disconnected!');
+ *   }
+ * });</code></pre>
+ *
+ * <p>After configuring and adding your listeners you can switch to {@link ConnectionAPI ConnectionAPI} for connection related topics such methods you must invoke to start oSDK.
+ *
+ * @namespace CoreAPI
+ */
 
 /**
  * @typedef {object} CoreAPI~ConfigObject
