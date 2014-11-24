@@ -266,6 +266,6 @@ module.exports = function(grunt) {
 
   grunt.registerTask('buildall', ['prepare', 'build', 'buildbasesip', 'buildbasexmpp', 'buildbase', 'preparedocs', 'builddocs']);
 
-  grunt.registerTask('default', ['build', 'builddocs']);
+  grunt.registerTask('default', ['prepare', 'build', 'preparedocs', 'builddocs']);
 
 };
