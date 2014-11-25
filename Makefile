@@ -43,27 +43,29 @@ all: build do-report
 build_tools/global_start.mak :.
 	svn co -q $(SVN_SERVER)/$(BUILD_TOOLS_SVN_PATH)/tags/$(BUILD_TOOLS_SVN_TAG) $(BUILD_TOOLS_MODULE)
 
-BUILD_OSDKJS = ( tar cvzf $(BP)/$(1)-$(VERSION).tar.gz built/minified/$(1); \
+BUILD_OSDKJS = ( cd $(BP)/built/minified; \
+tar cvzf $(BP)/$(1)-$(VERSION).tar.gz $(1); \
 echo "Wrote: $(BP)/$(1)-$(VERSION).tar.gz"; \
-tar cvzf $(BP)/$(1)-devel-$(VERSION).tar.gz built/clean/$(1); \
+cd $(BP)/built/clean; \
+tar cvzf $(BP)/$(1)-devel-$(VERSION).tar.gz $(1); \
 echo "Wrote: $(BP)/$(1)-devel-$(VERSION).tar.gz"; \
 if [ -d built/documentation ]; then \
 mv built/documentation $(1)-docs; \
 tar cvzf $(BP)/$(1)-docs-$(VERSION).tar.gz $(1)-docs; \
 echo "Wrote: $(BP)/$(1)-docs-$(VERSION).tar.gz"; \
-fi ) | tee -a $(LOGFILE)
+fi ) | tee -a $(BP)/$(LOGFILE)
 
 build:
-	npm install | tee -a $(LOGFILE)
-	grunt --osdktag="$(VERSION)" buildall | tee -a $(LOGFILE)
+	npm install | tee -a $(BP)/$(LOGFILE)
+	grunt --osdktag="$(VERSION)" buildall | tee -a $(BP)/$(LOGFILE)
 #all modules devel + prod + docs
-	$(call BUILD_OSDKJS,opensdp.osdk)
+	$(call BUILD_OSDKJS,osdkjs)
 #base + sip, devel + prod
-	$(call BUILD_OSDKJS,opensdp.osdk-base-sip)
+	$(call BUILD_OSDKJS,osdkjs-base-sip)
 #base + xmpp, devel + prod
-	$(call BUILD_OSDKJS,opensdp.osdk-base-xmpp)
+	$(call BUILD_OSDKJS,osdkjs-base-xmpp)
 #base, devel + prod
-	$(call BUILD_OSDKJS,opensdp.osdk-base)
+	$(call BUILD_OSDKJS,osdkjs-base)
 
 clean:
 	git clean -dxf
