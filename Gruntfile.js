@@ -51,6 +51,7 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.config.init({
     pkg: pkg,
+    modules: toBuild,
     clean: {
       milestone: ['built/clean', 'built/minified'],
       developer: ['<%= clean.milestone %>'],

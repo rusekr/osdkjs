@@ -8,7 +8,8 @@
     "url": "http://www.teligent.ru"
   },
   "banner": [
-    "/*! <%= pkg.title || pkg.name %> - v<%= buildversion %>",
+    "/*! <%= pkg.title %> - v<%= buildversion %>",
+    " * Modules included: <%= modules.join(', ') %>.",
     " * <%= pkg.homepage %>",
     " * Copyright (c) <%= grunt.template.today('yyyy') %> <%= pkg.author.name %>. Licensed <%= _.pluck(pkg.licenses, 'type').join(', ') %>",
     " *",
