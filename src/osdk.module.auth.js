@@ -131,7 +131,7 @@
             // Configuring us
             oauth.configure({
                 access_token: token,
-                expires_in: parseInt(config('expiresInOverride'))?parseInt(config('expiresInOverride'))*1000:auth.utils.hash.getItem('expires_in')*1000,
+                expires_in: parseInt(auth.config('expiresInOverride'))?parseInt(auth.config('expiresInOverride'))*1000:auth.utils.hash.getItem('expires_in')*1000,
                 expires_start: new Date().getTime()
             });
 
