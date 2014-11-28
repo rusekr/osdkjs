@@ -47,7 +47,7 @@ BUILD_OSDKJS = ( cd $(BP)/built/minified; \
 tar cvzf $(BP)/$(1)-$(VERSION).tar.gz $(1); \
 echo "Wrote: $(BP)/$(1)-$(VERSION).tar.gz"; \
 cd $(BP)/built/clean; \
-tar cvzf $(BP)/$(1)-devel-$(VERSION).tar.gz $(1); \
+tar cvzf $(BP)/$(1)-devel-$(VERSION).tar.gz $(1)-devel; \
 echo "Wrote: $(BP)/$(1)-devel-$(VERSION).tar.gz"; \
 if [ -d built/documentation ]; then \
 mv built/documentation $(1)-docs; \
