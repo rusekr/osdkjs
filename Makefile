@@ -48,17 +48,12 @@ tar cvzf $(BP)/$(1)-$(VERSION).tar.gz $(1); \
 echo "Wrote: $(BP)/$(1)-$(VERSION).tar.gz"; \
 cd $(BP)/built/clean; \
 tar cvzf $(BP)/$(1)-devel-$(VERSION).tar.gz $(1)-devel; \
-echo "Wrote: $(BP)/$(1)-devel-$(VERSION).tar.gz"; \
-if [ -d built/documentation ]; then \
-mv built/documentation $(1)-docs; \
-tar cvzf $(BP)/$(1)-docs-$(VERSION).tar.gz $(1)-docs; \
-echo "Wrote: $(BP)/$(1)-docs-$(VERSION).tar.gz"; \
-fi ) | tee -a $(BP)/$(LOGFILE)
+echo "Wrote: $(BP)/$(1)-devel-$(VERSION).tar.gz" ) | tee -a $(BP)/$(LOGFILE)
 
 build:
 	npm install | tee -a $(BP)/$(LOGFILE)
 	grunt --osdktag="$(VERSION)" buildall | tee -a $(BP)/$(LOGFILE)
-#all modules devel + prod + docs
+#all modules devel + prod
 	$(call BUILD_OSDKJS,osdkjs)
 #base + sip, devel + prod
 	$(call BUILD_OSDKJS,osdkjs-base-sip)
@@ -66,6 +61,11 @@ build:
 	$(call BUILD_OSDKJS,osdkjs-base-xmpp)
 #base, devel + prod
 	$(call BUILD_OSDKJS,osdkjs-base)
+#documentation
+	cd $(BP)
+	mv built/documentation osdkjs-documentation
+	tar cvzf osdkjs-documentation-$(VERSION).tar.gz osdkjs-documentation
+	echo "Wrote: osdkjs-documentation-$(VERSION).tar.gz"
 
 clean:
 	git clean -dxf
