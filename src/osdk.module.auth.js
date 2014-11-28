@@ -36,7 +36,8 @@
     },
     appID: null,
     popup: false,
-    connectionRecovery: false
+    connectionRecovery: false,
+    callbackURI: false
   };
 
   // For not adding more than one event listener.
@@ -406,7 +407,7 @@
 
     oauth.configure({
       client_id: auth.config('appID') || auth.utils.storage.getItem('appID'),
-      redirect_uri: window.location.href.replace(/\?.*$|#.*$/, ''),
+      redirect_uri: auth.config('callbackURI') || window.location.href.replace(/\?.*$|#.*$/, ''),
       authorization_uri: auth.config('apiServerURL')+auth.config('authURI'),
       popup: auth.config('popup')
     });
