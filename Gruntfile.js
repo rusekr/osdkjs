@@ -19,39 +19,28 @@ module.exports = function(grunt) {
     toBuild = (typeof toBuild === 'undefined' || !toBuild)?pkg.modulesDefault:toBuild;
 
     var srcToBuild = [];
+    var resultModules = [];
     for(var moduleName in pkg.srcFiles) {
-      if(toBuild.indexOf(moduleName) !== -1)
-      srcToBuild = srcToBuild.concat(pkg.srcFiles[moduleName]);
+      if(toBuild.indexOf(moduleName) !== -1) {
+        srcToBuild = srcToBuild.concat(pkg.srcFiles[moduleName]);
+        resultModules.push(moduleName);
+      }
     }
+
+    grunt.config('modules', resultModules);
+    console.log('Set modules grunt to', resultModules);
     return srcToBuild;
   }
 
   var pkg = grunt.file.readJSON('teligent-osdk.json');
 
-  // Profile for config selection to build.
-  var profile = grunt.option('profile') ? grunt.option('profile') : 'default';
-  // Git tag to build.
-  var tagversion = grunt.option('osdktag') ? grunt.option('osdktag') : false;
-
-  var toBuild = grunt.option('modules') ? ['base'].concat(grunt.option('modules').split(/,;/)) : pkg.modulesDefault;
-
-  var namePostfix = (pkg.modulesDefault === toBuild) ? '' : '-' + toBuild.join('-');
-
-  // Configuration file according to profile.
-  var currentConfig = grunt.file.readJSON('teligent-osdk-config-' + profile + '.json');
-  // Last tag version (plus commits if exists) from git repository. (No "--dirty" because "releasetag" ignores current tree)
-  var tagversionfromgit = exec('git describe');
-  // Dirty flag
-  var tagversionfromgitdev = exec('git describe --dirty=-dev');
-  // Using git tag if not specified.
-  if (!tagversion) {
-    tagversion = tagversionfromgit;
-  }
+  var toBuild = grunt.option('modules') ? ['base'].concat(grunt.option('modules').split(',')) : pkg.modulesDefault;
 
   // Project configuration.
   grunt.config.init({
     pkg: pkg,
-    modules: toBuild,
+    // Configuration file according to profile.
+    config: grunt.file.readJSON('teligent-osdk-config-' + (grunt.option('profile') ? grunt.option('profile') : 'default') + '.json'),
     clean: {
       milestone: ['built/clean', 'built/minified'],
       developer: ['<%= clean.milestone %>'],
@@ -65,23 +54,21 @@ module.exports = function(grunt) {
         process: true
       },
       milestone: {
-        src: srcToBuild(toBuild).map(function (value) { return 'temp/' + value; }),
-        dest: 'built/clean/<%= pkg.name %>' + namePostfix + '/<%= pkg.name %>.js'
+        dest: 'built/clean/<%= pkg.name %><%= namePostfix %>-devel/<%= pkg.name %>.js'
       },
       milestonebasesip: {
         src: srcToBuild(['base', 'sip']).map(function (value) { return 'temp/' + value; }),
-        dest: 'built/clean/<%= pkg.name %>-base-sip/<%= pkg.name %>.js'
+        dest: 'built/clean/<%= pkg.name %>-base-sip-devel/<%= pkg.name %>.js'
       },
       milestonebasexmpp: {
         src: srcToBuild(['base', 'xmpp']).map(function (value) { return 'temp/' + value; }),
-        dest: 'built/clean/<%= pkg.name %>-base-xmpp/<%= pkg.name %>.js'
+        dest: 'built/clean/<%= pkg.name %>-base-xmpp-devel/<%= pkg.name %>.js'
       },
       milestonebase: {
         src: srcToBuild(['base']).map(function (value) { return 'temp/' + value; }),
-        dest: 'built/clean/<%= pkg.name %>-base/<%= pkg.name %>.js'
+        dest: 'built/clean/<%= pkg.name %>-base-devel/<%= pkg.name %>.js'
       },
       developer: {
-        src: srcToBuild(toBuild),
         dest: '<%= concat.milestone.dest %>'
       },
       developerbasesip: {
@@ -101,12 +88,12 @@ module.exports = function(grunt) {
       test: {
         src: ['built/**/*.js','built/**/*.html'],
         overwrite: true,
-        replacements: currentConfig.replacementsTEST
+        replacements: '<%= config.replacementsTEST %>'
       },
       wip: {
         src: ['built/**/*.js','built/**/*.html'],
         overwrite: true,
-        replacements: currentConfig.replacementsWIP
+        replacements: '<%= config.replacementsWIP %>'
       }
     },
     uglify: {
@@ -115,7 +102,7 @@ module.exports = function(grunt) {
       },
       milestone: {
         src: '<%= concat.milestone.dest %>',
-        dest: 'built/minified/<%= pkg.name %>' + namePostfix + '/<%= pkg.name %>.js'
+        dest: 'built/minified/<%= pkg.name %><%= namePostfix %>/<%= pkg.name %>.js'
       },
       milestonebasesip: {
         src: '<%= concat.milestonebasesip.dest %>',
@@ -199,8 +186,8 @@ module.exports = function(grunt) {
       docswip: {
           options: {
               src: "built/documentation/",
-              dest: currentConfig.remotePathWIP + "/doc",
-              host: currentConfig.remoteUserWIP + "@" + currentConfig.remoteHostWIP,
+              dest: '<%= config.remotePathWIP %>/doc',
+              host: '<%= config.remoteUserWIP %>@<%= config.remoteHostWIP %>',
               syncDestIgnoreExcl: true
           }
       }
@@ -221,13 +208,21 @@ module.exports = function(grunt) {
   // Our custom tasks.
   grunt.registerTask('releasedevel', 'Manages building of developer version.', function () {
     var done = this.async();
-    tagversion = tagversionfromgit + (tagversionfromgitdev != tagversionfromgit?'-dev':'');
+
+    var tagversionfromgit = exec('git describe');
+    var tagversionfromgitdev = exec('git describe --dirty=-dev');
+    var tagversion = tagversionfromgit + (tagversionfromgitdev != tagversionfromgit?'-dev':'');
     grunt.config('buildversion', tagversion);
     console.log('Building developer version:', tagversion);
     done();
   });
   grunt.registerTask('releasetag', 'Manages building of tagged version. Copies tree by specified as "--osdktag" option tag or from last commit to ./temp.', function() {
     var done = this.async();
+
+    var tagversion = grunt.option('osdktag') ? grunt.option('osdktag') : false;
+    if (!tagversion) {
+      tagversion = exec('git describe');
+    }
     grunt.config('buildversion', tagversion);
     console.log('Building release version:', tagversion);
     exec('rm -rf temp && mkdir temp && git archive ' + tagversion + ' | tar -x -C temp');
@@ -241,10 +236,26 @@ module.exports = function(grunt) {
   grunt.registerTask('check', ['jshint:developer']);
 
   grunt.registerTask('preparedev', ['releasedevel', 'check', 'clean:developer']);
-  grunt.registerTask('builddev', ['concat:developer', 'symlink:clean']);
-  grunt.registerTask('buildbasesipdev', ['concat:developerbasesip']);
-  grunt.registerTask('buildbasexmppdev', ['concat:developerbasexmpp']);
-  grunt.registerTask('buildbasedev', ['concat:developerbase']);
+
+  grunt.registerTask('builddev', function () {
+    grunt.config('concat.developer.src', srcToBuild(toBuild));
+    grunt.config('namePostfix', (pkg.modulesDefault === toBuild) ? '' : '-' + grunt.config('modules').join('-'));
+    grunt.task.run('concat:developer');
+    grunt.task.run('symlink:clean');
+    console.log(grunt.task.current.args);
+  });
+  grunt.registerTask('buildbasesipdev', function () {
+    grunt.config('modules', ['base', 'sip']);
+    grunt.task.run('concat:developerbasesip');
+  });
+  grunt.registerTask('buildbasexmppdev', function () {
+    grunt.config('modules', ['base', 'xmpp']);
+    grunt.task.run('concat:developerbasexmpp');
+  });
+  grunt.registerTask('buildbasedev', function () {
+    grunt.config('modules', ['base']);
+    grunt.task.run('concat:developerbase');
+  });
 
   grunt.registerTask('preparedocsdev', ['releasedevel', 'clean:docsdeveloper']);
   grunt.registerTask('builddocsdev', ['jsdoc:developer', 'copy:developer']);
@@ -257,10 +268,25 @@ module.exports = function(grunt) {
   grunt.registerTask('replacewip', ['replace:wip']);
 
   grunt.registerTask('prepare', ['releasetag', 'clean:milestone']);
-  grunt.registerTask('build', ['concat:milestone', 'symlink:clean', 'uglify:milestone', 'symlink:minified']);
-  grunt.registerTask('buildbasesip', ['concat:milestonebasesip', 'uglify:milestonebasesip']);
-  grunt.registerTask('buildbasexmpp', ['concat:milestonebasexmpp', 'uglify:milestonebasexmpp']);
-  grunt.registerTask('buildbase', ['concat:milestonebase', 'uglify:milestonebase']);
+
+  grunt.registerTask('build', function () {
+    grunt.config('concat.milestone.src', srcToBuild(toBuild).map(function (value) { return 'temp/' + value; }));
+    grunt.config('namePostfix', (pkg.modulesDefault === toBuild) ? '' : '-' + grunt.config('modules').join('-'));
+    grunt.task.run('concat:milestone', 'symlink:clean', 'uglify:milestone', 'symlink:minified');
+    console.log(grunt.task.current.args);
+  });
+  grunt.registerTask('buildbasesip', function () {
+    grunt.config('modules', ['base', 'sip']);
+    grunt.task.run('concat:milestonebasesip', 'uglify:milestonebasesip');
+  });
+  grunt.registerTask('buildbasexmpp', function () {
+    grunt.config('modules', ['base', 'xmpp']);
+    grunt.task.run('concat:milestonebasexmpp', 'uglify:milestonebasexmpp');
+  });
+  grunt.registerTask('buildbase', function () {
+    grunt.config('modules', ['base']);
+    grunt.task.run('concat:milestonebase', 'uglify:milestonebase');
+  });
 
   grunt.registerTask('preparedocs', ['releasetag', 'clean:docsmilestone']);
   grunt.registerTask('builddocs', ['jsdoc:milestone', 'copy:milestone']);

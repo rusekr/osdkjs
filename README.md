@@ -29,6 +29,8 @@ If you have problems with SSL while downloading node modules you can change down
 
 ## Parameters:
 
+Notice: `dev` command posfix means working with current git tree without checkout by last commit or specified git tag.
+
 `check` - Check current source code for errors.
 
 `preparedev` - Check current source code for errors, clear `built/clean` and `built/minified` directories and retreive current developer version from git.
@@ -52,6 +54,8 @@ If you have problems with SSL while downloading node modules you can change down
 `preparedocs` - Retreive version from git tag or last commit and clean `built/documentation` directory.
 
 `builddocs` - Build prepared production version documentation.
+
+`buildall` - Prepare and build all oSDK variants by modules, minified and clean versions and documentationBuild.
 
 ## Options:
 
