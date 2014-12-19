@@ -58,6 +58,7 @@
 
     // Creates new session
     instance.create = function sessionsCreate(sessionID, sessionParams) {
+      sessionParams  = sip.utils.isObject(sessionParams) ? sessionParams : {};
       store[sessionID] = sip.utils.extend({
         callOptions: {},
         mediaSessionObject: null,
@@ -222,6 +223,10 @@
     options.data = (sip.utils.isObject(options.data))?options.data:{};
     // Passing mediaConstraints to future session object.
     options.data.mediaConstraints = options.mediaConstraints;
+    delete options.mediaConstraints;
+    // Passing callbacks to future session object.
+    options.data.callbacks = options.callbacks;
+    delete options.callbacks;
 
     sip.log('converted', options);
     return options;
@@ -247,6 +252,7 @@
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
     currentSession.callOptions = evData.session.data.mediaConstraints;
+    currentSession.callbacks = isObject(evData.session.data.callbacks) ? evData.session.data.callbacks : {};
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -975,27 +981,20 @@
 
   // Simple audio call method
   sip.audioCall = function (userID, callbacksObject) {
-
-    currentSessionID = sip.call(userID, { audio: true, video: false });
-
-    // TODO: check callbacksObject for sanity
-    if (sip.utils.isObject(callbacksObject)) {
-      sessions[currentSessionID].callbacks = callbacksObject;
-    }
-
-    return currentSessionID;
+    currentSessionID = sip.call(userID, {
+      audio: true,
+      video: false,
+      callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
+    });
   };
 
   // Simple video call method
   sip.videoCall = function (userID, callbacksObject) {
-    currentSessionID = sip.call(userID, { audio: true, video: true });
-
-    // TODO: check callbacksObject for sanity
-    if (sip.utils.isObject(callbacksObject)) {
-      sessions[currentSessionID].callbacks = callbacksObject;
-    }
-
-    return currentSessionID;
+    currentSessionID = sip.call(userID, {
+      audio: true,
+      video: true,
+      callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
+    });
   };
 
   // Expand user capabilities (add "instantMessaging")
@@ -1014,6 +1013,38 @@
     sip.info('windowBeforeUnload end');
   });
 
+  sip.checkCompatibility = function sipCheckCompatibility() {
+    var err;
+    if(!Media.getUserMedia) {
+      err = new sip.Error({
+        ecode: 'sip0002',
+        message: 'Your browser do not support getUserMedia.'
+      });
+      sip.trigger('incompatible', err);
+      throw err;
+    }
+    if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
+      err = new sip.Error({
+        ecode: 'sip0003',
+        message: 'Your browser do not support RTCPeerConnection.'
+      });
+      sip.trigger('incompatible', err);
+      throw err;
+    }
+    if(!window.WebSocket) {
+      err = new sip.Error({
+        ecode: 'sip0004',
+        message: 'Your browser do not support WebSocket.'
+      });
+      sip.trigger('incompatible', err);
+      throw err;
+    }
+  };
+
+  sip.on('DOMContentLoaded', function () {
+    sip.checkCompatibility();
+  });
+
   // Registration stuff
 
   sip.registerMethods({
@@ -1028,30 +1059,28 @@
      * @param {object} options Call initiation options.
      * @param {string} options.audio Include audio stream in session.
      * @param {string} options.vide Include Video stream in session.
+     * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      *
      */
     'call': sip.call,
 
-    /** TODO: incomplete for public
+    /**
      * This method used to start audio call to another user.
-     * @private
      *
      * @memberof MediaAPI
      * @method oSDK.audioCall
-     * @param TODO
-     * @param TODO
+     * @param {string} userID ID of opponent.
+     * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      */
     'audioCall': sip.audioCall,
 
-    /** TODO: incomplete for public
+    /**
      * This method used to start video call to another user.
-     *
-     * @private
      *
      * @memberof MediaAPI
      * @method oSDK.videoCall
-     * @param TODO
-     * @param TODO
+     * @param {string} userID ID of opponent.
+     * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      */
     'videoCall': sip.videoCall,
 
@@ -1176,17 +1205,22 @@
     /*
      * Described in auth module
      */
-    'disconnected': { other: true, client: 'last' },
+    'disconnected': { other: true, client: true },
 
     /*
      * Described in auth module
      */
-    'connected': { other: true, client: 'last' },
+    'connected': { other: true, client: true },
 
     /*
      * Described in auth module
      */
-    'connectionFailed': { client: true, other: true }
+    'connectionFailed': { other: true, client: true },
+
+    /*
+    * Described in auth module.
+    */
+    'incompatible': { other: true, client: true }
   });
 
   sip.registerConfig(defaultConfig);

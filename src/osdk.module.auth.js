@@ -550,12 +550,12 @@
   });
 
   // Setting status "connected" when last module throw "connected".
-  auth.on('connected', function () {
+  auth.on('connected:last', function () {
     auth.status('connected');
   });
 
   // Setting status "disconnected" when last module throw "disconnected".
-  auth.on('disconnected', function () {
+  auth.on('disconnected:last', function () {
     auth.status('disconnected');
   });
 
@@ -640,7 +640,7 @@
     * @param {ConnectionAPI~ConnectedEventObject} event The event object associated with this event.
     *
     */
-    'connected': { self: 'last', client: 'last', clears: ['disconnected', 'connectionFailed'] },
+    'connected': { self: true, other: true, client: true, clears: ['disconnected', 'connectionFailed'] },
 
     /**
     * Dispatched when oSDK started disconnection process.
@@ -664,7 +664,7 @@
     * @param {String} initiator - Initiator of disconnected event. Can be "system" or "user".
     *
     */
-    'disconnected': { self: 'last', other: true, client: 'last', clears: 'connected' },
+    'disconnected': { self: true, other: true, client: true, clears: 'connected' },
 
     /**
     * Dispatched when any of built in oSDK modules failed to connect to openSDP network.
@@ -677,6 +677,16 @@
     *
     */
     'connectionFailed': { client: true, other: true, clears: 'connected' },
+
+    /**
+    * Dispatched if module finds some incompatibilities with current browser.
+    *
+    * @memberof CoreAPI
+    * @event incompatible
+    * @param {Error} event The event object associated with this event.
+    *
+    */
+    'incompatible': { other: true, client: true },
 
     /*
      * Inner events

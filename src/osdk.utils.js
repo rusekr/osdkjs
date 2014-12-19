@@ -245,24 +245,23 @@
       return extend({
         id: null,
         handler: null,
-        last: false, // TODO
+        last: true,
         module: null,
         data: {} // Cumulative data to fire with.
       }, initObject);
     };
 
     var emitterSkel = function (initObject) {
-      return extend({
-        last: false, // TODO
-        every: false, // TODO
-        client: false, // TODO: replace with universal alternative.
+      var defaultObj = {
         other: false,
         self: false,
-        fired: false,
+        fired: [],
         clears: null,
         module: null,
         data: {}
-      }, initObject);
+      };
+      defaultObj[clientModuleName] = false; // Dynamic property.
+      return extend(defaultObj, initObject);
     };
 
     Object.defineProperties(self, {
@@ -303,7 +302,7 @@
 
         var arr = ['oSDK:',d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3)  , ':'];
         if (self.oSDKModule && self.name != 'utils') {
-          arr.push(self.name);
+          arr.push(self.name + ':');
         }
         console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
       };
@@ -507,21 +506,36 @@
       eventTypes = [].concat(eventTypes);
 
       each(eventTypes, function (eventType) {
+
+        var eventNameArr = eventType.split(':');
+        var fireLast = (self.name == clientModuleName) ? true : false; // By default grouped event go to client listeners by last emitter fired and to other modules when each emitter fired.
+
+        if ( eventNameArr.length > 1) {
+          eventType = eventNameArr[0];
+          if ( eventNameArr[1] == 'last' ) {
+            fireLast = true;
+          }
+          if ( eventNameArr[1] == 'every' ) {
+            fireLast = false;
+          }
+        }
+
         if (!events[eventType]) {
-          self.log('Creating event skel for', eventType, 'by listener.');
+          // self.log('Creating event skel for', eventType, 'by listener.');
           events[eventType] = eventSkel();
         }
         var id  = uuid();
-        var listener = listenerSkel();
-
-        listener.id = id;
-        listener.handler = eventHandler;
-        listener.module = self.name;
+        var listener = listenerSkel({
+          id: id,
+          handler: eventHandler,
+          module: self.name,
+          last: fireLast
+        });
 
         events[eventType].listeners.push(listener);
         ids.push(id);
 
-        self.log('Listener added', eventType);
+        self.log('Added listener for event:', eventType, 'which will be firing', (!fireLast ? 'every' : 'last'), 'emitter fired.');
       });
       return (ids.length == 1)?ids[0]:ids;
     };
@@ -689,18 +703,24 @@
             return;
           }
 
-          // If ours event clears some other event which fires last for someone.
+          // If ours event clears some other events fired arrays.
           var clearsEvents = [].concat(eventEmitterObject.clears);
-          if(clearsEvents.length) {
+          if (clearsEvents.length) {
             each(clearsEvents, function cancelEvent (eventToClear) {
               if(!eventToClear || !events[eventToClear].emitters) {
                 return;
               }
               each(events[eventToClear].emitters, function (emitter) {
-                emitter.fired = false;
+                emitter.fired = [];
               });
             });
           }
+
+          // Fired = true for ours emitter.
+          eventEmitterObject.fired.push(listener.id);
+
+          // Extending data object to listener
+          extend(listener.data, configObject.data);
 
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
@@ -708,45 +728,38 @@
           var emittersLength = 0;
 
           self.log('Checking event listener for last keyword', events[eventType].emittersObject[listener.module]);
-          if(
-            listener.module == clientModuleName && eventEmitterObject[clientModuleName] == 'last' ||
-            events[eventType].emittersObject[listener.module] && events[eventType].emittersObject[listener.module].self == 'last'
-          ) {
+          if (listener.last) {
             each(events[eventType].emitters, function (emitter) {
               emittersLength++;
-              if(emitter.fired === false) {
+              if (!emitter.fired.length) {
                 notFiredModuleExists = true;
               }
-              if(emitter.fired === true) {
+              if (emitter.fired.length) {
                 modulesFired++;
               }
             });
+
+          }
+
+          if(notFiredModuleExists) {
+            self.log('Postponed', eventType, 'with event data', listener.data, 'for client listener', listener);
+            return;
           }
 
           // All modules fired already, begin again.
           if (modulesFired == emittersLength) {
 
-            // Clear data after firing to last listener.
+            // Clear data and emitters fired arrays after firing to last listener.
             if (events[eventType].listeners.lenght - 1 == listenerIndex) {
               listener.data = {};
+
+              // Cleaning self emitters
+              each(events[eventType].emitters, function (emitter) {
+                emitter.fired = [];
+              });
             }
 
-            // Cleaning self emitters
-            each(events[eventType].emitters, function (emitter) {
-              emitter.fired = false;
-            });
-          } else if (modulesFired + 1 == emittersLength ) {
-            // This is the last module to fire to listener for 'last' 
-            notFiredModuleExists = false;
-          }
 
-          // Fired = true for ours emitter and extending data object to listener
-          eventEmitterObject.fired = true;
-          extend(listener.data, configObject.data);
-
-          if(notFiredModuleExists) {
-            self.log('NOT Firing', eventType, 'with event data', listener.data, 'for client listener', listener);
-            return;
           }
 
           // If just firing with transparent arguments if developer used arguments in trigger config object or with own data object
