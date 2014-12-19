@@ -16,9 +16,6 @@
   // Module specific DEBUG.
   auth.debug = true;
 
-  // Status (disconnected, connecting, connected, disconnecting)
-  auth.status = 'disconnected';
-
   auth.disconnectedByUser = false;
 
   var user = {
@@ -26,6 +23,27 @@
     login: null,
     domain: null
   };
+  auth.user = {};
+  Object.defineProperties(auth.user, {
+    id: {
+      enumerable: true,
+      get: function () {
+        return user.id;
+      }
+    },
+    domain: {
+      enumerable: true,
+      get: function () {
+        return user.domain;
+      }
+    },
+    login: {
+      enumerable: true,
+      get: function () {
+        return user.login;
+      }
+    }
+  });
 
   var defaultConfig = {
     auth: {
@@ -263,6 +281,19 @@
     };
   })();
 
+  // Status get/set function (states: disconnected, connecting, connected, disconnecting, waitingForPopup)
+  auth.status = (function () {
+    var status = false;
+    return function authStatus (newStatus) {
+      if (!newStatus) {
+        newStatus = status;
+      } else {
+        auth.log('Setting status', status);
+      }
+      return (status = newStatus);
+    };
+  })();
+
 
   // Connection to openSDP network
   auth.connect = function () {
@@ -275,11 +306,11 @@
       return;
     }
 
-    if(auth.status != 'disconnected') {
+    if(auth.status() != 'disconnected') {
       auth.log('connect method aborted: denied by status != disconnected.');
       return;
     }
-    auth.status = 'connecting';
+    auth.status('connecting');
     auth.trigger('connecting');
 
     // Checking user token
@@ -288,9 +319,9 @@
       // No token, waiting for second try after auth in popup or redirect.
       // For popup doing personal status for second try after popup close.
       if (auth.config('popup')) {
-        auth.status = 'waitingForPopup';
+        auth.status('waitingForPopup');
       } else {
-        auth.status = 'disconnected';
+        auth.status('disconnected');
       }
       return;
     }
@@ -331,7 +362,6 @@
 
           auth.trigger(['gotTempCreds'], { 'data': data });
 
-          auth.status = 'connected';
           auth.trigger('connected', {
             user: user
           });
@@ -353,7 +383,7 @@
 
   // Disconnect function for clearing system stuff.
   auth.disconnect = function (keepToken) {
-    if(auth.status == 'disconnecting') {
+    if(auth.status() == 'disconnecting') {
       return false;
     }
 
@@ -363,14 +393,13 @@
       auth.disconnectedByUser = false;
     }
 
-    auth.status = 'disconnecting';
+    auth.status('disconnecting');
     auth.trigger('disconnecting', { initiator: disconnectInitiator });
 
     if(keepToken !== true) {
       oauth.clearToken();
     }
 
-    auth.status = 'disconnected';
     auth.trigger('disconnected', { initiator: disconnectInitiator });
   };
 
@@ -439,27 +468,9 @@
     return false;
   };
 
-  auth.user = {};
-  Object.defineProperties(auth.user, {
-    id: {
-      enumerable: true,
-      get: function () {
-        return user.id;
-      }
-    },
-    domain: {
-      enumerable: true,
-      get: function () {
-        return user.domain;
-      }
-    },
-    login: {
-      enumerable: true,
-      get: function () {
-        return user.login;
-      }
-    }
-  });
+  auth.isConnected = function () {
+    return (auth.status() == 'connected') ? true : false;
+  };
 
   auth.on('transitEvent', function (event) {
 
@@ -469,8 +480,8 @@
         auth.log('auth popup closed');
         oauth.configure(event.data);
 
-        if(auth.status == 'waitingForPopup') {
-          auth.status = 'disconnected';
+        if(auth.status() == 'waitingForPopup') {
+          auth.status('disconnected');
         }
 
         auth.connect();
@@ -483,8 +494,8 @@
         // Clearing token right away.
         oauth.clearToken();
 
-        if(auth.status == 'waitingForPopup') {
-          auth.status = 'disconnected';
+        if(auth.status() == 'waitingForPopup') {
+          auth.status('disconnected');
         }
 
         // Proxying ours Error object. May be triggered after DOMContentLoaded.
@@ -495,8 +506,8 @@
       // User closed popup manually.
       oauth.clearPopupInterval();
 
-      if(auth.status == 'waitingForPopup') {
-        auth.status = 'disconnected';
+      if(auth.status() == 'waitingForPopup') {
+        auth.status('disconnected');
       }
 
       auth.trigger('auth_oAuthError', event);
@@ -530,10 +541,22 @@
   auth.on('DOMContentLoaded', function () {
     auth.log('Got DOMContentLoaded, connectOnDOMContendLoadedTries:', connectOnDOMContendLoadedTries);
 
+    auth.status('disconnected');
+
     if (connectOnDOMContendLoadedTries) {
       connectOnDOMContendLoadedTries = 0;
       auth.connect();
     }
+  });
+
+  // Setting status "connected" when last module throw "connected".
+  auth.on('connected:last', function () {
+    auth.status('connected');
+  });
+
+  // Setting status "disconnected" when last module throw "disconnected".
+  auth.on('disconnected:last', function () {
+    auth.status('disconnected');
   });
 
   // Registering methods in oSDK.
@@ -563,7 +586,15 @@
      * @method oSDK.isAuthorized
      * @returns {boolean} True or false.
      */
-    'isAuthorized': auth.isAuthorized // TODO: May be use oSDK's status 'Connected' instead.
+    'isAuthorized': auth.isAuthorized,
+    /**
+     * Returns status of client's connection to server.
+     *
+     * @memberof ConnectionAPI
+     * @method oSDK.isConnected
+     * @returns {boolean} True or false.
+     */
+    'isConnected': auth.isConnected
   });
 
   auth.registerObjects({
@@ -609,7 +640,7 @@
     * @param {ConnectionAPI~ConnectedEventObject} event The event object associated with this event.
     *
     */
-    'connected': { other: true, client: 'last', clears: ['disconnected', 'connectionFailed'] },
+    'connected': { self: true, other: true, client: true, clears: ['disconnected', 'connectionFailed'] },
 
     /**
     * Dispatched when oSDK started disconnection process.
@@ -633,7 +664,7 @@
     * @param {String} initiator - Initiator of disconnected event. Can be "system" or "user".
     *
     */
-    'disconnected': { other: true, client: 'last', clears: 'connected' },
+    'disconnected': { self: true, other: true, client: true, clears: 'connected' },
 
     /**
     * Dispatched when any of built in oSDK modules failed to connect to openSDP network.
@@ -646,6 +677,16 @@
     *
     */
     'connectionFailed': { client: true, other: true, clears: 'connected' },
+
+    /**
+    * Dispatched if module finds some incompatibilities with current browser.
+    *
+    * @memberof CoreAPI
+    * @event incompatible
+    * @param {Error} event The event object associated with this event.
+    *
+    */
+    'incompatible': { other: true, client: true },
 
     /*
      * Inner events

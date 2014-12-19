@@ -563,9 +563,9 @@
       return {
         // Inner
         // 'xmpp.connected': {self: true},
-        'connected': { other: true, client: 'last' },
+        'connected': { other: true, client: true },
         // 'xmpp.disconnected': {self: true},
-        'disconnected': { other: true, client: 'last' },
+        'disconnected': { other: true, client: true },
         // 'xmpp.connectionFailed': {self: true},
         'connectionFailed': { other: true, client: true },
 

@@ -22,7 +22,6 @@
   var factory = {}; // Internal cross-module object for Module factory
   var methods = {};
   var events = {};
-  var dependencies = {};
   var mainConfig = {};
   var earlyEvents = [];
   var earlyEventsTriggered = false;
@@ -232,6 +231,7 @@
     var self = this;
     var debugInt = false; // Per-module debug default setting (TODO: parametrize by grunt).
     var nameInt = name;
+    var clientModuleName = 'client'; // Client module name. (TODO: universalize trigger function and registerEvents interface for not to use 'special' modules).
 
     var eventSkel = function (initObject) {
       return extend({
@@ -245,22 +245,23 @@
       return extend({
         id: null,
         handler: null,
+        last: true,
         module: null,
         data: {} // Cumulative data to fire with.
       }, initObject);
     };
 
     var emitterSkel = function (initObject) {
-      return extend({
-//        bind: null,
-        client: false,
+      var defaultObj = {
         other: false,
         self: false,
-        fired: false,
+        fired: [],
         clears: null,
         module: null,
         data: {}
-      }, initObject);
+      };
+      defaultObj[clientModuleName] = false; // Dynamic property.
+      return extend(defaultObj, initObject);
     };
 
     Object.defineProperties(self, {
@@ -301,7 +302,7 @@
 
         var arr = ['oSDK:',d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3)  , ':'];
         if (self.oSDKModule && self.name != 'utils') {
-          arr.push(self.name);
+          arr.push(self.name + ':');
         }
         console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
       };
@@ -505,21 +506,36 @@
       eventTypes = [].concat(eventTypes);
 
       each(eventTypes, function (eventType) {
+
+        var eventNameArr = eventType.split(':');
+        var fireLast = (self.name == clientModuleName) ? true : false; // By default grouped event go to client listeners by last emitter fired and to other modules when each emitter fired.
+
+        if ( eventNameArr.length > 1) {
+          eventType = eventNameArr[0];
+          if ( eventNameArr[1] == 'last' ) {
+            fireLast = true;
+          }
+          if ( eventNameArr[1] == 'every' ) {
+            fireLast = false;
+          }
+        }
+
         if (!events[eventType]) {
-          self.log('Creating event skel for', eventType, 'by listener.');
+          // self.log('Creating event skel for', eventType, 'by listener.');
           events[eventType] = eventSkel();
         }
         var id  = uuid();
-        var listener = listenerSkel();
-
-        listener.id = id;
-        listener.handler = eventHandler;
-        listener.module = self.name;
+        var listener = listenerSkel({
+          id: id,
+          handler: eventHandler,
+          module: self.name,
+          last: fireLast
+        });
 
         events[eventType].listeners.push(listener);
         ids.push(id);
 
-        self.log('Listener added', eventType);
+        self.log('Added listener for event:', eventType, 'which will be firing', (!fireLast ? 'every' : 'last'), 'emitter fired.');
       });
       return (ids.length == 1)?ids[0]:ids;
     };
@@ -644,7 +660,9 @@
           return;
         }
 
-        if(!events[eventType].emittersObject[self.name]) {
+        var eventEmitterObject = events[eventType].emittersObject[self.name];
+
+        if(!eventEmitterObject) {
           throw new self.Error('Emitter for ' + eventType + ' event type is not registered.');
         }
 
@@ -664,62 +682,87 @@
         // Regstered emitters may be zero (e.g. in case of oauth popup)
 
         // Fire every listener for event type
-        var fireToListener = function (listener) {
+        events[eventType].listeners.forEach(function (listener, listenerIndex) {
           // Checking if we can fire by allowed module
           if (!listener.module) {
             throw new self.Error('Unknown listener!');
           }
 
           // Not firing to itself if not configured
-          if (listener.module == self.name && !events[eventType].emittersObject[self.name].self) {
+          if (listener.module == self.name && !eventEmitterObject.self) {
             return;
           }
 
           // Not firing to client if not configured
-          if (listener.module == 'client' && !events[eventType].emittersObject[self.name].client) {
+          if (listener.module == clientModuleName && !eventEmitterObject[clientModuleName]) {
             return;
           }
 
           // Not firing to other modules if not configured
-          if (listener.module != 'client' && listener.module != self.name && !events[eventType].emittersObject[self.name].other) {
+          if (listener.module != clientModuleName && listener.module != self.name && !eventEmitterObject.other) {
             return;
           }
 
-          // If ours event clears some other event which fires last for someone.
-          var clearsEvents = [].concat(events[eventType].emittersObject[self.name].clears);
-          if(clearsEvents.length) {
+          // If ours event clears some other events fired arrays.
+          var clearsEvents = [].concat(eventEmitterObject.clears);
+          if (clearsEvents.length) {
             each(clearsEvents, function cancelEvent (eventToClear) {
               if(!eventToClear || !events[eventToClear].emitters) {
                 return;
               }
               each(events[eventToClear].emitters, function (emitter) {
-                emitter.fired = false;
+                emitter.fired = [];
               });
             });
           }
 
-          // Fired = true for ours emitter // TODO: if emitters > 1, emitters for client exist, exist other modules emitters which are not fired
-          events[eventType].emittersObject[self.name].fired = true;
+          // Fired = true for ours emitter.
+          eventEmitterObject.fired.push(listener.id);
 
+          // Extending data object to listener
           extend(listener.data, configObject.data);
 
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
-          if(listener.module == 'client' && events[eventType].emittersObject[self.name].client == 'last') {
+          var modulesFired = 0;
+          var emittersLength = 0;
+
+          self.log('Checking event listener for last keyword', events[eventType].emittersObject[listener.module]);
+          if (listener.last) {
             each(events[eventType].emitters, function (emitter) {
-              if(emitter.fired === false) {
+              emittersLength++;
+              if (!emitter.fired.length) {
                 notFiredModuleExists = true;
-                return false;
+              }
+              if (emitter.fired.length) {
+                modulesFired++;
               }
             });
+
           }
 
           if(notFiredModuleExists) {
-            self.log('NOT Firing', eventType, 'with event data', listener.data, 'for client listener', listener);
+            self.log('Postponed', eventType, 'with event data', listener.data, 'for client listener', listener);
             return;
           }
 
-          // Just firing with transparent arguments if developer used arguments in trigger config object or with own data object
+          // All modules fired already, begin again.
+          if (modulesFired == emittersLength) {
+
+            // Clear data and emitters fired arrays after firing to last listener.
+            if (events[eventType].listeners.lenght - 1 == listenerIndex) {
+              listener.data = {};
+
+              // Cleaning self emitters
+              each(events[eventType].emitters, function (emitter) {
+                emitter.fired = [];
+              });
+            }
+
+
+          }
+
+          // If just firing with transparent arguments if developer used arguments in trigger config object or with own data object
           var fireArgs = [];
           if(listener.data.arguments) {
             if (isArray(listener.data.arguments)) {
@@ -737,18 +780,7 @@
 
           listener.handler.apply(configObject.context, fireArgs);
 
-          if(!notFiredModuleExists) {
-            listener.data = {};
-          }
-
-          // Cleaning self emitters
-          each(events[eventType].emitters, function (emitter) {
-            emitter.fired = false;
-          });
-
-
-        };
-        events[eventType].listeners.forEach(fireToListener);
+        });
       });
     };
     self.trigger = self.constructor.prototype.trigger.bind(self);
@@ -914,14 +946,13 @@
     };
     self.registerObjects = self.constructor.prototype.registerObjects.bind(self);
 
-    // Registers other modules event(s) name(s) needed for this module to work (TODO: make automatic on time of event listener and emitters registration)
-//     self.constructor.prototype.registerDeps = function oSDKregisterDeps (eventsList) {
-//
-//       eventsList  = [].concat(eventsList);
-//       dependencies[self.name] = eventsList;
-//
-//     };
-//     self.registerDeps = self.constructor.prototype.registerDeps.bind(self);
+    // Shows module dependencies by listening event type.
+    self.constructor.prototype.requires = function oSDKModuleRequires () {
+
+      // TODO: Find non self events listening on and its modules.
+
+    };
+    self.requires = self.constructor.prototype.requires.bind(self);
 
     self.constructor.prototype.registerConfig = function oSDKregisterConfig (configObject) {
       mainConfig = extend(true, {}, mainConfig, configObject);
@@ -1163,13 +1194,6 @@
       enumerable: true,
       get: function () {
         return events;
-      }
-    },
-    // Returns registered event dependencies grouped by dependent module name
-    deps: {
-      enumerable: true,
-      get: function () {
-        return dependencies;
       }
     }
   });
