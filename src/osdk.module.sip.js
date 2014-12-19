@@ -981,7 +981,7 @@
 
   // Simple audio call method
   sip.audioCall = function (userID, callbacksObject) {
-    currentSessionID = sip.call(userID, {
+    sip.call(userID, {
       audio: true,
       video: false,
       callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
@@ -990,7 +990,7 @@
 
   // Simple video call method
   sip.videoCall = function (userID, callbacksObject) {
-    currentSessionID = sip.call(userID, {
+    sip.call(userID, {
       audio: true,
       video: true,
       callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
