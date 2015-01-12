@@ -155,7 +155,7 @@
   var attachableEvents = {
     'connected': 'sip_connected', // not needed now
     'disconnected': 'sip_disconnected',
-    'registered': ['connected', 'sip_registered'],
+    'registered': ['sip_registered'],
     'unregistered': 'sip_unregistered',
     'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
     'connectionFailed': 'sip_connectionFailed',
@@ -252,7 +252,7 @@
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
     currentSession.callOptions = evData.session.data.mediaConstraints;
-    currentSession.callbacks = isObject(evData.session.data.callbacks) ? evData.session.data.callbacks : {};
+    currentSession.callbacks = sip.utils.isObject(evData.session.data.callbacks) ? evData.session.data.callbacks : {};
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -947,6 +947,30 @@
     }
 
     sip.trigger('sip_connectionFailed', event);
+
+  });
+
+  sip.on('sip_registered', function (event) {
+
+    // Finding parallel sessions.
+    var gruus = [];
+//     var response = event.data.response;
+//     var numContacts = response.countHeader('contact');
+//     var idx, contactHeader;
+//
+//     for (idx = 0; idx < numContacts; idx++) {
+//       contactHeader = response.parseHeader('contact', idx);
+//       if (contactHeader.uri.user !== JsSIP.contact.uri.user) {
+//         var gruu = contactHeader.getParam('pub-gruu');
+//         if (gruu) {
+//           gruus.push(gruu.replace(/"/g,''));
+//         }
+//       }
+//     }
+
+    event.data.otherSessions = gruus;
+
+    sip.trigger('connected', event);
 
   });
 
