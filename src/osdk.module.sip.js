@@ -789,8 +789,8 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            if (sip.utils.isArray(evData.session.getLocalStreams()))
-            sip.utils.each(evData.session.getLocalStreams(), function (stream) {
+            if (sip.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
+            sip.utils.each(evData.session.connection.peerConnection.getLocalStreams(), function (stream) {
               stream.stop();
             });
             // Deleting current session TODO: Commented as something wrong with that
