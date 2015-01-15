@@ -221,12 +221,13 @@
 
     // Use or create options.data object.
     options.data = (sip.utils.isObject(options.data))?options.data:{};
-    // Passing mediaConstraints to future session object.
+    // Passing mediaConstraints to our future session object through data and keeping it for JsSIP call config.
     options.data.mediaConstraints = options.mediaConstraints;
-    delete options.mediaConstraints;
     // Passing callbacks to future session object.
-    options.data.callbacks = options.callbacks;
-    delete options.callbacks;
+    if(options.callbacks) {
+      options.data.callbacks = options.callbacks;
+      delete options.callbacks;
+    }
 
     sip.log('converted', options);
     return options;
@@ -789,7 +790,7 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            if (sip.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
+            if (evData.session.connection && evData.session.connection.peerConnection && sip.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
             sip.utils.each(evData.session.connection.peerConnection.getLocalStreams(), function (stream) {
               stream.stop();
             });
@@ -1093,7 +1094,7 @@
      * @param {string} userID ID of opponent.
      * @param {object} options Call initiation options.
      * @param {string} options.audio Include audio stream in session.
-     * @param {string} options.vide Include Video stream in session.
+     * @param {string} options.video Include video stream in session.
      * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      *
      */
