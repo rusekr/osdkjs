@@ -244,7 +244,8 @@
         eventNamesMap = {
           'connecting': 'connecting',
           'progress': 'progress',
-          'started': 'accepted',
+          'accepted': 'accepted',
+          'started': 'confirmed',
           'gotDTMF': 'newDTMF',
           'failed': 'failed',
           'ended': 'ended'
@@ -458,12 +459,22 @@
     */
 
     /**
-    * Dispatched when current call answered.
+    * Dispatched when current call answered (2XX received/sent).
+    *
+    * @memberof MediaSession
+    * @event MediaSession#accepted
+    * @param {string} initiator Initiator of this event.
+    * @param {object} response (Outgoing call only) Instance of the received SIP 2XX response.
+    *
+    */
+
+    /**
+    * Dispatched when current call is confirmed (ACK received/sent).
     *
     * @memberof MediaSession
     * @event MediaSession#started
     * @param {string} initiator Initiator of this event.
-    * @param {object} response (Outgoing call only) Instance of the received SIP 2XX response.
+    * @param {object} response (Outgoing call only) Instance of the received SIP ACK response.
     *
     */
 
@@ -544,7 +555,7 @@
      * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.localStreams = function () {
-      return evData.session.getLocalStreams.apply(evData.session, [].slice.call(arguments, 0));
+      return evData.session.connection.peerConnection.getLocalStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
     };
 
     /**
@@ -555,7 +566,7 @@
      * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.remoteStreams = function () {
-      return evData.session.getRemoteStreams.apply(evData.session, [].slice.call(arguments, 0));
+      return evData.session.connection.peerConnection.getRemoteStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
     };
 
     /**
@@ -570,7 +581,7 @@
       if (typeof index == 'undefined') {
         index = 0;
       }
-      var streams = evData.session.getLocalStreams.call(evData.session);
+      var streams = evData.session.connection.peerConnection.getLocalStreams.call(evData.session.connection.peerConnection);
       sip.log('attachLocalStream got streams and index', streams, index);
       Media.attachMediaStream(element, streams[index]);
     };
@@ -587,7 +598,7 @@
       if (typeof index == 'undefined') {
         index = 0;
       }
-      var streams = evData.session.getRemoteStreams.call(evData.session);
+      var streams = evData.session.connection.peerConnection.getRemoteStreams.call(evData.session.connection.peerConnection);
       sip.log('attachRemoteStream got streams and index', streams, index);
       Media.attachMediaStream(element, streams[index]);
     };
@@ -613,7 +624,7 @@
     self.muteVideo = function oSDKSIPMuteVideo (flag) {
       flag = !!flag;
 
-      var localStream = evData.session.getLocalStreams()[0];
+      var localStream = evData.session.connection.peerConnection.getLocalStreams()[0];
 
       if (!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -649,7 +660,7 @@
     self.muteAudio = function oSDKSIPMuteAudio (flag) {
       flag = !!flag;
 
-      var localStream = evData.session.getLocalStreams()[0];
+      var localStream = evData.session.connection.peerConnection.getLocalStreams()[0];
 
       if (!localStream) {
         sip.log('Local media stream is not initialized.');
@@ -745,21 +756,21 @@
 
     // Assigning internal event handlers for JsSIP events
     sip.utils.each(eventNamesMap, function (jssipName, ourName) {
-      evData.session[jssipName] = function () {
+      evData.session.on(jssipName, function () {
         sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
 
         // Internal MediaSession before-events handling by type
-        switch (jssipName) {
-          case 'connecting':
-
-          break;
-        }
+//         switch (jssipName) {
+//           case 'connecting':
+//
+//           break;
+//         }
 
         var args = [].slice.call(arguments, 0);
         if (sip.utils.isArray(currentSession.callbacks[ourName])) {
           sip.utils.each(currentSession.callbacks[ourName], function (handler) {
             if (sip.utils.isFunction(handler)) {
-              sip.log('MediaSession applies handler for', ourName, 'event.');
+              sip.log('MediaSession applies handler for', ourName, 'event with args:', args);
               try {
                 handler.apply(self, args);
               } catch (data) {
@@ -786,7 +797,7 @@
             // sessions.clear(currentSession.id);
             break;
         }
-      };
+      });
     });
 
   }
@@ -912,7 +923,7 @@
   // TODO: replace with direct jssip listener
   sip.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
-    var mediaSession = new MediaSession(event.data);
+    var mediaSession = new MediaSession(event);
 
     sip.trigger('gotMediaSession', mediaSession);
     if(mediaSession.incoming) {
@@ -951,15 +962,15 @@
   });
 
   sip.on('sip_registered', function (event) {
-
+  sip.log('sip_registered event object', event);
     // Finding parallel sessions.
     var gruus = [];
-//     var response = event.data.response;
-//     var numContacts = response.countHeader('contact');
+//     var response = event.data.data.response;
+//     var numContacts = response.headers.Contact.length;
 //     var idx, contactHeader;
 //
 //     for (idx = 0; idx < numContacts; idx++) {
-//       contactHeader = response.parseHeader('contact', idx);
+//       contactHeader = response.headers.Contact[idx].parsed;
 //       if (contactHeader.uri.user !== JsSIP.contact.uri.user) {
 //         var gruu = contactHeader.getParam('pub-gruu');
 //         if (gruu) {
