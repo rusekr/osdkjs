@@ -1,5 +1,5 @@
 /*
- * JsSIP.js 0.6.1
+ * JsSIP.js 0.6.4
  * the Javascript SIP library
  * Copyright 2012-2015 José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)
  * Homepage: http://jssip.net
@@ -13547,8 +13547,9 @@ function RTCSession(ua) {
   // is late SDP being negotiated
   this.late_sdp = false;
 
-  // rtcOfferConstraints (passed in connect()) for renegotiations.
+  // Default rtcOfferConstraints and rtcAnswerConstrainsts (passed in connect() or answer()).
   this.rtcOfferConstraints = null;
+  this.rtcAnswerConstraints = null;
 
   // renegotiate() options.
   this.renegotiateOptions = {};
@@ -13716,6 +13717,9 @@ RTCSession.prototype.connect = function(target, options) {
     pcConfig = options.pcConfig || {iceServers:[]},
     rtcConstraints = options.rtcConstraints || null,
     rtcOfferConstraints = options.rtcOfferConstraints || null;
+
+  this.rtcOfferConstraints = rtcOfferConstraints;
+  this.rtcAnswerConstraints = options.rtcAnswerConstraints || null;
 
   // Session Timers.
   if (this.sessionTimers.enabled) {
@@ -13895,8 +13899,10 @@ RTCSession.prototype.answer = function(options) {
   options = options || {};
 
   var idx, length, sdp, tracks,
-    hasAudio = false,
-    hasVideo = false,
+    peerHasAudioLine = false,
+    peerHasVideoLine = false,
+    peerOffersFullAudio = false,
+    peerOffersFullVideo = false,
     self = this,
     request = this.request,
     extraHeaders = options.extraHeaders && options.extraHeaders.slice() || [],
@@ -13905,6 +13911,9 @@ RTCSession.prototype.answer = function(options) {
     pcConfig = options.pcConfig || {iceServers:[]},
     rtcConstraints = options.rtcConstraints || null,
     rtcAnswerConstraints = options.rtcAnswerConstraints || null;
+
+  this.rtcAnswerConstraints = rtcAnswerConstraints;
+  this.rtcOfferConstraints = options.rtcOfferConstraints || null;
 
   // Session Timers.
   if (this.sessionTimers.enabled) {
@@ -13951,11 +13960,17 @@ RTCSession.prototype.answer = function(options) {
   idx = sdp.media.length;
   while(idx--) {
     var m = sdp.media[idx];
-    if (m.type === 'audio' && (!m.direction || m.direction === 'sendrecv')) {
-      hasAudio = true;
+    if (m.type === 'audio') {
+      peerHasAudioLine = true;
+      if (!m.direction || m.direction === 'sendrecv') {
+        peerOffersFullAudio = true;
+      }
     }
-    if (m.type === 'video' && (!m.direction || m.direction === 'sendrecv')) {
-      hasVideo = true;
+    if (m.type === 'video') {
+      peerHasVideoLine = true;
+      if (!m.direction || m.direction === 'sendrecv') {
+        peerOffersFullVideo = true;
+      }
     }
   }
 
@@ -13978,13 +13993,23 @@ RTCSession.prototype.answer = function(options) {
   }
 
   // Set audio constraints based on incoming stream if not supplied
-  if (mediaConstraints.audio === undefined) {
-      mediaConstraints.audio = hasAudio;
+  if (!mediaStream && mediaConstraints.audio === undefined) {
+    mediaConstraints.audio = peerOffersFullAudio;
   }
 
   // Set video constraints based on incoming stream if not supplied
-  if (mediaConstraints.video === undefined) {
-      mediaConstraints.video = hasVideo;
+  if (!mediaStream && mediaConstraints.video === undefined) {
+    mediaConstraints.video = peerOffersFullVideo;
+  }
+
+  // Don't ask for audio if the incoming offer has no audio section
+  if (!mediaStream && !peerHasAudioLine) {
+    mediaConstraints.audio = false;
+  }
+
+  // Don't ask for video if the incoming offer has no video section
+  if (!mediaStream && !peerHasVideoLine) {
+    mediaConstraints.video = false;
   }
 
   // Create a new rtcninja.Connection instance.
@@ -14039,7 +14064,7 @@ RTCSession.prototype.answer = function(options) {
     if (! self.late_sdp) {
       createLocalDescription.call(self, 'answer', rtcSucceeded, rtcFailed, rtcAnswerConstraints);
     } else {
-      createLocalDescription.call(self, 'offer', rtcSucceeded, rtcFailed, rtcAnswerConstraints);
+      createLocalDescription.call(self, 'offer', rtcSucceeded, rtcFailed, self.rtcOfferConstraints);
     }
   }
 
@@ -14208,8 +14233,6 @@ RTCSession.prototype.terminate = function(options) {
         ended.call(this, 'local', null, cause);
       }
   }
-
-  this.close();
 };
 
 
@@ -14559,14 +14582,17 @@ RTCSession.prototype.unhold = function() {
 RTCSession.prototype.renegotiate = function(options) {
   debug('renegotiate()');
 
+  options = options || {};
+
   var self = this,
-    eventHandlers;
+    eventHandlers,
+    rtcOfferConstraints = options.rtcOfferConstraints || null;
 
   if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
     throw new Exceptions.InvalidStateError(this.status);
   }
 
-  this.renegotiateOptions = options || {};
+  this.renegotiateOptions = options;
 
   if (! isReadyToReinvite.call(this)) {
     /* If there is a pending 'hold' or 'unhold' action, abort
@@ -14601,9 +14627,9 @@ RTCSession.prototype.renegotiate = function(options) {
   };
 
   if (this.renegotiateOptions.useUpdate) {
-    sendUpdate.call(this, {sdpOffer: true, eventHandlers: eventHandlers});
+    sendUpdate.call(this, {sdpOffer: true, eventHandlers: eventHandlers, rtcOfferConstraints: rtcOfferConstraints});
   } else {
-    sendReinvite.call(this, {eventHandlers: eventHandlers});
+    sendReinvite.call(this, {eventHandlers: eventHandlers, rtcOfferConstraints: rtcOfferConstraints});
   }
 };
 
@@ -15088,7 +15114,7 @@ function receiveReinvite(request) {
 
   function createSdp(onSuccess, onFailure) {
     if (! self.late_sdp) {
-      createLocalDescription.call(self, 'answer', onSuccess, onFailure);
+      createLocalDescription.call(self, 'answer', onSuccess, onFailure, self.rtcAnswerConstraints);
     } else {
       createLocalDescription.call(self, 'offer', onSuccess, onFailure, self.rtcOfferConstraints);
     }
@@ -15163,7 +15189,9 @@ function receiveUpdate(request) {
     // failure
     function() {
       request.reply(488);
-    }
+    },
+    // Constraints.
+    this.rtcAnswerConstraints
   );
 }
 
@@ -15292,13 +15320,10 @@ function receiveInviteResponse(response) {
 
   switch(true) {
     case /^100$/.test(response.status_code):
+      this.status = C.STATUS_1XX_RECEIVED;
       break;
 
     case /^1[0-9]{2}$/.test(response.status_code):
-      if (this.status !== C.STATUS_INVITE_SENT && this.status !== C.STATUS_1XX_RECEIVED) {
-        break;
-      }
-
       // Do nothing with 1xx responses without To tag.
       if (!response.to_tag) {
         debug('1xx response received without to tag');
@@ -15382,6 +15407,7 @@ function sendReinvite(options) {
     self = this,
     extraHeaders = options.extraHeaders || [],
     eventHandlers = options.eventHandlers || {},
+    rtcOfferConstraints = options.rtcOfferConstraints || null,
     mangle = options.mangle || null;
 
   extraHeaders.push('Contact: ' + this.contact);
@@ -15431,7 +15457,7 @@ function sendReinvite(options) {
       onFailed();
     },
     // RTC constraints.
-    this.rtcOfferConstraints
+    rtcOfferConstraints
   );
 
   function onSucceeded(response) {
@@ -15483,11 +15509,11 @@ function sendUpdate(options) {
     self = this,
     extraHeaders = options.extraHeaders || [],
     eventHandlers = options.eventHandlers || {},
+    rtcOfferConstraints = options.rtcOfferConstraints || null,
     sdpOffer = options.sdpOffer || false,
     mangle = options.mangle || null;
 
   extraHeaders.push('Contact: ' + this.contact);
-  extraHeaders.push('Content-Type: application/sdp');
 
   // Session Timers.
   if (this.sessionTimers.running) {
@@ -15495,6 +15521,8 @@ function sendUpdate(options) {
   }
 
   if (sdpOffer) {
+    extraHeaders.push('Content-Type: application/sdp');
+
     createLocalDescription.call(this, 'offer',
       // success
       function(sdp) {
@@ -15534,7 +15562,7 @@ function sendUpdate(options) {
         onFailed();
       },
       // RTC constraints.
-      this.rtcOfferConstraints
+      rtcOfferConstraints
     );
   }
 
@@ -23673,7 +23701,7 @@ module.exports={
   "name": "jssip",
   "title": "JsSIP",
   "description": "the Javascript SIP library",
-  "version": "0.6.1",
+  "version": "0.6.4",
   "homepage": "http://jssip.net",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "contributors": [
@@ -23699,13 +23727,12 @@ module.exports={
   },
   "dependencies": {
     "debug": "^2.1.1",
-    "rtcninja": "^0.2.8",
+    "rtcninja": "^0.2.9",
     "sdp-transform": "~1.1.0",
-    "websocket": "^1.0.15"
+    "websocket": "^1.0.17"
   },
   "devDependencies": {
     "browserify": "^8.1.1",
-    "fs-extra": "^0.14.0",
     "gulp": "git+https://github.com/gulpjs/gulp.git#4.0",
     "gulp-expect-file": "0.0.7",
     "gulp-filelog": "^0.4.1",
@@ -23713,7 +23740,7 @@ module.exports={
     "gulp-jshint": "^1.9.0",
     "gulp-nodeunit-runner": "^0.2.2",
     "gulp-rename": "^1.2.0",
-    "gulp-uglify": "^1.0.2",
+    "gulp-uglify": "^1.1.0",
     "gulp-util": "^3.0.2",
     "jshint-stylish": "^1.0.0",
     "pegjs": "0.7.0",
