@@ -1,0 +1,24 @@
+/* Some additions and modifications for bootstrap */
+body {padding-top:70px;padding-bottom:35px;}
+.wrapper {width:960px;margin:0px auto 0px auto;}
+.navbar-brand {padding-left:0px;}
+.navbar .navbar-right {padding-right:15px;}
+.navbar button, .modal-dialog button {min-width:120px;}
+textarea {resize: none;}
+div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+div.separator {height:50px;background-color:#efefef;}
+/* Only for tutorial 2: "simple calling application" */
+div.video {background-color:Black;border-radius:4px;}
+div.video div {width:350px;margin:10px auto 10px auto;}
+div.video div video {width:350px;background-color:Black;}
+/* Other */
+table table {margin-bottom:0px !important;}
+div.description {margin-bottom:15px;}
+div.my-block {border-top:1px dashed Silver;}
+div.my-block:first-child {border-top:none;}
+h2, h3.subsection-title {font-weight:bold;}
+span.param-type {font-style:italic;}
+small {color:Silver;}

@@ -1,0 +1,868 @@
+    <script type="text/javascript" src="libraries/osdkjs.js"></script>
+    <script type="text/javascript">
+
+      // Initialization of the example of simple text application after the document is fully loaded
+      $(document).on('ready', function () {
+
+        // Initialization of group of tabs, containing examples
+        // tutorial, html, css, js
+        initTabs();
+        // Blocks containing code examples
+        // html, css, js
+        initCodeBlocks();
+
+        // Saving pointer to the field input#applicationId
+        var appIdElement = $('#applicationId');
+
+        // Function to display text messages to element textarea#logs
+        function print(text) {
+          // Adding text to an element
+          $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+          // Scrolling element to the bottom edge
+          $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+        }
+
+        // This function displays the contents of the contact list in the field select#contactsList
+        function contactsList() {
+          // Getting a contact list
+          var contacts = oSDK.getContacts();
+          // Clear field select#contactsList
+          $('#contactsList').empty();
+          // Displays a contact list
+          if (contacts && contacts.length) {
+            $.each(contacts, function(index, value) {
+              var option = document.createElement('option');
+              option.setAttribute('value', value.id);
+              var text = value.id + ' : ' + value.status + ' : ' + value.signature;
+              option.innerHTML = text;
+              document.getElementById('rosterList').appendChild(option);
+            });
+          }
+        }
+
+        // Listener for oSDK event:
+        // connecting, connected, disconnecting, disconnected and connectionFailed
+        oSDK.on(['connecting', 'connected', 'disconnecting', 'disconnected', 'connectionFailed'], function (event) {
+          // Displaying information about the coming event
+          print('Application got oSDK status: ' + event.type);
+          if(event.type == 'connected') {
+            // If oSDK is connected
+            // output of the id of authorized user
+            print('Connected as user: ' + event.user.id);
+            // Activation controls
+            $('#btnConnect').attr('disabled', 'disabled');
+            $('#btnDisconnect').attr('disabled', false);
+            $('#btnSetStatusChat').attr('disabled', false);
+            $('#btnSetStatusAway').attr('disabled', false);
+            $('#btnSetStatusDND').attr('disabled', false);
+            $('#btnSetStatusXA').attr('disabled', false);
+            $('#btnSetSignature').attr('disabled', false);
+            // Display the contact list of current user
+            contactsList();
+            // Displays the status and signature of current user
+            $('#currentStatus').val(oSDK.getClient().status);
+            $('#currentSignature').val(oSDK.getClient().signature);
+          } else {
+            // If oSDK is disconnectedотключился
+            // Deactivation controls
+            $('#btnConnect').attr('disabled', false);
+            $('#btnDisconnect').attr('disabled', 'disabled');
+            $('#btnSetStatusChat').attr('disabled', 'disabled');4
+            $('#btnSetStatusAway').attr('disabled', 'disabled');
+            $('#btnSetStatusDND').attr('disabled', 'disabled');
+            $('#btnSetStatusXA').attr('disabled', 'disabled');
+            $('#btnSetSignature').attr('disabled', 'disabled');
+          }
+        });
+
+         // ContactWasUpdated event occurs when
+         // someone from the contact list of current user
+         // connected, disconnected, changed status, or changed the signature
+        oSDK.on('contactWasUpdated', function(response) {
+          print('Contact ' + response.contact.id + ' was updated');
+          contactsList();
+        });
+
+        // Processing pressing button button#btnConnect
+        $('#btnConnect').click(function() {
+          // Initialization of oSDK with the application ID taken from the field input#applicationId
+          // that saves pointer in variable appIdElement
+          oSDK({appID: appIdElement.val()});
+          // oSDK connection
+          oSDK.connect();
+          return false;
+        });
+
+        // Processing pressing button button#btnDisconnect
+        $('#btnDisconnect').click(function() {
+          // Disconnection oSDK
+          oSDK.disconnect();
+          return false;
+        });
+
+        // Processing pressing one of the buttons for setting status
+        $('#btnSetStatusChat,#btnSetStatusAway,#btnSetStatusDND,#btnSetStatusXA').click(function() {
+          // Determining the status of contact
+          var status = null;
+          switch($.trim($(this).html()).toLowerCase()) {
+            case 'chat' : status = 'chat'; break;
+            case 'away' : status = 'away'; break;
+            case 'do not disturb' : status = 'dnd'; break;
+            case 'x-available' : status = 'xa'; break;
+          }
+          // Set status
+          oSDK.setStatus(status, {
+            onError: function() {
+              // Error message
+              print('Error!');
+            },
+            onSuccess: function() {
+              // Display set status
+              $('#currentStatus').val(oSDK.getClient().status);
+              // Message about status change
+              print('Status changed to: ' + oSDK.getClient().status);
+            }
+          });
+          return false;
+        });
+
+        // A button to set your signature
+        $('#btnSetSignature').click(function() {
+          var signature = $('#signature').val();
+          // Set signature
+          oSDK.setSignature(signature, {
+            onError: function() {
+              // Error message
+              print('Error!');
+            },
+            onSuccess: function() {
+              // Display set signature
+              $('#currentSignature').val(oSDK.getClient().signature);
+              // Clean the input signature line
+              $('#signature').val('');
+              // Message about signature change
+              print('Signature changed to: ' + oSDK.getClient().signature);
+            }
+          });
+          return false;
+        });
+
+      });
+
+    </script>
+
+      <p><a href="examples/tutorial5.html.zip">Download this tutorial</a>.</p>
+
+      <div>
+        <h3>Information about this example</h3>
+        <p>This example will demonstrate the work of <code> oSDK </code> with presences: status change and signature change for current user.</p>
+        <p>To see how this example works, you need two browsers and two registered users who are in contact list of each other and signed on each other.</p>
+      </div>
+      <br />
+
+      <div>
+        <h3>Some explanations to the tutorial</h3>
+        <p>We used <code>bootstrap</code> to style this example and added some modifications to the CSS file <code>styles/styles.css</code>. Pay attention that page style does not have any relation to the functional part of the tutorial and oSDK and has only decovative function.</p>
+        <p>In addition we used <code>jQuery</code>, which is also not necessary for oSDK and used only to simplify the work with the page. In <code>scripts/scripts.js</code> file we also added several utility functions to work with page, which also have no relation to the functional part of the example.</p>
+      </div>
+      <br />
+
+      <h3>The content of this example</h3>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#tab-tutorial">Tutorial</a></li>
+        <li role="presentation"><a href="#tab-html">HTML</a></li>
+        <li role="presentation"><a href="#tab-css">CSS</a></li>
+        <li role="presentation"><a href="#tab-js">JS</a></li>
+      </ul>
+
+      <div class="tabs-content">
+        <div class="tab tab-tutorial">
+
+          <div class="container-fluid">
+            <h4>Work with presences</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- A field to enter the application ID -->
+                <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+              </div>
+              <div class="col-md-3">
+                <!-- Connect oSDK button  -->
+                <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                  <span class="glyphicon glyphicon-log-in"></span> Connect
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Disconnect oSDK button -->
+                <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <!-- A field to display text messages and other information -->
+                <textarea class="form-control" id="logs" rows="10"></textarea>
+              </div>
+            </div>
+            <h5>Your current status and signature</h5>
+            <div class="row">
+              <div class="col-md-3">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- The status of the currently logged in user -->
+                    <input type="text" class="form-control" id="currentStatus" value="offline" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- Signature of the currently logged in user -->
+                    <input type="text" class="form-control" id="currentSignature" value="" />
+                  </div>
+                </form>
+              </div>
+            </div>
+            <h5>Your contacts list</h5>
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A  contact list of current user -->
+                    <select id="contactsList" class="form-control" size="4"></select>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <h5>Status and signature management</h5>
+            <div class="row">
+              <div class="col-md-3">
+                <!-- A button to set "chat" status -->
+                <button type="button" id="btnSetStatusChat" class="btn btn-block btn-success" disabled="disabled">
+                  Online
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to set "away"  status-->
+                <button type="button" id="btnSetStatusAway" class="btn btn-block btn-warning" disabled="disabled">
+                  Away
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to set "dnd" status -->
+                <button type="button" id="btnSetStatusDND" class="btn btn-block btn-danger" disabled="disabled">
+                  Do not disturb
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to set "xa" status -->
+                <button type="button" id="btnSetStatusXA" class="btn btn-block btn-default" disabled="disabled">
+                  X-Available
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter signature -->
+                    <input type="text" class="form-control" id="signature" placeholder="Signature" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- Set signature button -->
+                <button type="button" id="btnSetSignature" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-edit"></span> Set
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-html">
+
+          <br />
+          <div class="pre" rel="html">
+            <div class="container-fluid">
+              <h4>Work with presences</h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <!-- A field to enter the application ID -->
+                  <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+                </div>
+                <div class="col-md-3">
+                  <!-- Connect oSDK button  -->
+                  <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                    <span class="glyphicon glyphicon-log-in"></span> Connect
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Disconnect oSDK button -->
+                  <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                    <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-12">
+                  <!-- A field to display text messages and other information -->
+                  <textarea class="form-control" id="logs" rows="10"></textarea>
+                </div>
+              </div>
+              <h5>Your current status and signature</h5>
+              <div class="row">
+                <div class="col-md-3">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- The status of the currently logged in user -->
+                      <input type="text" class="form-control" id="currentStatus" value="offline" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- Signature of the currently logged in user-->
+                      <input type="text" class="form-control" id="currentSignature" value="" />
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <h5>Your contacts list</h5>
+              <div class="row">
+                <div class="col-md-12">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A  contact list of current user -->
+                      <select id="contactsList" class="form-control" size="4"></select>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <h5>Status and signature management</h5>
+              <div class="row">
+                <div class="col-md-3">
+                  <!--  A button to set "chat" status -->
+                  <button type="button" id="btnSetStatusChat" class="btn btn-block btn-success" disabled="disabled">
+                    Online
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!--  A button to set "away" status -->
+                  <button type="button" id="btnSetStatusAway" class="btn btn-block btn-warning" disabled="disabled">
+                    Away
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!--  A button to set "dnd" status-->
+                  <button type="button" id="btnSetStatusDND" class="btn btn-block btn-danger" disabled="disabled">
+                    Do not disturb
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!--  A button to set "xa" status -->
+                  <button type="button" id="btnSetStatusXA" class="btn btn-block btn-default" disabled="disabled">
+                    X-Available
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A field to enter signature  -->
+                      <input type="text" class="form-control" id="signature" placeholder="Signature" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- Set signature button -->
+                  <button type="button" id="btnSetSignature" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-edit"></span> Set
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-css">
+
+          <br />
+          <p>Please, pay attention that <code>bootstrap</code> and mentioned styles from file <code>styles/styles.css</code> are used  to style tutorial page and do not have any importance for the functional part of the tutorial.</p>
+          <div class="pre" rel="css">
+                [style]
+                  /* Some additions and modifications for bootstrap */
+                  body {padding-top:70px;padding-bottom:35px;}
+                  .wrapper {width:960px;margin:0px auto 0px auto;}
+                  .navbar-brand {padding-left:0px;}
+                  .navbar .navbar-right {padding-right:15px;}
+                  .navbar button, .modal-dialog button {min-width:120px;}
+                  textarea {resize: none;}
+                  div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+                  div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+                  div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+                  div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+                  div.separator {height:50px;background-color:#efefef;}
+                  /* Only for tutorial 2: "simple calling application" */
+                  div.video {background-color:Black;border-radius:4px;}
+                  div.video div {width:450px;margin:10px auto 10px auto;}
+                  div.video div video {width:450px;background-color:Black;}
+                  /* Other */
+                  table table {margin-bottom:0px !important;}
+                  div.description {margin-bottom:15px;}
+                  div.my-block {border-top:1px dashed Silver;}
+                  div.my-block:first-child {border-top:none;}
+                  h2, h3.subsection-title {font-weight:bold;}
+                  span.param-type {font-style:italic;}
+                  small {color:Silver;}
+                [/style]
+          </div>
+
+        </div>
+        <div class="tab tab-js">
+
+          <br />
+          <p>The code for functional part of the example is listed below.</p>
+          <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // This function displays the contents of the contact list in the field select#contactsList
+                function contactsList() {
+                  // Getting a contact list
+                  var contacts = oSDK.getContacts();
+                  // Clear field select#contactsList
+                  $('#contactsList').empty();
+                  // Displays a contact list
+                  if (contacts && contacts.length) {
+                    $.each(contacts, function(index, value) {
+                      var option = document.createElement('option');
+                      option.setAttribute('value', value.id);
+                      var text = value.id + ' : ' + value.status + ' : ' + value.signature;
+                      option.innerHTML = text;
+                      document.getElementById('rosterList').appendChild(option);
+                    });
+                  }
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnSetStatusChat').attr('disabled', false);
+                    $('#btnSetStatusAway').attr('disabled', false);
+                    $('#btnSetStatusDND').attr('disabled', false);
+                    $('#btnSetStatusXA').attr('disabled', false);
+                    $('#btnSetSignature').attr('disabled', false);
+                    // Display the contact list of current user
+                    contactsList();
+                    // Displays the status and signature of current user
+                    $('#currentStatus').val(oSDK.getClient().status);
+                    $('#currentSignature').val(oSDK.getClient().signature);
+                  } else {
+                    // If oSDK is disconnected
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnSetStatusChat').attr('disabled', 'disabled');
+                    $('#btnSetStatusAway').attr('disabled', 'disabled');
+                    $('#btnSetStatusDND').attr('disabled', 'disabled');
+                    $('#btnSetStatusXA').attr('disabled', 'disabled');
+                    $('#btnSetSignature').attr('disabled', 'disabled');
+                  }
+                });
+
+                // ContactWasUpdated event occurs when
+                  // someone from the contact list of current user
+                  // connected, disconnected, changed status, or changed the signature
+                oSDK.on('contactWasUpdated', function(response) {
+                  print('Contact ' + response.contact.id + ' was updated');
+                  contactsList();
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // Processing pressing one of the buttons for setting status
+                $('#btnSetStatusChat,#btnSetStatusAway,#btnSetStatusDND,#btnSetStatusXA').click(function() {
+                  // Определение статуса
+                  var status = null;
+                  switch($.trim($(this).html()).toLowerCase()) {
+                    case 'chat' : status = 'chat'; break;
+                    case 'away' : status = 'away'; break;
+                    case 'do not disturb' : status = 'dnd'; break;
+                    case 'x-available' : status = 'xa'; break;
+                  }
+                  // Set status
+                  oSDK.setStatus(status, {
+                    onError: function() {
+                      // Error message
+                      print('Error!');
+                    },
+                    onSuccess: function() {
+                      // Display set status
+                      $('#currentStatus').val(oSDK.getClient().status);
+                      // Message about status change
+                      print('Status changed to: ' + oSDK.getClient().status);
+                    }
+                  });
+                  return false;
+                });
+
+                // A button to set your signature
+                $('#btnSetSignature').click(function() {
+                  var signature = $('#signature').val();
+                  // Set signature
+                  oSDK.setSignature(signature, {
+                    onError: function() {
+                      // Error message
+                      print('Error!');
+                    },
+                    onSuccess: function() {
+                      // Display set signature
+                      $('#currentSignature').val(oSDK.getClient().signature);
+                      // Clean the input signature line
+                      $('#signature').val('');
+                      // Message about signature change
+                      print('Signature changed to: ' + oSDK.getClient().signature);
+                    }
+                  });
+                  return false;
+                });
+
+              });
+            [/script]
+          </div>
+
+        </div>
+      </div>
+      <br />
+
+      <div class="separator"></div>
+
+      <br />
+
+      <div>
+        <h3>Step 1: preparation of html document</h3>
+        <p>Register your application on  <a href="{developersPortalURI}">developer's portal </a>to get an application ID ( <code>AppId</code>). Download or compile <code>oSDK</code> version, after these you can add <code>oSDK</code> on your page like this:</p>
+        <div class="pre"б rel="html">
+          [script:source]
+        </div>
+        <br />
+        <p>To implement the example, the following controls are used:</p>
+        <div class="pre" rel="html">
+          ...
+          <!-- A field to enter the application ID -->
+          <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+          ...
+          <!-- Connect oSDK button  -->
+          <button type="button" id="btnConnect" class="btn btn-block btn-success">
+            <span class="glyphicon glyphicon-log-in"></span> Connect
+          </button>
+          ...
+          <!-- Disconnect OSDK button -->
+          <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-log-out"></span> Disconnect
+          </button>
+          ...
+          <!-- A field to display text messages and other information -->
+          <textarea class="form-control" id="logs" rows="10"></textarea>
+          ...
+          <!-- The status of the currently logged in user  -->
+          <input type="text" class="form-control" id="currentStatus" value="offline" />
+          ...
+          <!-- Signature of the currently logged in user -->
+          <input type="text" class="form-control" id="currentSignature" value="" />
+          ...
+          <!-- A  contact list of current user -->
+          <select id="contactsList" class="form-control" size="4"></select>
+          ...
+          <!-- A button to set "chat" status -->
+          <button type="button" id="btnSetStatusChat" class="btn btn-block btn-success" disabled="disabled">
+            Online
+          </button>
+          ...
+          <!-- A button to set "away" status -->
+          <button type="button" id="btnSetStatusAway" class="btn btn-block btn-warning" disabled="disabled">
+            Away
+          </button>
+          ...
+          <!-- A button to set "dnd" status -->
+          <button type="button" id="btnSetStatusDND" class="btn btn-block btn-danger" disabled="disabled">
+            Do not disturb
+          </button>
+          ...
+          <!-- A button to set "xa" status  -->
+          <button type="button" id="btnSetStatusXA" class="btn btn-block btn-default" disabled="disabled">
+            X-Available
+          </button>
+          ...
+          <!-- A field to enter signature -->
+          <input type="text" class="form-control" id="signature" placeholder="Signature" />
+          ...
+          <!-- Set signature button -->
+          <button type="button" id="btnSetSignature" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-edit"></span> Set
+          </button>
+          ...
+        </div>
+        <br />
+        <ul>
+          <li><code>input#applicationId</code> - a field for entering the application ID, that you got on <a href="{developersPortalURI}">developer's portal</a>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> initialization and connection>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
+          <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
+          <li><code>input#currentStatus</code> - this field displays the status of the currently logged in user;</li>
+          <li><code>input#currentSignature</code> - this field displays the signature of the current logged-in user;</li>
+          <li><code>select#contactsList</code> - this element displays the contact list of the current user, if you change your contact status or signature changes can be seen in this element;</li>
+          <li><code>button#btnSetStatusChat</code>, <code>button#btnSetStatusAway</code>, <code>button#btnSetStatusChat</code>, <code>button#btnSetStatusChat</code> - buttons to change the status of the current logged-in user;</li>
+          <li><code>input#signatur</code> - a field to enter signature of the current logged-in user;</li>
+          <li><code>button#btnSetSignature</code> - a button to set signature of the current logged-in user.</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 2: auxiliary variables and functions</h3>
+        <p>Tag <code>&lt;script&gt;</code> iside tag <code>&lt;head&gt;</code> contains all the code of this example. Initialization of this example will start after full page load to handle this event  the library <code>jQuery</code> is used:</p>
+        <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application starts after the document is fully loaded
+              $(document).on('ready', function () {
+                // All the code is here
+              });
+            [/script]
+        </div>
+        <br />
+        <p>At the beginning of the initialization of example two functions is called: <code>initTabs()</code> and <code>initCodeBlocks()</code>, the first of it initiates a group of tabs on the page of example, the second  initiates blocks containing code examples. These functions are stored in file <code>scripts/scripts.js</code> and do not have any impact to the functional meaning of example. It is used only for work with page.</p>
+        <p>Variable <code>appIdElement</code>, gets pointer to an element <code>input#applicationId</code> that contains application ID. It will be used to initialize<code>oSDK</code>.</p>
+        <p>Function <code>print()</code> outputs the text information into the element <code>textarea#logs</code>,and after this scrolls the element to its bottom edge. This function will be used for the output of text messages, and to display information about upcoming <code>oSDK</code> events.</p>
+        <p>The function <code>contactsList()</code> is used to display the contents of contact list of current user, with the start of function  element <code>select#contactsList </code> is cleared, after that contact list is refilled with contacts, status and signature for each of contact. </p>
+        <div class="pre" rel="js">
+                // Initialization of the group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Decorations of blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text into an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // This function displays the contents of the contact list in the field select#contactsList
+                function contactsList() {
+                  // Getting a contact list
+                  var contacts = oSDK.getContacts();
+                  // Clear field select#contactsList
+                  $('#contactsList').empty();
+                  // Displays a contact list
+                  if (contacts && contacts.length) {
+                    $.each(contacts, function(index, value) {
+                      var option = document.createElement('option');
+                      option.setAttribute('value', value.id);
+                      var text = value.id + ' : ' + value.status + ' : ' + value.signature;
+                      option.innerHTML = text;
+                      document.getElementById('rosterList').appendChild(option);
+                    });
+                  }
+                }
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 3: Listeners for oSDK events</h3>
+        <p>Two functions are assinged in the example for <code>oSDK</code> event handling: the first of these processes <code>oSDK</code> events , associated with the installation of connection: <code>connecting</code>; <code>connected</code>; <code>disconnecting</code>; <code>disconnected</code>; <code>connectionFailed</code>.</p>
+        <p>The second listener function  processes the event <code>contactWasUpdated</code>, which occurs when a contact from the contact list of the current user to change any of its data.</p>
+        <div class="pre" rel="js">
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnSetStatusChat').attr('disabled', false);
+                    $('#btnSetStatusAway').attr('disabled', false);
+                    $('#btnSetStatusDND').attr('disabled', false);
+                    $('#btnSetStatusXA').attr('disabled', false);
+                    $('#btnSetSignature').attr('disabled', false);
+                    // Display the contact list of current user
+                    contactsList();
+                    // Displays the status and signature of current user
+                    $('#currentStatus').val(oSDK.getClient().status);
+                    $('#currentSignature').val(oSDK.getClient().signature);
+                  } else {
+                    // If oSDK is disconnected
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnSetStatusChat').attr('disabled', 'disabled');
+                    $('#btnSetStatusAway').attr('disabled', 'disabled');
+                    $('#btnSetStatusDND').attr('disabled', 'disabled');
+                    $('#btnSetStatusXA').attr('disabled', 'disabled');
+                    $('#btnSetSignature').attr('disabled', 'disabled');
+                  }
+                });
+
+                // ContactWasUpdated event occurs when
+                  // someone from the contact list of current user
+                  // connected, disconnected, changed status, or changed the signature
+                oSDK.on('contactWasUpdated', function(response) {
+                  print('Contact ' + response.contact.id + ' was updated');
+                  contactsList();
+                });
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 4: Processing pressing the buttons</h3>
+        <p>When you press the button <code>button#btnConnect</code>  <code>oSDK</code> initialization starts with the application ID, which should be first entered in the field <code>input#applicationId</code>, after that the process of connecting <code>oSDK</code> starts.</p>
+        <p>When you press the button <code>button#btnDisconnect</code> the process of disconnecting  <code>oSDK</code> starts.</p>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnConnect
+                  $('#btnConnect').click(function() {
+                    // Initialization oSDK with the application ID taken from the field input#applicationId
+                    // the pointer to which is stored in variable appIdElement
+                    oSDK({appID: appIdElement.val()});
+                    // Connecting oSDK
+                    oSDK.connect();
+                    return false;
+                  });
+
+                  // Processing pressing button button#btnDisconnect
+                  $('#btnDisconnect').click(function() {
+                    // Disconnecting oSDK
+                    oSDK.disconnect();
+                    return false;
+                  });
+        </div>
+        <br />
+        <p>Pressing one of the four buttons: <code>button#btnSetStatusChat</code>; <code>button#btnSetStatusAway</code>; <code>button#btnSetStatusDND</code>; <code>button#btnSetStatusXA</code>  will lead to a status change of the current user, and the status is defined by the button text content. After changing the status information about the changes will be displayed in the field  <code>input#currentStatus</code>.</p>
+        <p>When you press button <code>button#btnSetSignature</code> handler function will take the signature from the field <code>input#signature</code> and set it for the currently logged in user, and the information about the signature change   will be displayed in the field <code>input#currentSignature</code>.</p>
+        <p>If a user connects or disconnects, changes its status or signature, all other users who have him in the contact list and are subscribed to the notification with the user, receive notification of user data changes.</p>
+        <div class="pre" rel="js">
+                // Processing pressing one of the buttons for setting status
+                $('#btnSetStatusChat,#btnSetStatusAway,#btnSetStatusDND,#btnSetStatusXA').click(function() {
+                  // Determining the status of contact
+                  var status = null;
+                  switch($.trim($(this).html()).toLowerCase()) {
+                    case 'chat' : status = 'chat'; break;
+                    case 'away' : status = 'away'; break;
+                    case 'do not disturb' : status = 'dnd'; break;
+                    case 'x-available' : status = 'xa'; break;
+                  }
+                  // Set status
+                  oSDK.setStatus(status, {
+                    onError: function() {
+                      // Error message
+                      print('Error!');
+                    },
+                    onSuccess: function() {
+                      // Display set status
+                      $('#currentStatus').val(oSDK.getClient().status);
+                      // Message about status change
+                      print('Status changed to: ' + oSDK.getClient().status);
+                    }
+                  });
+                  return false;
+                });
+
+                // A button to set your signature
+                $('#btnSetSignature').click(function() {
+                  var signature = $('#signature').val();
+                  // Set signature
+                  oSDK.setSignature(signature, {
+                    onError: function() {
+                      // Error message
+                      print('Error!');
+                    },
+                    onSuccess: function() {
+                      // Display set signature
+                      $('#currentSignature').val(oSDK.getClient().signature);
+                      // Clean the input signature line
+                      $('#signature').val('');
+                      // Message about signature change
+                      print('Signature changed to: ' + oSDK.getClient().signature);
+                    }
+                  });
+                  return false;
+                });
+        </div>
+      </div>

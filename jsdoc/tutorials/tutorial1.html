@@ -1,0 +1,591 @@
+      <script type="text/javascript" src="libraries/osdkjs.js"></script>
+      <script type="text/javascript">
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                    // Displaying information about the coming event
+                    print('Application got oSDK status: ' + event.type);
+                    if(event.type == 'connected') {
+                      // If oSDK is connected
+                      // output of the id of authorized user
+                      print('Connected as user: ' + event.user.id);
+                      // Activation controls
+                      $('#btnConnect').attr('disabled', 'disabled');
+                      $('#btnDisconnect').attr('disabled', false);
+                      $('#btnSendMessage').attr('disabled', false);
+                    } else {
+                      // If oSDK is disconnectedотключился
+                      // Deactivation controls
+                      $('#btnConnect').attr('disabled', false);
+                      $('#btnDisconnect').attr('disabled', 'disabled');
+                      $('#btnSendMessage').attr('disabled', 'disabled');
+                    }
+                });
+
+                // Listener for incomingMessage event
+                // receive incoming text messages
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Output message to element textarea@logs
+                  print(messageObject.message.from + ': ' + messageObject.message.message);
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnSendMessage
+                $('#btnSendMessage').click(function() {
+                  // Getting recipinet id
+                  var contact = $('#contactId').val();
+                  // Getting text message
+                  var message = $('#textMessage').val();
+                  if (contact && message) {
+                    // If the destination id and a text message are entered
+                    // then send a message
+                    oSDK.sendMessage(contact, message, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Output message to element textarea@logs
+                        // c id отправителя
+                        print(oSDK.getClient().id + ': ' + message);
+                        // Clear message field
+                        $('#textMessage').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+              });
+      </script>
+
+      <p><a href="examples/tutorial1.html.zip">Download this tutorial</a>.</p>
+
+      <div>
+        <h3>Information about this example</h3>
+        <p>In this tutorial we will show how to implement simple text messanger in several steps using <code>oSDK</code>.</p>
+      </div>
+      <br />
+
+      <div>
+        <h3>Some explanations to the tutorial</h3>
+        <p>We used <code>bootstrap</code> to style this example and added some modifications to the CSS file <code>styles/styles.css</code>. Pay attention that page style does not have any relation to the functional part of the tutorial and oSDK and has only decovative function.</p>
+        <p>In addition we used <code>jQuery</code>, which is also not necessary for oSDK and used only to simplify the work with the page. In <code>scripts/scripts.js</code> file we also added several utility functions to work with page, which also have no relation to the functional part of the example.</p>
+      </div>
+      <br />
+
+      <h3>The content of this example</h3>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#tab-tutorial">Tutorial</a></li>
+        <li role="presentation"><a href="#tab-html">HTML</a></li>
+        <li role="presentation"><a href="#tab-css">CSS</a></li>
+        <li role="presentation"><a href="#tab-js">JS</a></li>
+      </ul>
+
+      <div class="tabs-content">
+        <div class="tab tab-tutorial">
+
+          <div class="container-fluid">
+            <h4>Simple texting application</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- A field to enter the application ID -->
+                <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+              </div>
+              <div class="col-md-3">
+                <!-- Connect oSDK button  -->
+                <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                  <span class="glyphicon glyphicon-log-in"></span> Connect
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Disconnect oSDK button -->
+                <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <!-- A field to display text messages and other information -->
+                <textarea class="form-control" id="logs" rows="10"></textarea>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter the ID of the message recipient -->
+                    <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter text message -->
+                    <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-3 pull-right">
+                <!-- Send message button -->
+                <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-send"></span> Send
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-html">
+
+          <br />
+          <div class="pre" rel="html">
+              <div class="container-fluid">
+                <h4>Simple texting application</h4>
+                <div class="row">
+                  <div class="col-md-6">
+                    <!-- A field to enter the application ID -->
+                    <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+                  </div>
+                  <div class="col-md-3">
+                    <!-- Connect oSDK button-->
+                    <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                      <span class="glyphicon glyphicon-log-in"></span> Connect
+                    </button>
+                  </div>
+                  <div class="col-md-3">
+                    <!-- Disconnect oSDK button -->
+                    <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                      <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                    </button>
+                  </div>
+                </div>
+                <br />
+                <div class="row">
+                  <div class="col-md-12">
+                    <!-- A field to display text messages and other information -->
+                    <textarea class="form-control" id="logs" rows="10"></textarea>
+                  </div>
+                </div>
+                <br />
+                <div class="row">
+                  <div class="col-md-12">
+                    <form role="form">
+                      <div class="form-group">
+                        <!-- A field to enter the ID of the message recipient -->
+                        <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-12">
+                    <form role="form">
+                      <div class="form-group">
+                        <!-- A field to enter text message -->
+                        <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-3 pull-right">
+                    <!-- Send message button -->
+                    <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+                      <span class="glyphicon glyphicon-send"></span> Send
+                    </button>
+                  </div>
+                </div>
+              </div>
+          </div>
+
+        </div>
+        <div class="tab tab-css">
+
+          <br />
+          <p>Please, pay attention that <code>bootstrap</code> and mentioned styles from file <code>styles/styles.css</code> are used  to style tutorial page and do not have any importance for the functional part of the tutorial.</p>
+          <div class="pre" rel="css">
+                [style]
+                  /* Some additions and modifications for bootstrap */
+                  body {padding-top:70px;padding-bottom:35px;}
+                  .wrapper {width:960px;margin:0px auto 0px auto;}
+                  .navbar-brand {padding-left:0px;}
+                  .navbar .navbar-right {padding-right:15px;}
+                  .navbar button, .modal-dialog button {min-width:120px;}
+                  textarea {resize: none;}
+                  div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+                  div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+                  div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+                  div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+                  div.separator {height:50px;background-color:#efefef;}
+                  /* Only for tutorial 2: "simple calling application" */
+                  div.video {background-color:Black;border-radius:4px;}
+                  div.video div {width:450px;margin:10px auto 10px auto;}
+                  div.video div video {width:450px;background-color:Black;}
+                  /* Other */
+                  table table {margin-bottom:0px !important;}
+                  div.description {margin-bottom:15px;}
+                  div.my-block {border-top:1px dashed Silver;}
+                  div.my-block:first-child {border-top:none;}
+                  h2, h3.subsection-title {font-weight:bold;}
+                  span.param-type {font-style:italic;}
+                  small {color:Silver;}
+                [/style]
+          </div>
+
+        </div>
+        <div class="tab tab-js">
+
+          <br />
+          <p>The code for functional part of the example is listed below.</p>
+          <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                    // Displaying information about the coming event
+                    print('Application got oSDK status: ' + event.type);
+                    if(event.type == 'connected') {
+                      // If oSDK is connected
+                      // output of the id of authorized user
+                      print('Connected as user: ' + event.user.id);
+                      // Activation controls
+                      $('#btnConnect').attr('disabled', 'disabled');
+                      $('#btnDisconnect').attr('disabled', false);
+                      $('#btnSendMessage').attr('disabled', false);
+                    } else {
+                      // If oSDK is disconnectedотключился
+                      // Deactivation controls
+                      $('#btnConnect').attr('disabled', false);
+                      $('#btnDisconnect').attr('disabled', 'disabled');
+                      $('#btnSendMessage').attr('disabled', 'disabled');
+                    }
+                });
+
+                // Listener for incomingMessage event
+                // receive incoming text messages
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Output message to element textarea@logs
+                  print(messageObject.message.from + ': ' + messageObject.message.message);
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnSendMessage
+                $('#btnSendMessage').click(function() {
+                  // Getting recipinet id
+                  var contact = $('#contactId').val();
+                  // Getting text message
+                  var message = $('#textMessage').val();
+                  if (contact && message) {
+                    // If the destination id and a text message are entered
+                    // then send a message
+                    oSDK.sendMessage(contact, message, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Output message to element textarea@logs
+                        // c id отправителя
+                        print(oSDK.getClient().id + ': ' + message);
+                        // Clear message field
+                        $('#textMessage').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+              });
+            [/script]
+          </div>
+
+        </div>
+      </div>
+      <br />
+
+      <div class="separator"></div>
+
+      <br />
+
+      <div>
+        <h3>Step 1: preparation of html document</h3>
+        <p>Register your application on  <a href="{developersPortalURI}">developer's portal </a>to get an application ID ( <code>AppId</code>). Download or compile <code>oSDK</code> version, after these you can add <code>oSDK</code> on your page like this:</p>
+        <div class="pre"б rel="html">
+          [script:source]
+        </div>
+        <br />
+        <p>To implement the example, the following controls are used:</p>
+        <div class="pre" rel="html">
+          ...
+          <!-- A field to enter the application ID -->
+          <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+          ...
+          <!-- Connect oSDK button  -->
+          <button type="button" id="btnConnect" class="btn btn-block btn-success">
+            <span class="glyphicon glyphicon-log-in"></span> Connect
+          </button>
+          ...
+          <!-- Disconnect OSDK button -->
+          <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-log-out"></span> Disconnect
+          </button>
+          ...
+          <!-- A field to display text messages and other information -->
+          <textarea class="form-control" id="logs" rows="10"></textarea>
+          ...
+          <!-- A field to enter the ID of the message recipient -->
+          <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+          ...
+          <!-- A field to enter text message -->
+          <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+          ...
+          <!-- Send message button -->
+          <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-send"></span> Send
+          </button>
+          ...
+        </div>
+        <br />
+        <ul>
+          <li><code>input#applicationId</code> - a field for entering the application ID, that you got on <a href="{developersPortalURI}">developer's portal</a>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> initialization and connection>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
+          <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
+          <li><code>input#contactId</code> - a field to enter the ID of the message recipient;</li>
+          <li><code>input#textMessage</code> - a field to enter text message;</li>
+          <li><code>button#btnSendMessage</code> - a send message button</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 2: auxiliary variables and functions</h3>
+        <p>Tag <code>&lt;script&gt;</code> iside tag <code>&lt;head&gt;</code> contains all the code of this example. Initialization of this example will start after full page load to handle this event  the library <code>jQuery</code> is used:</p>
+        <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application starts after the document is fully loaded
+              $(document).on('ready', function () {
+                // All the code is here
+              });
+            [/script]
+        </div>
+        <br />
+        <p>At the beginning of the initialization of example two functions is called: <code>initTabs()</code> and <code>initCodeBlocks()</code>, the first of it initiates a group of tabs on the page of example, the second  initiates blocks containing code examples. These functions are stored in file <code>scripts/scripts.js</code> and do not have any impact to the functional meaning of example. It is used only for work with page.</p>
+        <p>Variable <code>appIdElement</code>, gets pointer to an element <code>input#applicationId</code> that contains application ID. It will be used to initialize<code>oSDK</code>.</p>
+        <p>Function <code>print()</code> outputs the text information into the element <code>textarea#logs</code>,and after this scrolls the element to its bottom edge. This function will be used for the output of text messages, and to display information about upcoming <code>oSDK</code> events.</p>
+        <div class="pre" rel="js">
+                // Initialization of the group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Decorations of blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text into an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 3: Listeners for oSDK events</h3>
+        <p>Two functions are assinged in the example for <code>oSDK</code> event handling: the first of these processes <code>oSDK</code> events , associated with the installation of connection: <code>connecting</code>; <code>connected</code>; <code>disconnecting</code>; <code>disconnected</code>; <code>connectionFailed</code>, the second function handles the event <code>incomingMessage</code>, that occurs when the incoming text message is got:</p>
+        <div class="pre" rel="js">
+                // Listener of oSDK events:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                    // Displaying information about the coming event
+                    print('Application got oSDK status: ' + event.type);
+                    if(event.type == 'connected') {
+                      // If oSDK is connected
+                      // displaying id of authorized user
+                      print('Connected as user: ' + event.user.id);
+                      // activation controls
+                      $('#btnConnect').attr('disabled', 'disabled');
+                      $('#btnDisconnect').attr('disabled', false);
+                      $('#btnSendMessage').attr('disabled', false);
+                    } else {
+                      // If oSDK is disconnected
+                      // deactivation controls
+                      $('#btnConnect').attr('disabled', false);
+                      $('#btnDisconnect').attr('disabled', 'disabled');
+                      $('#btnSendMessage').attr('disabled', 'disabled');
+                    }
+                });
+
+                // Listener for incomingMessage event
+                // getting incoming text message
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Output message into element textarea@logs
+                  print(messageObject.message.from + ': ' + messageObject.message.message);
+                });
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 4: Processing pressing the buttons</h3>
+        <p>When you press the button <code>button#btnConnect</code>  <code>oSDK</code> initialization starts with the application ID, which should be first entered in the field <code>input#applicationId</code>, after that the process of connecting <code>oSDK</code> starts.</p>
+        <p>When you press the button <code>button#btnDisconnect</code> the process of disconnecting  <code>oSDK</code> starts.</p>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnConnect
+                  $('#btnConnect').click(function() {
+                    // Initialization oSDK with the application ID taken from the field input#applicationId
+                    // the pointer to which is stored in variable appIdElement
+                    oSDK({appID: appIdElement.val()});
+                    // Connecting oSDK
+                    oSDK.connect();
+                    return false;
+                  });
+
+                  // rocessing pressing button button#btnDisconnect
+                  $('#btnDisconnect').click(function() {
+                    // Disconnecting oSDK
+                    oSDK.disconnect();
+                    return false;
+                  });
+        </div>
+        <br />
+        <p>When you press the button <code>button#btnSendMessage</code>  the identity of the recipient of the message and message text is checked, and then message senging starts. If the message was sent successfully, a text box displays information about the sender and the message itself, otherwise displays information about the error. </ P>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnSendMessage
+                  $('#btnSendMessage').click(function() {
+                    // Get recipient id
+                    var contact = $('#contactId').val();
+                    // Get message text
+                    var message = $('#textMessage').val();
+                    if (contact && message) {
+                      // If the recipient's id and a text message are entered
+                      // then send message
+                      oSDK.sendMessage(contact, message, {
+                        onError: function() {
+                          // Show error message
+                          print('Error!');
+                        },
+                        onSuccess: function() {
+                          // Output message into element textarea@logs
+                          // with sender id
+                          print(oSDK.getClient().id + ': ' + message);
+                          // Clear field
+                          $('#textMessage').val('');
+                        }
+                      });
+                    }
+                    return false;
+                  });
+        </div>
+      </div>

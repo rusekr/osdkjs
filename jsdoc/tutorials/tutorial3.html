@@ -1,0 +1,946 @@
+    <script type="text/javascript" src="libraries/osdkjs.js"></script>
+    <script type="text/javascript">
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnSendMessage').attr('disabled', false);
+                    $('#btnCreateConference').attr('disabled', false);
+                    $('#btnInviteContact').attr('disabled', false);
+                  } else {
+                    // If oSDK is disconnectedотключился
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnSendMessage').attr('disabled', 'disabled');
+                    $('#btnCreateConference').attr('disabled', 'disabled');
+                    $('#btnInviteContact').attr('disabled', 'disabled');
+                  }
+                });
+
+                // Processing an incoming message from the conference
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Display a message in the text box
+                  // with the name of the conference and sender
+                  var sender = messageObject.message.params.sender.split('@')[0];
+                  var conference = messageObject.message.from.split('@')[0];
+                  var message = messageObject.message.message;
+                  print(sender + '/' + conference + ' say: ' + message);
+                });
+
+                // Processing invitation to the conference
+                oSDK.on('invitationToConference', function(params) {
+                  // Conference Title
+                  var conference = params.conference.split('@')[0];
+                  // the invitation sender
+                  var from = params.from;
+                  // Request for acceptance or rejection of the invitation to the conference
+                  if(confirm('Accept invite to conference "' + conference + '" from user "' + from + '"?')) {
+                    // If the invitation is accepted
+                        // create a connection to the conference
+                    oSDK.createConference(conference.split('@')[0], {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about connecting to the conference
+                        print('Connect to conference "' + response.split('/')[0] + '"');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                      }
+                    });
+                  }
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // Sending messages to the conference
+                $('#btnSendMessage').click(function() {
+                  // Getting the name of the conference
+                    // Which the message will be sent to
+                  var conference = $('#conferencesList').val();
+                  // Receive a text message
+                  var message = $('#textMessage').val();
+                  if (conference && message) {
+                    // If the destination conference name and a text message are entered
+                    // then send a message
+                    oSDK.sendMessage(conference, message, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Clear message field
+                        $('#textMessage').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Create a new conference
+                $('#btnCreateConference').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferenceName').val();
+                  if (conference) {
+                    // If the name of the conference is received create new conference
+                    oSDK.createConference(conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about creation of conference
+                        print('Conference "' + response.split('/')[0] + '" created');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                        // Cleaning the name field of the conference
+                        $('#conferenceName').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Sending an invitation to the conference
+                $('#btnInviteContact').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferencesList').val();
+                  // Getting recipient id
+                  var contact = $('#contactId').val();
+                  if (conference && contact) {
+                    // If the destination conference name and recipient id are entered
+                    // then send invite
+                    oSDK.inviteUser(contact, conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Cleaning the contact ID field
+                        $('#contactId').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+              });
+    </script>
+
+      <p><a href="examples/tutorial3.html.zip">Download this tutorial</a>.</p>
+
+      <div>
+        <h3>Information about this example</h3>
+        <p>This example will demonstrate how to use <code> oSDK </code> to create a simple text conference.</p>
+      </div>
+      <br />
+
+      <div>
+        <h3>Some explanations to the tutorial</h3>
+        <p>We used <code>bootstrap</code> to style this example and added some modifications to the CSS file <code>styles/styles.css</code>. Pay attention that page style does not have any relation to the functional part of the tutorial and oSDK and has only decovative function.</p>
+        <p>In addition we used <code>jQuery</code>, which is also not necessary for oSDK and used only to simplify the work with the page. In <code>scripts/scripts.js</code> file we also added several utility functions to work with page, which also have no relation to the functional part of the example.</p>
+      </div>
+      <br />
+
+      <h3>The content of this example</h3>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#tab-tutorial">Tutorial</a></li>
+        <li role="presentation"><a href="#tab-html">HTML</a></li>
+        <li role="presentation"><a href="#tab-css">CSS</a></li>
+        <li role="presentation"><a href="#tab-js">JS</a></li>
+      </ul>
+
+      <div class="tabs-content">
+        <div class="tab tab-tutorial">
+
+          <div class="container-fluid">
+            <h4>Simple text conference</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- A field to enter the application ID -->
+                <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+              </div>
+              <div class="col-md-3">
+                <!-- Connect oSDK button  -->
+                <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                  <span class="glyphicon glyphicon-log-in"></span> Connect
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Disconnect oSDK button -->
+                <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <!-- A field to display text messages and other information -->
+                <textarea class="form-control" id="logs" rows="10"></textarea>
+              </div>
+            </div>
+            <h5>The choice of conference and sending messages</h5>
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- The list of conferences -->
+                    <select id="conferencesList" class="form-control" size="4"></select>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter text message -->
+                    <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- Send message button -->
+                <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-send"></span> Send
+                </button>
+              </div>
+            </div>
+            <h5>Creating a conference</h5>
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!--A field to enter the name of the new conference -->
+                    <input type="text" class="form-control" id="conferenceName" placeholder="Conference name" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to create a conference -->
+                <button type="button" id="btnCreateConference" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-edit"></span> Create
+                </button>
+              </div>
+            </div>
+            <h5>Invitation to the conference</h5>
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter the contact ID for invitation to the conference -->
+                    <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to invite to the conference -->
+                <button type="button" id="btnInviteContact" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-user"></span> Invite
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-html">
+
+          <br />
+          <div class="pre" rel="html">
+            <div class="container-fluid">
+              <h4>Simple text conference</h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <!-- A field to enter the application ID -->
+                  <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+                </div>
+                <div class="col-md-3">
+                  <!-- Connect oSDK button  -->
+                  <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                    <span class="glyphicon glyphicon-log-in"></span> Connect
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Disconnect oSDK button -->
+                  <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                    <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-12">
+                  <!-- A field to display text messages and other information -->
+                  <textarea class="form-control" id="logs" rows="10"></textarea>
+                </div>
+              </div>
+              <h5>The choice of conference and sending messages</h5>
+              <div class="row">
+                <div class="col-md-12">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- The list of conferences -->
+                      <select id="conferencesList" class="form-control" size="4"></select>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A field to enter text message -->
+                      <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- Send message button -->
+                  <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-send"></span> Send
+                  </button>
+                </div>
+              </div>
+              <h5>Creating a conference</h5>
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!--A field to enter the name of the new conference -->
+                      <input type="text" class="form-control" id="conferenceName" placeholder="Conference name" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- A button to create a conference -->
+                  <button type="button" id="btnCreateConference" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-edit"></span> Create
+                  </button>
+                </div>
+              </div>
+              <h5>Invitation to the conference</h5>
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A field to enter the contact ID for invitation to the conference -->
+                      <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- A button to invite to the conference -->
+                  <button type="button" id="btnInviteContact" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-user"></span> Invite
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-css">
+
+          <br />
+          <p>Please, pay attention that <code>bootstrap</code> and mentioned styles from file <code>styles/styles.css</code> are used  to style tutorial page and do not have any importance for the functional part of the tutorial.</p>
+          <div class="pre" rel="css">
+                [style]
+                  /* Some additions and modifications for bootstrap */
+                  body {padding-top:70px;padding-bottom:35px;}
+                  .wrapper {width:960px;margin:0px auto 0px auto;}
+                  .navbar-brand {padding-left:0px;}
+                  .navbar .navbar-right {padding-right:15px;}
+                  .navbar button, .modal-dialog button {min-width:120px;}
+                  textarea {resize: none;}
+                  div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+                  div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+                  div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+                  div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+                  div.separator {height:50px;background-color:#efefef;}
+                  /* Only for tutorial 2: "simple calling application" */
+                  div.video {background-color:Black;border-radius:4px;}
+                  div.video div {width:450px;margin:10px auto 10px auto;}
+                  div.video div video {width:450px;background-color:Black;}
+                  /* Other */
+                  table table {margin-bottom:0px !important;}
+                  div.description {margin-bottom:15px;}
+                  div.my-block {border-top:1px dashed Silver;}
+                  div.my-block:first-child {border-top:none;}
+                  h2, h3.subsection-title {font-weight:bold;}
+                  span.param-type {font-style:italic;}
+                  small {color:Silver;}
+                [/style]
+          </div>
+
+        </div>
+        <div class="tab tab-js">
+
+          <br />
+          <p>The code for functional part of the example is listed below.</p>
+          <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnSendMessage').attr('disabled', false);
+                    $('#btnCreateConference').attr('disabled', false);
+                    $('#btnInviteContact').attr('disabled', false);
+                  } else {
+                    // If oSDK is disconnectedотключился
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnSendMessage').attr('disabled', 'disabled');
+                    $('#btnCreateConference').attr('disabled', 'disabled');
+                    $('#btnInviteContact').attr('disabled', 'disabled');
+                  }
+                });
+
+                // Processing an incoming message from the conference
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Display a message in the text box
+                  // with the name of the conference and sender
+                  var sender = messageObject.message.params.sender.split('@')[0];
+                  var conference = messageObject.message.from.split('@')[0];
+                  var message = messageObject.message.message;
+                  print(sender + '/' + conference + ' say: ' + message);
+                });
+
+                // Processing invitation to the conference
+                oSDK.on('invitationToConference', function(params) {
+                  // Conference Title
+                  var conference = params.conference.split('@')[0];
+                  // the invitation sender
+                  var from = params.from;
+                  // Request for acceptance or rejection of the invitation to the conference
+                  if(confirm('Accept invite to conference "' + conference + '" from user "' + from + '"?')) {
+                    // If the invitation is accepted
+                        // create a connection to the conference
+                    oSDK.createConference(conference.split('@')[0], {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about connecting to the conference
+                        print('Connect to conference "' + response.split('/')[0] + '"');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                      }
+                    });
+                  }
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // Sending messages to the conference
+                $('#btnSendMessage').click(function() {
+                  // Getting the name of the conference
+                    // Which the message will be sent to
+                  var conference = $('#conferencesList').val();
+                  // Receive a text message
+                  var message = $('#textMessage').val();
+                  if (conference && message) {
+                    // If the destination conference name and a text message are entered
+                    // then send a message
+                    oSDK.sendMessage(conference, message, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Clear message field
+                        $('#textMessage').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Create a new conference
+                $('#btnCreateConference').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferenceName').val();
+                  if (conference) {
+                    // If the name of the conference is received create new conference
+                    oSDK.createConference(conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about creation of conference
+                        print('Conference "' + response.split('/')[0] + '" created');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                        // Cleaning the name field of the conference
+                        $('#conferenceName').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Sending an invitation to the conference
+                $('#btnInviteContact').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferencesList').val();
+                  // Getting recipient id
+                  var contact = $('#contactId').val();
+                  if (conference && contact) {
+                    // If the destination conference name and recipient id are entered
+                    // then send invite
+                    oSDK.inviteUser(contact, conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Cleaning the contact ID field
+                        $('#contactId').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+              });
+            [/script]
+          </div>
+
+        </div>
+      </div>
+      <br />
+
+      <div class="separator"></div>
+
+      <br />
+
+      <div>
+        <h3>Step 1: preparation of html document</h3>
+        <p>Register your application on  <a href="{developersPortalURI}">developer's portal </a>to get an application ID ( <code>AppId</code>). Download or compile <code>oSDK</code> version, after these you can add <code>oSDK</code> on your page like this:</p>
+        <div class="pre"б rel="html">
+          [script:source]
+        </div>
+        <br />
+        <p>To implement the example, the following controls are used:</p>
+        <div class="pre" rel="html">
+          ...
+          <!-- A field to enter the application ID -->
+          <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+          ...
+          <!-- Connect oSDK button  -->
+          <button type="button" id="btnConnect" class="btn btn-block btn-success">
+            <span class="glyphicon glyphicon-log-in"></span> Connect
+          </button>
+          ...
+          <!-- Disconnect OSDK button -->
+          <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-log-out"></span> Disconnect
+          </button>
+          ...
+          <!-- A field to display text messages and other information -->
+          <textarea class="form-control" id="logs" rows="10"></textarea>
+          ...
+          <!-- The list of conferences -->
+          <select id="conferencesList" class="form-control" size="4"></select>
+          ...
+          <!-- A field to enter text message -->
+          <input type="text" class="form-control" id="textMessage" placeholder="Text message" />
+          ...
+          <!-- Send message button -->
+          <button type="button" id="btnSendMessage" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-send"></span> Send
+          </button>
+          ...
+          <!--A field to enter the name of the new conference -->
+          <input type="text" class="form-control" id="conferenceName" placeholder="Conference name" />
+          ...
+          <!-- A button to create a conference -->
+          <button type="button" id="btnCreateConference" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-edit"></span> Create
+          </button>
+          ...
+          <!-- A field to enter the contact ID for invitation to the conference -->
+          <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+          ...
+          <!--  A button to invite to the conference -->
+          <button type="button" id="btnInviteContact" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-user"></span> Invite
+          </button>
+          ...
+        </div>
+        <br />
+        <ul>
+          <li><code>input#applicationId</code> - a field for entering the application ID, that you got on <a href="{developersPortalURI}">developer's portal</a>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> initialization and connection>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
+          <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
+          <li><code>select#conferencesList</code> - a list to which you add created conferences;</li>
+          <li><code>input#textMessage</code> - a field to enter text message;</li>
+          <li><code>button#btnSendMessage</code> - a send message button;</li>
+          <li><code>input#conferenceName</code> - a field to enter the name of the new conference ;</li>
+          <li><code>button#btnCreateConference</code> - a button to create a conference;</li>
+          <li><code>input#contactId</code> - a field to enter the contact ID for invitation to the conference;</li>
+          <li><code>button#btnInviteContact</code> - a button to invite to the conference.</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 2: auxiliary variables and functions</h3>
+        <p>Tag <code>&lt;script&gt;</code> iside tag <code>&lt;head&gt;</code> contains all the code of this example. Initialization of this example will start after full page load to handle this event  the library <code>jQuery</code> is used:</p>
+        <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application starts after the document is fully loaded
+              $(document).on('ready', function () {
+                // All the code is here
+              });
+            [/script]
+        </div>
+        <br />
+        <p>At the beginning of the initialization of example two functions is called: <code>initTabs()</code> and <code>initCodeBlocks()</code>, the first of it initiates a group of tabs on the page of example, the second  initiates blocks containing code examples. These functions are stored in file <code>scripts/scripts.js</code> and do not have any impact to the functional meaning of example. It is used only for work with page.</p>
+        <p>Variable <code>appIdElement</code>, gets pointer to an element <code>input#applicationId</code> that contains application ID. It will be used to initialize<code>oSDK</code>.</p>
+        <p>Function <code>print()</code> outputs the text information into the element <code>textarea#logs</code>,and after this scrolls the element to its bottom edge. This function will be used for the output of text messages, and to display information about upcoming <code>oSDK</code> events.</p>
+        <div class="pre" rel="js">
+                // Initialization of the group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Decorations of blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text into an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 3: Listeners for oSDK events</h3>
+        <p>This example creates three <code> oSDK </code> event listener functions. The first event listener function  processes the events associated with the connection: <code>connecting</code>; <code>connected</code>; <code>disconnecting</code>; <code>disconnected</code>; <code>connectionFailed</code>, displays information into a text field about the coming event, and then in case of connection unlock the controls, in case of no connection disable controls.</p>
+        <p>The second event listener function  processes the event <code>incomingMessage</code>. It displays the incoming message in the text box. Together with a message it displays information about the conference in which the message was sent and who is the immediate sender.</p>
+        <p>The third event listener function  processes the event <code>invitationToConference</code>, which occurs if the current user has received an invitation to attend the conference. In this case, the user is asked - whether it wishes to take part in the conference and in the case of a positive answer on his side there is a connection to the conference.</p>
+        <div class="pre" rel="js">
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnSendMessage').attr('disabled', false);
+                    $('#btnCreateConference').attr('disabled', false);
+                    $('#btnInviteContact').attr('disabled', false);
+                  } else {
+                    // If oSDK is disconnectedотключился
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnSendMessage').attr('disabled', 'disabled');
+                    $('#btnCreateConference').attr('disabled', 'disabled');
+                    $('#btnInviteContact').attr('disabled', 'disabled');
+                  }
+                });
+
+                // Processing an incoming message from the conference
+                oSDK.on('incomingMessage', function (messageObject) {
+                  // Display a message in the text box
+                    // with the name of the conference and sender
+                  var sender = messageObject.message.params.sender.split('@')[0];
+                  var conference = messageObject.message.from.split('@')[0];
+                  var message = messageObject.message.message;
+                  print(sender + '/' + conference + ' say: ' + message);
+                });
+
+                // Processing invitation to the conference
+                oSDK.on('invitationToConference', function(params) {
+                  // Conference Title
+                  var conference = params.conference.split('@')[0];
+                  // the invitation sender
+                  var from = params.from;
+                  // Request for acceptance or rejection of the invitation to the conference
+                  if(confirm('Accept invite to conference "' + conference + '" from user "' + from + '"?')) {
+                    // If the invitation is accepted
+                        // create a connection to the conference
+                    oSDK.createConference(conference.split('@')[0], {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about connecting to the conference
+                        print('Connect to conference "' + response.split('/')[0] + '"');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                      }
+                    });
+                  }
+                });
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 4: Processing pressing the buttons</h3>
+        <p>When you press the button <code>button#btnConnect</code>  <code>oSDK</code> initialization starts with the application ID, which should be first entered in the field <code>input#applicationId</code>, after that the process of connecting <code>oSDK</code> starts.</p>
+        <p>When you press the button <code>button#btnDisconnect</code> the process of disconnecting  <code>oSDK</code> starts.</p>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnConnect
+                  $('#btnConnect').click(function() {
+                    // Initialization oSDK with the application ID taken from the field input#applicationId
+                    // the pointer to which is stored in variable appIdElement
+                    oSDK({appID: appIdElement.val()});
+                    // Connecting oSDK
+                    oSDK.connect();
+                    return false;
+                  });
+
+                  // Processing pressing button button#btnDisconnect
+                  $('#btnDisconnect').click(function() {
+                    // Disconnecting oSDK
+                    oSDK.disconnect();
+                    return false;
+                  });
+        </div>
+        <br />
+        <p>When you click on send message button <code>button#btnSendMessage</code> the name of the conference, that will be used to send a message is taken from the field <code>select#conferencesList</code>, containing a list of available conferences, and the message text is taken from the field <code >input#textMessage</code>. If the data is entered - a message is sent. </P>
+        <p>When you press button <code>button#btnCreateConference</code> a new conference will be created with the title taken from the field <code>conferenceName</code>. After creating the conference it will be added to the list of available conferences <code>select#conferencesList</code>. </P>
+        <p>When you press button to invite contact to the conference the <code>button#btnInviteContact</code>,an invitation will be sent to the contact whose identifier is specified in the field <code>input#contactId</code>, the invitation contains name of the conference, which is currently selected in the list of conferences <code>select#conferencesList </code>. </p>
+        <div class="pre" rel="js">
+                // Sending messages to the conference
+                $('#btnSendMessage').click(function() {
+                  //  Getting the name of the conference
+                    // Which the message will be sent to
+                  var conference = $('#conferencesList').val();
+                  // Receive a text message
+                  var message = $('#textMessage').val();
+                  if (conference && message) {
+                    // If the destination conference name and a text message are entered
+                    // then send a message
+                    oSDK.sendMessage(conference, message, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Clear message field
+                        $('#textMessage').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Create a new conference
+                $('#btnCreateConference').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferenceName').val();
+                  if (conference) {
+                    // If the name of the conference is received create new conference
+                    oSDK.createConference(conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function(response) {
+                        // Message about creation of conference
+                        print('Conference "' + response.split('/')[0] + '" created');
+                        // Create a conference element
+                        // and add element to the list of conferences
+                        var option = document.createElement('option');
+                        option.setAttribute('value', response);
+                        option.appendChild(document.createTextNode(response.split('@')[0]));
+                        document.getElementById('conferencesList').appendChild(option);
+                        var lastElementIndex = document.getElementById('conferencesList').options.length - 1;
+                        document.getElementById('conferencesList').selectedIndex = lastElementIndex;
+                        // Cleaning the name field of the conference
+                        $('#conferenceName').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // Sending an invitation to the conference
+                $('#btnInviteContact').click(function() {
+                  // Getting the name of the conference
+                  var conference = $('#conferencesList').val();
+                  // Getting recipinet id
+                  var contact = $('#contactId').val();
+                  if (conference && contact) {
+                    // If the destination conference name and recipinet id are entered
+                    // then send invite
+                    oSDK.inviteUser(contact, conference, {
+                      onError: function() {
+                        // Error message output
+                        print('Error!');
+                      },
+                      onSuccess: function() {
+                        // Cleaning the contact ID field
+                        $('#contactId').val('');
+                      }
+                    });
+                  }
+                  return false;
+                });
+        </div>
+      </div>

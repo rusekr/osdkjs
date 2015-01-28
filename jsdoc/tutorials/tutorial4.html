@@ -1,0 +1,972 @@
+    <script type="text/javascript" src="libraries/osdkjs.js"></script>
+    <script type="text/javascript">
+
+      // Initialization of the example of simple text application after the document is fully loaded
+      $(document).on('ready', function () {
+
+        // Initialization of group of tabs, containing examples
+        // tutorial, html, css, js
+        initTabs();
+        // Blocks containing code examples
+        // html, css, js
+        initCodeBlocks();
+
+        // Saving pointer to the field input#applicationId
+        var appIdElement = $('#applicationId');
+
+        // Function to display text messages to element textarea#logs
+        function print(text) {
+          // Adding text to an element
+          $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+          // Scrolling element to the bottom edge
+          $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+        }
+
+        // This function displays the contents of the contact list  in the field select#contactsList
+        function contactsList(roster) {
+          // Getting a list of contacts
+          var contacts = oSDK.getContacts();
+          // Clearing of a field select#contactsList
+          $('#contactsList').empty();
+          // Displays a list of contacts
+          if (contacts && contacts.length) {
+            $.each(contacts, function(index, value) {
+              var option = document.createElement('option');
+              option.setAttribute('value', value.id);
+              var text = value.id + ' / ' + value.subscription;
+              if (value.ask) {
+                // If there is a request to the contact
+                text += ' / ' + 'auth request "to"';
+              } else {
+                if (oSDK.getIncomingRequest(value.id)) {
+                  // If there is a request from the contact
+                  text += ' / ' + 'auth request "from"';
+                }
+              }
+              option.innerHTML = text;
+              document.getElementById('contactsList').appendChild(option);
+            });
+          }
+        }
+
+        // Listener for oSDK event:
+        // connecting, connected, disconnecting, disconnected and connectionFailed
+        oSDK.on(['connecting', 'connected', 'disconnecting', 'disconnected', 'connectionFailed'], function (event) {
+          // Displaying information about the coming event
+          print('Application got oSDK status: ' + event.type);
+          if(event.type == 'connected') {
+            // If oSDK is connected
+            // output of the id of authorized user
+            print('Connected as user: ' + event.user.id);
+            // Activation controls
+            $('#btnConnect').attr('disabled', 'disabled');
+            $('#btnDisconnect').attr('disabled', false);
+            $('#btnAddContact').attr('disabled', false);
+            $('#btnRemoveContact').attr('disabled', false);
+            // Displays a list of contacts
+            contactsList();
+          } else {
+            // If oSDK is disconnected
+            // Deactivation controls
+            $('#btnConnect').attr('disabled', false);
+            $('#btnDisconnect').attr('disabled', 'disabled');
+            $('#btnAddContact').attr('disabled', 'disabled');
+            $('#btnRemoveContact').attr('disabled', 'disabled');
+          }
+        });
+
+        // Processing incoming request
+        oSDK.on('incomingRequest', function (response) {
+          if (confirm('Incoming request from ' + response.id + '. Accept it?')) {
+            // Request is accepted
+            oSDK.acceptRequest(response.id, {
+              onSuccess: function() {
+                print('Incoming request from ' + response.id + ' accepted');
+                // Displays a list of contacts
+                contactsList();
+              }
+            });
+          } else {
+            // Request is rejected
+            oSDK.rejectRequest(response.id, {
+              onSuccess: function() {
+                print('Incoming request from ' + response.id + ' rejected');
+                // Displays a list of contacts
+                contactsList();
+              }
+            });
+          }
+          return false;
+        });
+
+        // The message about the acceptance of the outgoing request
+        oSDK.on('requestWasAccepted', function (response) {
+          print('Your request was accepted');
+          // Displays a list of contacts
+          contactsList();
+        });
+
+        // The message about rejection of the outgoing request
+        oSDK.on('requestWasRejected', function (response) {
+          print('Your request was rejected');
+          // Displays a list of contacts
+          contactsList();
+        });
+
+        // Processing pressing button button#btnConnect
+        $('#btnConnect').click(function() {
+          // Initialization of oSDK with the application ID taken from the field input#applicationId
+          // that saves pointer in variable appIdElement
+          oSDK({appID: appIdElement.val()});
+          // oSDK connection
+          oSDK.connect();
+          return false;
+        });
+
+        // Processing pressing button button#btnDisconnect
+        $('#btnDisconnect').click(function() {
+          // Disconnection oSDK
+          oSDK.disconnect();
+          return false;
+        });
+
+        // A button to add a contact to your contact list
+        $('#btnAddContact').on('click', function() {
+          var id = $('#addContactId').val();
+          if (id) {
+            var contact = oSDK.getContact(id);
+            if (contact) {
+              if (contact.subscription != 'both') {
+                // If the contact is already added to your contact list
+                // but there is no mutual subscription
+                // Subscription request is made
+                oSDK.sendRequest(id, {
+                  onError: function() {
+                    // Error message
+                    print('Error!');
+                  },
+                  onSuccess: function() {
+                    print('Request sent to ' + id);
+                    // Displays a list of contacts
+                    contactsList();
+                  }
+                });
+              }
+            } else {
+              // If the contact is not in your contact list
+              // add to contact list
+              oSDK.addContact(id, {
+                onError: function() {
+                  // Error message
+                  print('Error!');
+                },
+                onSuccess: function() {
+                  print('Add to contacts list ' + id);
+                  // Displays a list of contacts
+                  contactsList();
+                  // Then send subscription request
+                  oSDK.sendRequest(id, {
+                    onError: function() {
+                      // Error message
+                      print('Error!');
+                    },
+                    onSuccess: function() {
+                      print('Request sent to ' + id);
+                      // Displays a list of contacts
+                      contactsList();
+                    }
+                  });
+                }
+              });
+            }
+          }
+          return false;
+        });
+
+        // A button to delete a contact from your contact list
+        $('#btnRemoveContact').on('click', function() {
+          var id = $('#removeContactId').val();
+          if (id) {
+            var contact = oSDK.getContact(id);
+            if (contact) {
+              // If the specified contact is listed in the contact list
+              // then delete it
+              oSDK.removeContact(id, {
+                onError: function() {
+                  // Error message
+                  print('Error!');
+                },
+                onSuccess: function() {
+                  print('Contact ' + id + ' removed');
+                  $('#removeContactId').val('');
+                  // Displays a list of contacts
+                  contactsList();
+                }
+              });
+            }
+          }
+          return false;
+        });
+
+      });
+
+    </script>
+
+      <p><a href="examples/tutorial4.html.zip">Download this tutorial</a>.</p>
+
+      <div>
+        <h3>Information about this example</h3>
+        <p> This example will demonstrate how to use several <code> oSDK </code> methods to organize work with the contact list of the authorized user. </p>
+        <p> You'll need two registered users and two browsers to see how it works. </ p>
+      </div>
+      <br />
+
+      <div>
+        <h3>Some explanations to the tutorial</h3>
+        <p>We used <code>bootstrap</code> to style this example and added some modifications to the CSS file <code>styles/styles.css</code>. Pay attention that page style does not have any relation to the functional part of the tutorial and oSDK and has only decovative function.</p>
+        <p>In addition we used <code>jQuery</code>, which is also not necessary for oSDK and used only to simplify the work with the page. In <code>scripts/scripts.js</code> file we also added several utility functions to work with page, which also have no relation to the functional part of the example.</p>
+      </div>
+      <br />
+
+      <h3>The content of this example</h3>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#tab-tutorial">Tutorial</a></li>
+        <li role="presentation"><a href="#tab-html">HTML</a></li>
+        <li role="presentation"><a href="#tab-css">CSS</a></li>
+        <li role="presentation"><a href="#tab-js">JS</a></li>
+      </ul>
+
+      <div class="tabs-content">
+        <div class="tab tab-tutorial">
+
+          <div class="container-fluid">
+            <h4>Work with roster</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- A field to enter the application ID -->
+                <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+              </div>
+              <div class="col-md-3">
+                <!-- Connect oSDK button  -->
+                <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                  <span class="glyphicon glyphicon-log-in"></span> Connect
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Disconnect oSDK button -->
+                <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <!-- A field to display text messages and other information -->
+                <textarea class="form-control" id="logs" rows="10"></textarea>
+              </div>
+            </div>
+            <h5>Contacts list</h5>
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to display a list of contacts -->
+                    <select id="contactsList" class="form-control" size="4"></select>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- Contact ID of the user that should be added -->
+                    <input type="text" class="form-control" id="addContactId" placeholder="Contact id" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to add contact to the contact list -->
+                <button type="button" id="btnAddContact" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-plus"></span> Add
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-9">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- Contact ID ot the user that should be deleted -->
+                    <input type="text" class="form-control" id="removeContactId" placeholder="Contact id" />
+                  </div>
+                </form>
+              </div>
+              <div class="col-md-3">
+                <!-- A button to delete contact from your contact list -->
+                <button type="button" id="btnRemoveContact" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-remove"></span> Remove
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-html">
+
+          <br />
+          <div class="pre" rel="html">
+            <div class="container-fluid">
+              <h4>Work with roster</h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <!-- A field to enter the application ID -->
+                  <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+                </div>
+                <div class="col-md-3">
+                  <!-- Connect oSDK button  -->
+                  <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                    <span class="glyphicon glyphicon-log-in"></span> Connect
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Disconnect oSDK button -->
+                  <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                    <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-12">
+                  <!-- A field to display text messages and other information -->
+                  <textarea class="form-control" id="logs" rows="10"></textarea>
+                </div>
+              </div>
+              <h5>Contacts list</h5>
+              <div class="row">
+                <div class="col-md-12">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A field to display a list of contacts -->
+                      <select id="contactsList" class="form-control" size="4"></select>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- Contact ID of the user that should be added -->
+                      <input type="text" class="form-control" id="addContactId" placeholder="Contact id" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- A button to add contact to the contact list -->
+                  <button type="button" id="btnAddContact" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-plus"></span> Add
+                  </button>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-9">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- Contact ID ot the user that should be deleted -->
+                      <input type="text" class="form-control" id="removeContactId" placeholder="Contact id" />
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-3">
+                  <!-- A button to delete contact from your contact list -->
+                  <button type="button" id="btnRemoveContact" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-remove"></span> Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-css">
+
+          <br />
+          <p>Please, pay attention that <code>bootstrap</code> and mentioned styles from file <code>styles/styles.css</code> are used  to style tutorial page and do not have any importance for the functional part of the tutorial.</p>
+          <div class="pre" rel="css">
+                [style]
+                  /* Some additions and modifications for bootstrap */
+                  body {padding-top:70px;padding-bottom:35px;}
+                  .wrapper {width:960px;margin:0px auto 0px auto;}
+                  .navbar-brand {padding-left:0px;}
+                  .navbar .navbar-right {padding-right:15px;}
+                  .navbar button, .modal-dialog button {min-width:120px;}
+                  textarea {resize: none;}
+                  div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+                  div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+                  div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+                  div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+                  div.separator {height:50px;background-color:#efefef;}
+                  /* Only for tutorial 2: "simple calling application" */
+                  div.video {background-color:Black;border-radius:4px;}
+                  div.video div {width:450px;margin:10px auto 10px auto;}
+                  div.video div video {width:450px;background-color:Black;}
+                  /* Other */
+                  table table {margin-bottom:0px !important;}
+                  div.description {margin-bottom:15px;}
+                  div.my-block {border-top:1px dashed Silver;}
+                  div.my-block:first-child {border-top:none;}
+                  h2, h3.subsection-title {font-weight:bold;}
+                  span.param-type {font-style:italic;}
+                  small {color:Silver;}
+                [/style]
+          </div>
+
+        </div>
+        <div class="tab tab-js">
+
+          <br />
+          <p>The code for functional part of the example is listed below.</p>
+          <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application after the document is fully loaded
+              $(document).on('ready', function () {
+
+                // Initialization of group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text to an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // This function displays the contents of the contact list in the field select#contactsList
+                function contactsList(roster) {
+                  // Getting a list of contacts
+                  var contacts = oSDK.getContacts();
+                  // Clearing field select#contactsList
+                  $('#contactsList').empty();
+                  // Displays a list of contacts
+                  if (contacts && contacts.length) {
+                    $.each(contacts, function(index, value) {
+                      var option = document.createElement('option');
+                      option.setAttribute('value', value.id);
+                      var text = value.id + ' / ' + value.subscription;
+                      if (value.ask) {
+                        // If there is a request to the contact
+                        text += ' / ' + 'auth request "to"';
+                      } else {
+                        if (oSDK.getIncomingRequest(value.id)) {
+                          // If there is a request from the contact
+                          text += ' / ' + 'auth request "from"';
+                        }
+                      }
+                      option.innerHTML = text;
+                      document.getElementById('contactsList').appendChild(option);
+                    });
+                  }
+                }
+
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnAddContact').attr('disabled', false);
+                    $('#btnRemoveContact').attr('disabled', false);
+                    // Displays a list of contacts
+                    contactsList();
+                  } else {
+                    // If oSDK is disconnected
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnAddContact').attr('disabled', 'disabled');
+                    $('#btnRemoveContact').attr('disabled', 'disabled');
+                  }
+                });
+
+                // Processing incoming request
+                oSDK.on('incomingRequest', function (response) {
+                  if (confirm('Incoming request from ' + response.id + '. Accept it?')) {
+                    // Request is accepted
+                    oSDK.acceptRequest(response.id, {
+                      onSuccess: function() {
+                        print('Incoming request from ' + response.id + ' accepted');
+                        // Displays a list of contacts
+                        contactsList();
+                      }
+                    });
+                  } else {
+                    // Request is rejected
+                    oSDK.rejectRequest(response.id, {
+                      onSuccess: function() {
+                        print('Incoming request from ' + response.id + ' rejected');
+                        // Displays a list of contacts
+                        contactsList();
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // The message about the acceptance of the outgoing request
+                oSDK.on('requestWasAccepted', function (response) {
+                  print('Your request was accepted');
+                  // Displays a list of contacts
+                  contactsList();
+                });
+
+                // The message about rejection of the outgoing request
+                oSDK.on('requestWasRejected', function (response) {
+                  print('Your request was rejected');
+                  // Displays a list of contacts
+                  contactsList();
+                });
+
+                // Processing pressing button button#btnConnect
+                $('#btnConnect').click(function() {
+                  // Initialization of oSDK with the application ID taken from the field input#applicationId
+                  // that saves pointer in variable appIdElement
+                  oSDK({appID: appIdElement.val()});
+                  // oSDK connection
+                  oSDK.connect();
+                  return false;
+                });
+
+                // Processing pressing button button#btnDisconnect
+                $('#btnDisconnect').click(function() {
+                  // Disconnection oSDK
+                  oSDK.disconnect();
+                  return false;
+                });
+
+                // A button to add a contact to your contact list
+                $('#btnAddContact').on('click', function() {
+                  var id = $('#addContactId').val();
+                  if (id) {
+                    var contact = oSDK.getContact(id);
+                    if (contact) {
+                      if (contact.subscription != 'both') {
+                        // If the contact is already added to your contact list
+                                    // but there is no mutual subscription
+                                    // Subscription request is made
+                        oSDK.sendRequest(id, {
+                          onError: function() {
+                            // Error message
+                            print('Error!');
+                          },
+                          onSuccess: function() {
+                            print('Request sent to ' + id);
+                            // Displays a list of contacts
+                            contactsList();
+                          }
+                        });
+                      }
+                    } else {
+                      // If the contact is not in your contact list
+                                // add to contact list
+                      oSDK.addContact(id, {
+                        onError: function() {
+                          // Error message
+                          print('Error!');
+                        },
+                        onSuccess: function() {
+                          print('Add to contacts list ' + id);
+                          // Displays a list of contacts
+                          contactsList();
+                          // Then send subscription request
+                          oSDK.sendRequest(id, {
+                            onError: function() {
+                              // Error message
+                              print('Error!');
+                            },
+                            onSuccess: function() {
+                              print('Request sent to ' + id);
+                              // Displays a list of contacts
+                              contactsList();
+                            }
+                          });
+                        }
+                      });
+                    }
+                  }
+                  return false;
+                });
+
+                // A button to delete a contact from your contact list
+                $('#btnRemoveContact').on('click', function() {
+                  var id = $('#removeContactId').val();
+                  if (id) {
+                    var contact = oSDK.getContact(id);
+                    if (contact) {
+                      // If the specified contact is listed in the contact list
+                                // then delete it
+                      oSDK.removeContact(id, {
+                        onError: function() {
+                          // Error message
+                          print('Error!');
+                        },
+                        onSuccess: function() {
+                          print('Contact ' + id + ' removed');
+                          $('#removeContactId').val('');
+                          // Displays a list of contacts
+                          contactsList();
+                        }
+                      });
+                    }
+                  }
+                  return false;
+                });
+
+              });
+            [/script]
+          </div>
+
+        </div>
+      </div>
+      <br />
+
+      <div class="separator"></div>
+
+      <br />
+
+      <div>
+        <h3>Step 1: preparation of html document</h3>
+        <p>Register your application on  <a href="{developersPortalURI}">developer's portal </a>to get an application ID ( <code>AppId</code>). Download or compile <code>oSDK</code> version, after these you can add <code>oSDK</code> on your page like this:</p>
+        <div class="pre"б rel="html">
+          [script:source]
+        </div>
+        <br />
+        <p>To implement the example, the following controls are used:</p>
+        <div class="pre" rel="html">
+          ...
+          <!-- A field to enter the application ID -->
+          <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+          ...
+          <!-- Connect oSDK button  -->
+          <button type="button" id="btnConnect" class="btn btn-block btn-success">
+            <span class="glyphicon glyphicon-log-in"></span> Connect
+          </button>
+          ...
+          <!-- Disconnect OSDK button -->
+          <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-log-out"></span> Disconnect
+          </button>
+          ...
+          <!-- A field to display text messages and other information -->
+          <textarea class="form-control" id="logs" rows="10"></textarea>
+          ...
+          <!--  A field to display a list of contacts -->
+          <select id="contactsList" class="form-control" size="4"></select>
+          ...
+          <!-- Contact ID of the user that should be added  -->
+          <input type="text" class="form-control" id="addContactId" placeholder="Contact id" />
+          ...
+          <!-- A button to add contact to the contact list -->
+          <button type="button" id="btnAddContact" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-plus"></span> Add
+          </button>
+          ...
+          <!-- Contact ID of the user that should be deleted -->
+          <input type="text" class="form-control" id="removeContactId" placeholder="Contact id" />
+          ...
+          <!-- A button to delete contact from your contact list -->
+          <button type="button" id="btnRemoveContact" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-remove"></span> Remove
+          </button>
+          ...
+        </div>
+        <br />
+        <ul>
+          <li><code>input#applicationId</code> - a field for entering the application ID, that you got on <a href="{developersPortalURI}">developer's portal</a>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> initialization and connection>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
+          <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
+          <li><code>select#contactsList</code> - element to display a list of contacts of the current user.</li>
+          <li><code>input#addContactId</code> - a field to enter contact ID of the user that should be added to the contact list</li>
+          <li><code>button#btnAddContact</code> - a button to add contact to the contact list.</li>
+          <li><code>input#removeContactId</code> - a field to enter contact ID of the user that should be deleted ftom the contact list.</li>
+          <li><code>button#btnRemoveContact</code> - a button to delete contact from your contact list.</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 2: auxiliary variables and functions</h3>
+        <p>Tag <code>&lt;script&gt;</code> iside tag <code>&lt;head&gt;</code> contains all the code of this example. Initialization of this example will start after full page load to handle this event  the library <code>jQuery</code> is used:</p>
+        <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application starts after the document is fully loaded
+              $(document).on('ready', function () {
+                // All the code is here
+              });
+            [/script]
+        </div>
+        <br />
+        <p>At the beginning of the initialization of example two functions is called: <code>initTabs()</code> and <code>initCodeBlocks()</code>, the first of it initiates a group of tabs on the page of example, the second  initiates blocks containing code examples. These functions are stored in file <code>scripts/scripts.js</code> and do not have any impact to the functional meaning of example. It is used only for work with page.</p>
+        <p>Variable <code>appIdElement</code>, gets pointer to an element <code>input#applicationId</code> that contains application ID. It will be used to initialize<code>oSDK</code>.</p>
+        <p>Function <code>print()</code> outputs the text information into the element <code>textarea#logs</code>,and after this scrolls the element to its bottom edge. This function will be used for the output of text messages, and to display information about upcoming <code>oSDK</code> events.</p>
+        <p>Each time you call the function <code>contactsList()</code> it clears the element <code>select#contactsList</code>, then gets updated list of contacts from the <code> oSDK </code> and re-displays it in this item . </p>
+        <div class="pre" rel="js">
+                // Initialization of the group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Decorations of blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text into an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+
+                // This function displays the contents of the contact list in the field select#contactsList
+                function contactsList(roster) {
+                  // Get contact list
+                  var contacts = oSDK.getContacts();
+                  // Clear field select#contactsList
+                  $('#contactsList').empty();
+                  // Displays a list of contacts
+                  if (contacts && contacts.length) {
+                    $.each(contacts, function(index, value) {
+                      var option = document.createElement('option');
+                      option.setAttribute('value', value.id);
+                      var text = value.id + ' / ' + value.subscription;
+                      if (value.ask) {
+                        // If there is a request to the contact
+                        text += ' / ' + 'auth request "to"';
+                      } else {
+                        if (oSDK.getIncomingRequest(value.id)) {
+                          // If there is a request from the contact
+                          text += ' / ' + 'auth request "from"';
+                        }
+                      }
+                      option.innerHTML = text;
+                      document.getElementById('contactsList').appendChild(option);
+                    });
+                  }
+                }
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 3: Listeners for oSDK events</h3>
+        <p>This example uses four event listener functions <code> oSDK </code>. </P>
+        <p>The first of these processes <code>oSDK</code> events , associated with the installation of connection: <code>connecting</code>; <code>connected</code>; <code>disconnecting</code>; <code>disconnected</code>; <code>connectionFailed</code>.</p>
+        <p>The second function handles the event  <code>incomingRequest</code> which occurs when the current user gets subscription request from another contact. This function will offer current user to accept or reject the received request. </P>
+        <p>The last two listeners process notifications received by current user about the status of his request for membership to the other contact. Event <code>requestWasAccepted</code> occurs if the current user's request was received by the other party, and event <code>requestWasRejected</code> occurs if the request was denied. </P>
+        <div class="pre" rel="js">
+                // Listener for oSDK event:
+                // connecting, connected, disconnecting, disconnected and connectionFailed
+                oSDK.on([
+                    'connecting',
+                    'connected',
+                    'disconnecting',
+                    'disconnected',
+                    'connectionFailed'
+                  ],
+                  function (event) {
+                  // Displaying information about the coming event
+                  print('Application got oSDK status: ' + event.type);
+                  if(event.type == 'connected') {
+                    // If oSDK is connected
+                    // output of the id of authorized user
+                    print('Connected as user: ' + event.user.id);
+                    // Activation controls
+                    $('#btnConnect').attr('disabled', 'disabled');
+                    $('#btnDisconnect').attr('disabled', false);
+                    $('#btnAddContact').attr('disabled', false);
+                    $('#btnRemoveContact').attr('disabled', false);
+                    // Вывод списка контактов
+                    contactsList();
+                  } else {
+                    // If oSDK is disconnectedотключился
+                    // Deactivation controls
+                    $('#btnConnect').attr('disabled', false);
+                    $('#btnDisconnect').attr('disabled', 'disabled');
+                    $('#btnAddContact').attr('disabled', 'disabled');
+                    $('#btnRemoveContact').attr('disabled', 'disabled');
+                  }
+                });
+
+                // Processing incoming request
+                oSDK.on('incomingRequest', function (response) {
+                  if (confirm('Incoming request from ' + response.id + '. Accept it?')) {
+                    // Request is accepted
+                    oSDK.acceptRequest(response.id, {
+                      onSuccess: function() {
+                        print('Incoming request from ' + response.id + ' accepted');
+                        // Displays a list of contacts
+                        contactsList();
+                      }
+                    });
+                  } else {
+                    // Request rejected
+                    oSDK.rejectRequest(response.id, {
+                      onSuccess: function() {
+                        print('Incoming request from ' + response.id + ' rejected');
+                        // Displays a list of contacts
+                        contactsList();
+                      }
+                    });
+                  }
+                  return false;
+                });
+
+                // The message about the acceptance of the outgoing request
+                oSDK.on('requestWasAccepted', function (response) {
+                  print('Your request was accepted');
+                  // Displays a list of contacts
+                  contactsList();
+                });
+
+                // The message about rejection of the outgoing request
+                oSDK.on('requestWasRejected', function (response) {
+                  print('Your request was rejected');
+                  // Displays a list of contacts
+                  contactsList();
+                });
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 4: Processing pressing the buttons</h3>
+        <p>When you press the button <code>button#btnConnect</code>  <code>oSDK</code> initialization starts with the application ID, which should be first entered in the field <code>input#applicationId</code>, after that the process of connecting <code>oSDK</code> starts.</p>
+        <p>When you press the button <code>button#btnDisconnect</code> the process of disconnecting  <code>oSDK</code> starts.</p>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnConnect
+                  $('#btnConnect').click(function() {
+                    // Initialization oSDK with the application ID taken from the field input#applicationId
+                    // the pointer to which is stored in variable appIdElement
+                    oSDK({appID: appIdElement.val()});
+                    // Connecting oSDK
+                    oSDK.connect();
+                    return false;
+                  });
+
+                  // Processing pressing button button#btnDisconnect
+                  $('#btnDisconnect').click(function() {
+                    // Disconnecting oSDK
+                    oSDK.disconnect();
+                    return false;
+                  });
+        </div>
+        <br />
+        <p>When you press the button <code>button#btnAddContact</code> , the specified contact from the field <code>input#addContactId</code> is added to the contact list of the current user. The verification if the contact is added to your contact list before occurs first in this example. Then  status verification occurs for the current user's subscription and mentioned contact.If subscription is not mutual, then a subscription request is sent to the added contact after adding to the contact list. </P>
+        <p>When you press delete contact button <code> button#btnRemoveContact</code>, the function checks if the contact id taken from the field <code>input#removeContactId </code>, exists in the contact list of the current user, if this contact is not  presented in the contact list, deletion occurs. Unsubscribe action at deletion is carried out automatically. </P>
+        <div class="pre" rel="js">
+                // A button to add a contact to your contact list
+                $('#btnAddContact').on('click', function() {
+                  var id = $('#addContactId').val();
+                  if (id) {
+                    var contact = oSDK.getContact(id);
+                    if (contact) {
+                      if (contact.subscription != 'both') {
+                        //If the contact is already added to your contact list
+                                    // but there is no mutual subscription
+                                    // Subscription request is made
+                        oSDK.sendRequest(id, {
+                          onError: function() {
+                            // Error message
+                            print('Error!');
+                          },
+                          onSuccess: function() {
+                            print('Request sent to ' + id);
+                            // Displays a list of contacts
+                            contactsList();
+                          }
+                        });
+                      }
+                    } else {
+                      // If the contact is not in your contact list
+                                // add to contact list
+                      oSDK.addContact(id, {
+                        onError: function() {
+                          // Error message
+                          print('Error!');
+                        },
+                        onSuccess: function() {
+                          print('Add to contacts list ' + id);
+                          // Displays a list of contacts
+                          contactsList();
+                          // Then send subscription request
+                          oSDK.sendRequest(id, {
+                            onError: function() {
+                              // Error message
+                              print('Error!');
+                            },
+                            onSuccess: function() {
+                              print('Request sent to ' + id);
+                              // Displays a list of contacts
+                              contactsList();
+                            }
+                          });
+                        }
+                      });
+                    }
+                  }
+                  return false;
+                });
+
+                // A button to delete a contact from your contact list
+                $('#btnRemoveContact').on('click', function() {
+                  var id = $('#removeContactId').val();
+                  if (id) {
+                    var contact = oSDK.getContact(id);
+                    if (contact) {
+                      // If the specified contact is listed in the contact list
+                                // then delete it
+                      oSDK.removeContact(id, {
+                        onError: function() {
+                          // Error message
+                          print('Error!');
+                        },
+                        onSuccess: function() {
+                          print('Contact ' + id + ' removed');
+                          $('#removeContactId').val('');
+                          // Displays a list of contacts
+                          contactsList();
+                        }
+                      });
+                    }
+                  }
+                  return false;
+                });
+        </div>
+      </div>

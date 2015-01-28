@@ -1,0 +1,840 @@
+    <script type="text/javascript" src="libraries/osdkjs.js"></script>
+    <script type="text/javascript">
+      // Initialization of the example of simple text application after the document is fully loaded
+      $(document).on('ready', function () {
+
+        // Initialization of group of tabs, containing examples
+        // tutorial, html, css, js
+        initTabs();
+        // Blocks containing code examples
+        // html, css, js
+        initCodeBlocks();
+
+        // Saving pointer to the field input#applicationId
+        var appIdElement = $('#applicationId');
+
+        // Saving pointers to the elements for incoming and outgoing media streams
+        var tagToIncomingMediaStream = document.getElementById('incomingMediaStream');
+        var tagToOutgoingMediaStream = document.getElementById('outgoingMediaStream');
+
+        // Variable to store media session
+        var mediaSession = null;
+
+        // Function to display text messages to element textarea#logs
+        function print(text) {
+          // Adding text to an element
+          $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+          // Scrolling element to the bottom edge
+          $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+        }
+
+        // Listener for oSDK event:
+        // connecting, connected, disconnecting, disconnected and connectionFailed
+        oSDK.on(['connecting', 'connected', 'disconnecting', 'disconnected', 'connectionFailed'], function (event) {
+          // Displaying information about the coming event
+          print('Application got oSDK status: ' + event.type);
+          if(event.type == 'connected') {
+            // If oSDK is connected
+            // output of the id of authorized user
+            print('Connected as user: ' + event.user.id);
+            // Activation controls
+            $('#btnConnect').attr('disabled', 'disabled');
+            $('#btnDisconnect').attr('disabled', false);
+            $('#btnAudioCall').attr('disabled', false);
+            $('#btnVideoCall').attr('disabled', false);
+            $('#btnAnswerCall').attr('disabled', false);
+            $('#btnEndCall').attr('disabled', false);
+          } else {
+            // If oSDK is disconnected
+            // Deactivation controls
+            $('#btnConnect').attr('disabled', false);
+            $('#btnDisconnect').attr('disabled', 'disabled');
+            $('#btnAudioCall').attr('disabled', 'disabled');
+            $('#btnVideoCall').attr('disabled', 'disabled');
+            $('#btnAnswerCall').attr('disabled', 'disabled');
+            $('#btnEndCall').attr('disabled', 'disabled');
+          }
+        });
+
+        // Handling new media session created by own call method or by other party
+        oSDK.on('gotMediaSession', function (data) {
+
+          // Save media session in a variable
+          mediaSession = data;
+
+          // Message about incoming call or starting outgoing call
+          if (mediaSession.incoming) {
+            print('Received ' + (mediaSession.isVideoCall ? 'video' : 'audio') + ' call from ' + mediaSession.from + '.');
+          } else {
+            print((mediaSession.isVideoCall ? 'Video' : 'Audio') + '-calling to ' + mediaSession.to + '.');
+          }
+
+          // Handling user interface on call started event
+          mediaSession.on('started', function () {
+            // Displaying call status in two cases
+            if (mediaSession.incoming) {
+              print('Call answered');
+            } else {
+              print('Call answered by ' + mediaSession.to + '');
+            }
+            // Binding opponent's audio or video stream to our displaying html element
+            mediaSession.attachLocalStream(tagToOutgoingMediaStream);
+            mediaSession.attachRemoteStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call ending event
+          mediaSession.on('ended', function () {
+            // Displaying fact that call ended
+            print('Call ended');
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call failing event
+          mediaSession.on('failed', function (initiator, response, cause) {
+            // Displaying fact that call ended
+            print('Call failed on ' + initiator + ' side with error text: ' + cause);
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+        });
+
+        // Processing pressing button button#btnConnect
+        $('#btnConnect').click(function() {
+          // Initialization of oSDK with the application ID taken from the field input#applicationId
+          // that saves pointer in variable appIdElement
+          oSDK({appID: appIdElement.val()});
+          // oSDK connection
+          oSDK.connect();
+          return false;
+        });
+
+        // Processing pressing button button#btnDisconnect
+        $('#btnDisconnect').click(function() {
+          // Disconnection oSDK
+          oSDK.disconnect();
+          return false;
+        });
+
+        // Processing pressing on the audio call button
+                    $('#btnAudioCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Audio call
+            oSDK.audioCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing on the video call button
+        $('#btnVideoCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Video call
+            oSDK.videoCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing on the answer call button
+        $('#btnAnswerCall').on('click', function () {
+          //  Receive call of the current media session
+          mediaSession.answer();
+          return false;
+        });
+
+        // Processing pressing on the end call button
+        $('#btnEndCall').on('click', function () {
+          //  End call of the current media session
+          mediaSession.end();
+          return false;
+        });
+
+      });
+    </script>
+
+      <p><a href="examples/tutorial2.html.zip">Download this tutorial</a>.</p>
+
+      <div>
+        <h3>Information about this example</h3>
+        <p>This example demonstrates how to use <code> oSDK </code> to can create a simple application that allows you to carry audio or video calls.</p>
+      </div>
+      <br />
+
+      <div>
+        <h3>Some explanations to the tutorial</h3>
+        <p>We used <code>bootstrap</code> to style this example and added some modifications to the CSS file <code>styles/styles.css</code>. Pay attention that page style does not have any relation to the functional part of the tutorial and oSDK and has only decovative function.</p>
+        <p>In addition we used <code>jQuery</code>, which is also not necessary for oSDK and used only to simplify the work with the page. In <code>scripts/scripts.js</code> file we also added several utility functions to work with page, which also have no relation to the functional part of the example.</p>
+      </div>
+      <br />
+
+      <h3>The content of this example</h3>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active"><a href="#tab-tutorial">Tutorial</a></li>
+        <li role="presentation"><a href="#tab-html">HTML</a></li>
+        <li role="presentation"><a href="#tab-css">CSS</a></li>
+        <li role="presentation"><a href="#tab-js">JS</a></li>
+      </ul>
+
+      <div class="tabs-content">
+        <div class="tab tab-tutorial">
+
+          <div class="container-fluid">
+            <h4>Simple calling application</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <!-- A field to enter the application ID -->
+                <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+              </div>
+              <div class="col-md-3">
+                <!-- Connect oSDK button  -->
+                <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                  <span class="glyphicon glyphicon-log-in"></span> Connect
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Disconnect oSDK button -->
+                <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                </button>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <!-- A field to display text messages and other information -->
+                <textarea class="form-control" id="logs" rows="10"></textarea>
+              </div>
+            </div>
+            <br />
+            <div class="row">
+              <div class="col-md-12">
+                <form role="form">
+                  <div class="form-group">
+                    <!-- A field to enter contact id that will get call -->
+                    <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="video">
+                  <div>
+                    <!-- Element for outbound media stream (my camera and / or my microphone) -->
+                    <video id="tagToOutgoingMediaStream" autoplay controls></video>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="video">
+                  <div>
+                    <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
+                    <video id="tagToIncomingMediaStream" autoplay controls></video>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-3">
+                <!-- Audio call button -->
+                <button type="button" id="btnAudioCall" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-earphone"></span> Audio call
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Video call button -->
+                <button type="button" id="btnVideoCall" class="btn btn-block btn-primary" disabled="disabled">
+                  <span class="glyphicon glyphicon-facetime-video"></span> Video call
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- Answer call button -->
+                <button type="button" id="btnAnswerCall" class="btn btn-block btn-success" disabled="disabled">
+                  <span class="glyphicon glyphicon-expand"></span> Answer call
+                </button>
+              </div>
+              <div class="col-md-3">
+                <!-- End call button to finish current or incoming call -->
+                <button type="button" id="btnEndCall" class="btn btn-block btn-danger" disabled="disabled">
+                  <span class="glyphicon glyphicon-unchecked"></span> End call
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-html">
+
+          <br />
+          <div class="pre" rel="html">
+            <div class="container-fluid">
+              <h4>Simple calling application</h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <!-- A field to enter the application ID -->
+                  <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+                </div>
+                <div class="col-md-3">
+                  <!-- Connect oSDK button  -->
+                  <button type="button" id="btnConnect" class="btn btn-block btn-success">
+                    <span class="glyphicon glyphicon-log-in"></span> Connect
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Disconnect oSDK button -->
+                  <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+                    <span class="glyphicon glyphicon-log-out"></span> Disconnect
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-12">
+                  <!-- A field to display text messages and other information -->
+                  <textarea class="form-control" id="logs" rows="10"></textarea>
+                </div>
+              </div>
+              <br />
+              <div class="row">
+                <div class="col-md-12">
+                  <form role="form">
+                    <div class="form-group">
+                      <!-- A field to enter contact id that will get call -->
+                      <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="video">
+                    <div>
+                      <!-- Element for outbound media stream (my camera and / or my microphone)) -->
+                      <video id="tagToOutgoingMediaStream" autoplay="autoplay" controls="controls"></video>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="video">
+                    <div>
+                      <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
+                      <video id="tagToIncomingMediaStream" autoplay="autoplay" controls="controls"></video>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3">
+                  <!-- Audio call button  -->
+                  <button type="button" id="btnAudioCall" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-earphone"></span> Audio call
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Video call button -->
+                  <button type="button" id="btnVideoCall" class="btn btn-block btn-primary" disabled="disabled">
+                    <span class="glyphicon glyphicon-facetime-video"></span> Video call
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- Answer call button -->
+                  <button type="button" id="btnAnswerCall" class="btn btn-block btn-success" disabled="disabled">
+                    <span class="glyphicon glyphicon-expand"></span> Answer call
+                  </button>
+                </div>
+                <div class="col-md-3">
+                  <!-- End call button to finish current or incoming call  -->
+                  <button type="button" id="btnEndCall" class="btn btn-block btn-danger" disabled="disabled">
+                    <span class="glyphicon glyphicon-unchecked"></span> End call
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="tab tab-css">
+
+          <br />
+          <p>Please, pay attention that <code>bootstrap</code> and mentioned styles from file <code>styles/styles.css</code> are used  to style tutorial page and do not have any importance for the functional part of the tutorial.</p>
+          <div class="pre" rel="css">
+                [style]
+                  /* Some additions and modifications for bootstrap */
+                  body {padding-top:70px;padding-bottom:35px;}
+                  .wrapper {width:960px;margin:0px auto 0px auto;}
+                  .navbar-brand {padding-left:0px;}
+                  .navbar .navbar-right {padding-right:15px;}
+                  .navbar button, .modal-dialog button {min-width:120px;}
+                  textarea {resize: none;}
+                  div.pre {border:1px solid Gray;border-radius:4px;background-color:#333333;padding:5px;max-height:480px;overflow-x:scroll;overflow-y:scroll;}
+                  div.pre div.head {margin:0px 10px 5px 10px;padding-bottom:5px;text-align:right;color:#ffffff;line-height:18px;font-family:"Courier";font-size:14px;border-bottom:1px dotted Silver;}
+                  div.pre div.line {float:left;text-align:right;width:50px;margin-right:10px;}
+                  div.pre div.line, div.pre div.code {white-space:pre;line-height:18px;font-family:"Courier";font-size:14px;color:Silver;}
+                  div.separator {height:50px;background-color:#efefef;}
+                  /* Only for tutorial 2: "simple calling application" */
+                  div.video {background-color:Black;border-radius:4px;}
+                  div.video div {width:450px;margin:10px auto 10px auto;}
+                  div.video div video {width:450px;background-color:Black;}
+                  /* Other */
+                  table table {margin-bottom:0px !important;}
+                  div.description {margin-bottom:15px;}
+                  div.my-block {border-top:1px dashed Silver;}
+                  div.my-block:first-child {border-top:none;}
+                  h2, h3.subsection-title {font-weight:bold;}
+                  span.param-type {font-style:italic;}
+                  small {color:Silver;}
+                [/style]
+          </div>
+
+        </div>
+        <div class="tab tab-js">
+
+          <br />
+          <p>The code for functional part of the example is listed below.</p>
+          <div class="pre" rel="js">
+    [script]
+      // Initialization of the example of simple text application after the document is fully loaded
+      $(document).on('ready', function () {
+
+        // Initialization of group of tabs, containing examples
+        // tutorial, html, css, js
+        initTabs();
+        // Blocks containing code examples
+        // html, css, js
+        initCodeBlocks();
+
+        // Saving pointer to the field input#applicationId
+        var appIdElement = $('#applicationId');
+
+        // Saving pointers to the elements for incoming and outgoing media streams
+        var tagToIncomingMediaStream = document.getElementById('incomingMediaStream');
+        var tagToOutgoingMediaStream = document.getElementById('outgoingMediaStream');
+
+        // Variable to store media session
+        var mediaSession = null;
+
+        // Function to display text messages to element textarea#logs
+        function print(text) {
+          // Adding text to an element
+          $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+          // Scrolling element to the bottom edge
+          $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+        }
+
+        // Listener for oSDK event:
+        // connecting, connected, disconnecting, disconnected and connectionFailed
+        oSDK.on(['connecting', 'connected', 'disconnecting', 'disconnected', 'connectionFailed'], function (event) {
+          // Displaying information about the coming event
+          print('Application got oSDK status: ' + event.type);
+          if(event.type == 'connected') {
+            // If oSDK is connected
+            // output of the id of authorized user
+            print('Connected as user: ' + event.user.id);
+            // Activation controls
+            $('#btnConnect').attr('disabled', 'disabled');
+            $('#btnDisconnect').attr('disabled', false);
+            $('#btnAudioCall').attr('disabled', false);
+            $('#btnVideoCall').attr('disabled', false);
+            $('#btnAnswerCall').attr('disabled', false);
+            $('#btnEndCall').attr('disabled', false);
+          } else {
+            // If oSDK is disconnected
+            // Deactivation controls
+            $('#btnConnect').attr('disabled', false);
+            $('#btnDisconnect').attr('disabled', 'disabled');
+            $('#btnAudioCall').attr('disabled', 'disabled');
+            $('#btnVideoCall').attr('disabled', 'disabled');
+            $('#btnAnswerCall').attr('disabled', 'disabled');
+            $('#btnEndCall').attr('disabled', 'disabled');
+          }
+        });
+
+        // Handling new media session created by own call method or by other party
+        oSDK.on('gotMediaSession', function (data) {
+
+          // Save media session in a variable
+          mediaSession = data;
+
+          // Message about incoming call or starting outgoing call
+          if (mediaSession.incoming) {
+            print('Received ' + (mediaSession.isVideoCall ? 'video' : 'audio') + ' call from ' + mediaSession.from + '.');
+          } else {
+            print((mediaSession.isVideoCall ? 'Video' : 'Audio') + '-calling to ' + mediaSession.to + '.');
+          }
+
+          // Handling user interface on call started event
+          mediaSession.on('started', function () {
+            // Displaying call status in two cases
+            if (mediaSession.incoming) {
+              print('Call answered');
+            } else {
+              print('Call answered by ' + mediaSession.to + '');
+            }
+            // Binding opponent's audio or video stream to our displaying html element
+            mediaSession.attachLocalStream(tagToOutgoingMediaStream);
+            mediaSession.attachRemoteStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call ending event
+          mediaSession.on('ended', function () {
+            // Displaying fact that call ended
+            print('Call ended');
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call failing event
+          mediaSession.on('failed', function (initiator, response, cause) {
+            // Displaying fact that call ended
+            print('Call failed on ' + initiator + ' side with error text: ' + cause);
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+        });
+
+        // Processing pressing button button#btnConnect
+        $('#btnConnect').click(function() {
+          // Initialization of oSDK with the application ID taken from the field input#applicationId
+          // that saves pointer in variable appIdElement
+          oSDK({appID: appIdElement.val()});
+          // oSDK connection
+          oSDK.connect();
+          return false;
+        });
+
+        // Processing pressing button button#btnDisconnect
+        $('#btnDisconnect').click(function() {
+          // Disconnection oSDK
+          oSDK.disconnect();
+          return false;
+        });
+
+        // Processing pressing on the audio call button
+                    $('#btnAudioCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Audio call
+            oSDK.audioCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing on the video call button
+        $('#btnVideoCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Video call
+            oSDK.videoCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing on the answer call button
+        $('#btnAnswerCall').on('click', function () {
+          //  Receive call of the current media session
+          mediaSession.answer();
+          return false;
+        });
+
+        // Processing pressing on the end call button
+        $('#btnEndCall').on('click', function () {
+          //  End call of the current media session
+          mediaSession.end();
+          return false;
+        });
+
+      });
+    [/script]
+          </div>
+
+        </div>
+      </div>
+      <br />
+
+      <div class="separator"></div>
+
+      <br />
+
+      <div>
+        <h3>Step 1: preparation of html document</h3>
+        <p>Register your application on  <a href="{developersPortalURI}">developer's portal </a>to get an application ID ( <code>AppId</code>). Download or compile <code>oSDK</code> version, after these you can add <code>oSDK</code> on your page like this:</p>
+        <div class="pre"б rel="html">
+          [script:source]
+        </div>
+        <br />
+        <p>To implement the example, the following controls are used:</p>
+        <div class="pre" rel="html">
+          ...
+          <!-- A field to enter the application ID -->
+          <input type="text" class="form-control" id="applicationId" placeholder="Application ID" value="" />
+          ...
+          <!-- Connect oSDK button  -->
+          <button type="button" id="btnConnect" class="btn btn-block btn-success">
+            <span class="glyphicon glyphicon-log-in"></span> Connect
+          </button>
+          ...
+          <!-- Disconnect OSDK button -->
+          <button type="button" id="btnDisconnect" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-log-out"></span> Disconnect
+          </button>
+          ...
+          <!-- A field to display text messages and other information -->
+          <textarea class="form-control" id="logs" rows="10"></textarea>
+          ...
+          <!-- A field to enter contact id that will get call  -->
+          <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
+          ...
+          <!-- Element for outbound media stream (my camera and / or my microphone) -->
+          <video id="tagToOutgoingMediaStream" autoplay="autoplay" controls="controls"></video>
+          ...
+          <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
+          <video id="tagToIncomingMediaStream" autoplay="autoplay" controls="controls"></video>
+          ...
+          <!--  Audio call button -->
+          <button type="button" id="btnAudioCall" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-earphone"></span> Audio call
+          </button>
+          ...
+          <!-- Video call button -->
+          <button type="button" id="btnVideoCall" class="btn btn-block btn-primary" disabled="disabled">
+            <span class="glyphicon glyphicon-facetime-video"></span> Video call
+          </button>
+          ...
+          <!-- Answer call button -->
+          <button type="button" id="btnAnswerCall" class="btn btn-block btn-success" disabled="disabled">
+            <span class="glyphicon glyphicon-expand"></span> Answer call
+          </button>
+          ...
+          <!-- End call button  -->
+          <button type="button" id="btnEndCall" class="btn btn-block btn-danger" disabled="disabled">
+            <span class="glyphicon glyphicon-unchecked"></span> End call
+          </button>
+        </div>
+        <br />
+        <ul>
+          <li><code>input#applicationId</code> - a field for entering the application ID, that you got on <a href="{developersPortalURI}">developer's portal</a>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> initialization and connection>;</li>
+          <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
+          <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
+          <li><code>input#contactId</code> - a field to enter contact id that will get call;</li>
+          <li><code>video#tagToOutgoingMediaStream</code> - element that is assigned to the outgoing media stream;</li>
+          <li><code>video#tagToIncomingMediaStream</code> - element that is assigned to the incoming media stream;</li>
+          <li><code>button#btnAudioCall</code> - audio call button;</li>
+          <li><code>button#btnVideoCall</code> - video call button;</li>
+          <li><code>button#btnAnswerCall</code> - answer call button;</li>
+          <li><code>button#btnEndCall</code> - end call button;</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 2: auxiliary variables and functions</h3>
+        <p>Tag <code>&lt;script&gt;</code> iside tag <code>&lt;head&gt;</code> contains all the code of this example. Initialization of this example will start after full page load to handle this event  the library <code>jQuery</code> is used:</p>
+        <div class="pre" rel="js">
+            [script]
+              // Initialization of the example of simple text application starts after the document is fully loaded
+              $(document).on('ready', function () {
+                // All the code is here
+              });
+            [/script]
+        </div>
+        <br />
+        <p>At the beginning of the initialization of example two functions is called: <code>initTabs()</code> and <code>initCodeBlocks()</code>, the first of it initiates a group of tabs on the page of example, the second  initiates blocks containing code examples. These functions are stored in file <code>scripts/scripts.js</code> and do not have any impact to the functional meaning of example. It is used only for work with page.</p>
+        <p>Variable <code>appIdElement</code>, gets pointer to an element <code>input#applicationId</code> that contains application ID. It will be used to initialize<code>oSDK</code>.</p>
+        <p>The following two variables <code> tagToIncomingMediaStream </code> and <code> tagToOutgoingMediaStream </code> store pointers to the elements, which during the call will be assigned to the incoming and outgoing media streams.</p>
+        <p>The variable <code> mediaSession </code> will be used to store a pointer to the current media session.p>
+        <p>Function <code>print()</code> outputs the text information into the element <code>textarea#logs</code>,and after this scrolls the element to its bottom edge. This function will be used for the output of text messages, and to display information about upcoming <code>oSDK</code> events.</p>
+        <div class="pre" rel="js">
+                // Initialization of the group of tabs, containing examples
+                // tutorial, html, css, js
+                initTabs();
+                // Decorations of blocks containing code examples
+                // html, css, js
+                initCodeBlocks();
+
+                // Saving pointer to the field input#applicationId
+                var appIdElement = $('#applicationId');
+
+                // Saving pointers to the elements for incoming and outgoing media streams
+                var tagToIncomingMediaStream = document.getElementById('incomingMediaStream');
+                var tagToOutgoingMediaStream = document.getElementById('outgoingMediaStream');
+
+                // Variable to store media session
+                var mediaSession = null;
+
+                // Function to display text messages to element textarea#logs
+                function print(text) {
+                  // Adding text into an element
+                  $('#logs').html($('#logs').html() + (new Date()).toLocaleTimeString() + ': ' + text + '\n');
+                  // Scrolling element to the bottom edge
+                  $('#logs').scrollTop($('#logs')[0].scrollHeight - $('#logs').height());
+                }
+        </div>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 3: Listeners for oSDK events</h3>
+        <p>Functions assigned as a listener to process <code> oSDK </code> events  assosiated with the connection: <code> connecting </code>; <code> connected </code>; <code> disconnecting </code>; <code> disconnected </code>; <code> connectionFailed </code>, displays information into a text field about the coming event, and then in case of connection unlock the controls, in case of no connection disable controls.</p>
+        <p>The second listener function processes the event of new media session <code> gotMediaSession </code>, which occurs in case of incoming or outgoing call while in the variable <code> mediaSession </code> stores a pointer to the media session, and then the information about the call is displayed in the text box and there are three listeners for the session: <code> started </code>; <code> ended </code>; <code> failed </code>.</p>
+        <div class="pre" rel="js">
+        // Listener for oSDK event:
+        // connecting, connected, disconnecting, disconnected and connectionFailed
+        oSDK.on(['connecting', 'connected', 'disconnecting', 'disconnected', 'connectionFailed'], function (event) {
+          // Displaying information about the coming event
+          print('Application got oSDK status: ' + event.type);
+          if(event.type == 'connected') {
+            // If oSDK is connected
+            // output of the id of authorized user
+            print('Connected as user: ' + event.user.id);
+            // Activation controls
+            $('#btnConnect').attr('disabled', 'disabled');
+            $('#btnDisconnect').attr('disabled', false);
+            $('#btnAudioCall').attr('disabled', false);
+            $('#btnVideoCall').attr('disabled', false);
+            $('#btnAnswerCall').attr('disabled', false);
+            $('#btnEndCall').attr('disabled', false);
+          } else {
+            // If oSDK is disconnected
+            // Deactivation controls
+            $('#btnConnect').attr('disabled', false);
+            $('#btnDisconnect').attr('disabled', 'disabled');
+            $('#btnAudioCall').attr('disabled', 'disabled');
+            $('#btnVideoCall').attr('disabled', 'disabled');
+            $('#btnAnswerCall').attr('disabled', 'disabled');
+            $('#btnEndCall').attr('disabled', 'disabled');
+          }
+        });
+
+        // Handling new media session created by own call method or by other party
+        oSDK.on('gotMediaSession', function (data) {
+
+          // Save a media session in a variable
+          mediaSession = data;
+
+          // Message bout incoming call or starting outgoing call
+          if (mediaSession.incoming) {
+            print('Received ' + (mediaSession.isVideoCall ? 'video' : 'audio') + ' call from ' + mediaSession.from + '.');
+          } else {
+            print((mediaSession.isVideoCall ? 'Video' : 'Audio') + '-calling to ' + mediaSession.to + '.');
+          }
+
+          // Handling user interface on call started event
+          mediaSession.on('started', function () {
+            // Displaying call status in two cases
+            if (mediaSession.incoming) {
+              print('Call answered');
+            } else {
+              print('Call answered by ' + mediaSession.to + '');
+            }
+            // Binding opponent's audio or video stream to our displaying html element
+            mediaSession.attachLocalStream(tagToOutgoingMediaStream);
+            mediaSession.attachRemoteStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call ending event
+          mediaSession.on('ended', function () {
+            // Displaying fact that call ended
+            print('Call ended');
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+          // Handling call failing event
+          mediaSession.on('failed', function (initiator, response, cause) {
+            // Displaying fact that call ended
+            print('Call failed on ' + initiator + ' side with error text: ' + cause);
+            // Simply unbinding anything from our displaying html element
+            mediaSession.detachStream(tagToOutgoingMediaStream);
+            mediaSession.detachStream(tagToIncomingMediaStream);
+          });
+
+        });
+        </div>
+        <br />
+        <ul>
+          <li>event handler <code>started</code> - displays information in the text box about the beginning of the call and attaches the incoming and outgoing media streams to the corresponding elements: <code>video#tagToOutgoingMediaStream</code> и <code>video#tagToIncomingMediaStream</code>;</li>
+          <li>event handler <code>ended</code> - displays information in the text box about the completion of the call and detaches from the elements corresponding media streams;</li>
+          <li>event handler <code>failed</code> - reports about error and detaches from the elements corresponding media streams, if any streams have been appointed;</li>
+        </ul>
+      </div>
+      <br />
+
+      <div>
+        <h3>Step 4: Processing pressing the buttons</h3>
+        <p>When you press the button <code>button#btnConnect</code>  <code>oSDK</code> initialization starts with the application ID, which should be first entered in the field <code>input#applicationId</code>, after that the process of connecting <code>oSDK</code> starts.</p>
+        <p>When you press the button <code>button#btnDisconnect</code> the process of disconnecting  <code>oSDK</code> starts.</p>
+        <div class="pre" rel="js">
+                  // Processing pressing button button#btnConnect
+                  $('#btnConnect').click(function() {
+                    // Initialization oSDK with the application ID taken from the field input#applicationId
+                    // the pointer to which is stored in variable appIdElement
+                    oSDK({appID: appIdElement.val()});
+                    // Connecting oSDK
+                    oSDK.connect();
+                    return false;
+                  });
+
+                  // Processing pressing button button#btnDisconnect
+                  $('#btnDisconnect').click(function() {
+                    // Disconnecting oSDK
+                    oSDK.disconnect();
+                    return false;
+                  });
+        </div>
+        <br />
+        <p>The next four buttons manage call handling. Buttons <code> button#btnAudioCall </code> and <code> button#btnVideoCall </code> make call to subscriber. The caller ID will be taken from the field <code>input#contactId</code> for the call.</p>
+        <p>In the case of an incoming call,that is reported in the text box , by pressing the button <code> button#btnAnswerCall </code> this call will be accepted and a conversation will start.</p>
+        <p>Нажатие на кнопку <code>button#btnEndCall</code> приведет к завершению текущего звонка.</p>
+        <div class="pre" rel="js">
+        // Processing pressing audio call button
+        $('#btnAudioCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Audio call
+            oSDK.audioCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing audio call button
+        $('#btnVideoCall').on('click', function () {
+          // Get Contact ID
+          var contact = $('#contactId').val();
+          if (contact) {
+            // Video call
+            oSDK.videoCall(contact);
+          }
+          return false;
+        });
+
+        // Processing pressing answer call button
+        $('#btnAnswerCall').on('click', function () {
+          // Receive call of the current media session
+          mediaSession.answer();
+          return false;
+        });
+
+        // Processing pressing end call button
+        $('#btnEndCall').on('click', function () {
+          // Ebd call of the current media session
+          mediaSession.end();
+          return false;
+        });
+        </div>
+      </div>

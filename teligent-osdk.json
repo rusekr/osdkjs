@@ -43,7 +43,20 @@
     ],
     "xmpp": [
       "libs/jsjac/jsjac.js",
-      "src/osdk.module.xmpp.js"
+      "src/xmpp/osdk.module.xmpp.00.js",
+      "src/xmpp/osdk.module.xmpp.01.helpers.js",
+      "src/xmpp/osdk.module.xmpp.02.classes.js",
+      "src/xmpp/osdk.module.xmpp.03.config.js",
+      "src/xmpp/osdk.module.xmpp.04.errors.js",
+      "src/xmpp/osdk.module.xmpp.05.events.js",
+      "src/xmpp/osdk.module.xmpp.06.commands.js",
+      "src/xmpp/osdk.module.xmpp.07.handlers.js",
+      "src/xmpp/osdk.module.xmpp.08.methods.client.js",
+      "src/xmpp/osdk.module.xmpp.09.methods.roster.js",
+      "src/xmpp/osdk.module.xmpp.10.methods.presence.js",
+      "src/xmpp/osdk.module.xmpp.11.methods.message.js",
+      "src/xmpp/osdk.module.xmpp.12.methods.conference.js",
+      "src/xmpp/osdk.module.xmpp.13.registration.js"
     ],
     "test": [
       "src/osdk.module.test.js"
