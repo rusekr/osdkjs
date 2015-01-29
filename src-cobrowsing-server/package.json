@@ -1,0 +1,13 @@
+{
+  "name": "opensdp-cobrowsing-hub",
+  "title": "Teligent OpenSDP cobrowsing hub",
+  "repository": {
+    "type": "git",
+    "url": "http://git.teligent.ru/cgit/opensdp/osdkjs.git/"
+  },
+  "devDependencies": {
+    "events": "^1.0.2",
+    "mysql": "^2.5.4",
+    "websocket": "^1.0.17"
+  }
+}
