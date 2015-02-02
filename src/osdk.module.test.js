@@ -6,15 +6,15 @@
   "use strict";
 
   // Module namespace
-  var test = new oSDK.utils.Module('test');
+  var module = new oSDK.utils.Module('test');
 
   // Module specific DEBUG.
-  test.debug = true;
+  module.debug = true;
 
   // TODO: DEBUG ONLY LISTENER
-  if(test.utils.debug) {
-    test.on('gotTokenFromPopup', function (data) {
-      test.log('GOT TOKEN FROM POPUP AND THAT IS VERY BAD!');
+  if(module.utils.debug) {
+    module.on('gotTokenFromPopup', function (data) {
+      module.log('GOT TOKEN FROM POPUP AND THAT IS VERY BAD!');
     });
   }
 
