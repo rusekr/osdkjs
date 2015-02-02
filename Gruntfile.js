@@ -28,7 +28,7 @@ module.exports = function(grunt) {
     }
 
     grunt.config('modules', resultModules);
-    console.log('Set modules grunt to', resultModules);
+    // console.log('Set modules grunt to', resultModules);
     return srcToBuild;
   }
 
@@ -239,10 +239,10 @@ module.exports = function(grunt) {
 
   grunt.registerTask('builddev', function () {
     grunt.config('concat.developer.src', srcToBuild(toBuild));
+    console.log('Included modules:', grunt.config('modules'));
     grunt.config('namePostfix', (pkg.modulesDefault === toBuild) ? '' : '-' + grunt.config('modules').join('-'));
     grunt.task.run('concat:developer');
     grunt.task.run('symlink:clean');
-    console.log(grunt.task.current.args);
   });
   grunt.registerTask('buildbasesipdev', function () {
     grunt.config('modules', ['base', 'sip']);
@@ -271,9 +271,9 @@ module.exports = function(grunt) {
 
   grunt.registerTask('build', function () {
     grunt.config('concat.milestone.src', srcToBuild(toBuild).map(function (value) { return 'temp/' + value; }));
+    console.log('Included modules:', grunt.config('modules'));
     grunt.config('namePostfix', (pkg.modulesDefault === toBuild) ? '' : '-' + grunt.config('modules').join('-'));
     grunt.task.run('concat:milestone', 'symlink:clean', 'uglify:milestone', 'symlink:minified');
-    console.log(grunt.task.current.args);
   });
   grunt.registerTask('buildbasesip', function () {
     grunt.config('modules', ['base', 'sip']);
