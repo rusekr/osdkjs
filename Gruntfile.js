@@ -158,6 +158,9 @@ module.exports = function(grunt) {
             cwd: 'temp/jsdoc/static/',
             src: ['**'],
             dest: 'built/documentation'
+          }, {
+            src: '<%= uglify.milestone.dest %>',
+            dest: '<%= jsdoc.milestone.options.destination %>/libraries/osdkjs.js'
           }
         ]
       },
@@ -168,6 +171,9 @@ module.exports = function(grunt) {
             cwd: 'jsdoc/static/',
             src: ['**'],
             dest: 'built/documentation'
+          }, {
+            src: '<%= concat.developer.dest %>',
+            dest: '<%= jsdoc.developer.options.destination %>/libraries/osdkjs.js'
           }
         ]
       }
@@ -257,10 +263,10 @@ module.exports = function(grunt) {
     grunt.task.run('concat:developerbase');
   });
 
-  grunt.registerTask('preparedocsdev', ['releasedevel', 'clean:docsdeveloper']);
+  grunt.registerTask('preparedocsdev', ['releasedevel', 'clean:docsdeveloper', 'preparedev', 'builddev']);
   grunt.registerTask('builddocsdev', ['jsdoc:developer', 'copy:developer']);
 
-  grunt.registerTask('buildalldev', ['preparedev', 'builddev', 'buildbasesipdev', 'buildbasexmppdev', 'buildbasedev', 'preparedocsdev', 'builddocsdev']);
+  grunt.registerTask('buildalldev', ['preparedocsdev', 'builddocsdev', 'buildbasesipdev', 'buildbasexmppdev', 'buildbasedev']);
 
   grunt.registerTask('deploydocsdev', ['rsync:docswip']);
 
@@ -288,10 +294,10 @@ module.exports = function(grunt) {
     grunt.task.run('concat:milestonebase', 'uglify:milestonebase');
   });
 
-  grunt.registerTask('preparedocs', ['releasetag', 'clean:docsmilestone']);
+  grunt.registerTask('preparedocs', ['releasetag', 'clean:docsmilestone', 'prepare', 'build']);
   grunt.registerTask('builddocs', ['jsdoc:milestone', 'copy:milestone']);
 
-  grunt.registerTask('buildall', ['prepare', 'build', 'buildbasesip', 'buildbasexmpp', 'buildbase', 'preparedocs', 'builddocs']);
+  grunt.registerTask('buildall', ['preparedocs', 'builddocs', 'buildbasesip', 'buildbasexmpp', 'buildbase']);
 
   grunt.registerTask('default', ['prepare', 'build', 'preparedocs', 'builddocs']);
 
