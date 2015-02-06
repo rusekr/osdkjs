@@ -6,8 +6,8 @@
     "url": "http://git.teligent.ru/cgit/opensdp/osdkjs.git/"
   },
   "devDependencies": {
+    "crypto": "0.0.3",
     "events": "^1.0.2",
-    "mysql": "^2.5.4",
     "websocket": "^1.0.17"
   }
 }
