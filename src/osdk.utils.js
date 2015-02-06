@@ -398,7 +398,110 @@
     };
     self.Error = self.constructor.prototype.Error.bind(self);
 
+    // Binding factory.
     self.factory = factory;
+
+    // WebSocket client constructor (for secure connections only for now).
+    //self.constructor.prototype.WebsocketClient = function oSDKWebsocketClient () {
+    self.constructor.prototype.WebsocketClient = function oSDKWebsocketClient () {
+
+      var wssServerURL = null; // Server URI.
+      var wss = null; // WebSocket object.
+      var eventListeners = {}; // Callbacks object.
+
+      // Runs events callbacks
+      var fireCallbacks = function (context, eventType, eventData) {
+        if (!eventListeners[eventType]) {
+          self.warn('Callbacks to eventType', eventType, 'are undefined');
+          return;
+        }
+        each(eventListeners[eventType], function (listener) {
+          if (typeof listener == 'function') {
+            listener.call(context, eventData);
+          }
+        });
+      };
+
+      this.isConnected = function () {
+        return (wss !== null && wss.readyState == 1)?true:false;
+      };
+
+      this.connect = function (serverURL) {
+
+        if(wss !== null && wss.readyState == 1) {
+          self.warn("Already connected", wss.readyState);
+          return;
+        }
+
+        if(wss !== null && wss.readyState == 2) {
+          self.warn("Disconnecting in process", wss.readyState);
+          return;
+        }
+
+        wssServerURL = serverURL;
+        wss = new WebSocket(wssServerURL);
+
+        wss.onopen = function(event) {
+          self.log("Connection connected", event);
+          fireCallbacks(self, 'connected', event);
+        };
+
+        wss.onclose = function(event) {
+          self.log("Connection disconnected", event, wss);
+          fireCallbacks(self, 'disconnected', event);
+        };
+
+        wss.onerror = function(event) {
+          self.log("Connection error", event);
+          wss.close();
+          fireCallbacks(self, 'error', event);
+        };
+
+        wss.onmessage = function(event) {
+          self.log("Message received", event);
+          fireCallbacks(self, 'message', event);
+        };
+      };
+
+      this.disconnect = function () {
+        if(wss === null || wss.readyState == 2 || wss.readyState == 3) {
+          return;
+        }
+        self.log("Closing connection with ", wssServerURL);
+        // Waiting for data transfer completion.
+        if(wss.bufferedAmount) {
+          self.log("Data being sended found while closing connection. Waiting.. ", wssServerURL);
+          setTimeout(function () {
+            instance.disconnect();
+          }, 500);
+          return;
+        }
+        wss.close();
+      };
+
+      this.send = function (data) {
+        if(wss === null || wss.readyState != 1) {
+          return;
+        }
+        self.log("Sending message to ", wssServerURL, data);
+        wss.send(data);
+      };
+
+      this.on = function (eventType, handler) {
+        if (!eventListeners[eventType]) {
+          eventListeners[eventType] = [];
+        }
+        eventListeners[eventType].push(handler);
+        return 0;
+      };
+
+      this.off = function (id) {
+        delete eventListeners[id];
+      };
+
+      this.Websocket = wss;
+    };
+    //self.WebsocketClient = self.constructor.prototype.WebsocketClient.bind(self);
 
       // JQuery like simple ajax wrapper
     self.constructor.prototype.ajax = function oSDKajax (config) {
