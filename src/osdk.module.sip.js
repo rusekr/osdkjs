@@ -12,12 +12,12 @@
    * @namespace CapabilitiesAPI
    */
 
-  var sip = new oSDK.utils.Module('sip');
+  var module = new oSDK.utils.Module('sip');
 
   // Module specific DEBUG.
-  sip.debug = true;
+  module.debug = true;
 
-  sip.disconnectedByUser = false;
+  module.disconnectedByUser = false;
 
   var defaultConfig = {
     sip: {
@@ -50,7 +50,7 @@
       if (typeof sessionID != 'undefined') {
         deleteSession(sessionID);
       } else {
-        sip.utils.each(store, function (session, sessionID) {
+        module.utils.each(store, function (session, sessionID) {
           deleteSession(sessionID);
         });
       }
@@ -58,8 +58,8 @@
 
     // Creates new session
     instance.create = function sessionsCreate(sessionID, sessionParams) {
-      sessionParams  = sip.utils.isObject(sessionParams) ? sessionParams : {};
-      store[sessionID] = sip.utils.extend({
+      sessionParams  = module.utils.isObject(sessionParams) ? sessionParams : {};
+      store[sessionID] = module.utils.extend({
         callOptions: {},
         mediaSessionObject: null,
         callbacks: {}
@@ -124,7 +124,7 @@
           callback.call(this, 'success', mediaToGet);
         };
         var errorCallback = function (err) {
-          sip.log('Error while getting media stream: ', err);
+          module.log('Error while getting media stream: ', err);
           if (mediaToGet.video === false) {
             //if tried already to got only audio
             callback.call(this, 'error', mediaToGet, err);
@@ -171,7 +171,7 @@
 
   // Attach triggers for registered events through initialized module object
   var attachTriggers = function (attachableEvents, triggerFunction, context) {
-    sip.utils.each(attachableEvents, function (ev, i) {
+    module.utils.each(attachableEvents, function (ev, i) {
       var outer = [];
       if (typeof(ev) === 'string') { // Assuming event alias
         outer.push(ev);
@@ -181,9 +181,9 @@
         outer.push(i); // Assuming boolean
       }
 
-      sip.utils.each(outer, function (outerEvent) {
+      module.utils.each(outer, function (outerEvent) {
         triggerFunction.call(context || this, i, function (e) {
-          sip.trigger(outerEvent, { data: e });
+          module.trigger(outerEvent, { data: e });
         });
       });
     });
@@ -196,10 +196,10 @@
    * @private
    */
   function callOptionsConverter(options) {
-    if (!sip.utils.isObject(options)) {
-      throw new sip.Error('Call/answer options must be the object.');
+    if (!module.utils.isObject(options)) {
+      throw new module.Error('Call/answer options must be the object.');
     }
-    if (!options.mediaConstraints || !sip.utils.isObject(options.mediaConstraints)) {
+    if (!options.mediaConstraints || !module.utils.isObject(options.mediaConstraints)) {
       options.mediaConstraints = {};
     }
     if (!options.mediaConstraints.audio) {
@@ -220,7 +220,7 @@
     delete options.video;
 
     // Use or create options.data object.
-    options.data = (sip.utils.isObject(options.data))?options.data:{};
+    options.data = (module.utils.isObject(options.data))?options.data:{};
     // Passing mediaConstraints to our future session object through data and keeping it for JsSIP call config.
     options.data.mediaConstraints = options.mediaConstraints;
     // Passing callbacks to future session object.
@@ -229,7 +229,7 @@
       delete options.callbacks;
     }
 
-    sip.log('converted', options);
+    module.log('converted', options);
     return options;
   }
 
@@ -254,7 +254,7 @@
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
     currentSession.callOptions = evData.session.data.mediaConstraints;
-    currentSession.callbacks = sip.utils.isObject(evData.session.data.callbacks) ? evData.session.data.callbacks : {};
+    currentSession.callbacks = module.utils.isObject(evData.session.data.callbacks) ? evData.session.data.callbacks : {};
 
     // Whether session has audio and/or video stream or not.
     Object.defineProperties(self, {
@@ -448,7 +448,7 @@
       }
     });
 
-    sip.log('audiovideo', self.hasAudio, self.hasVideo);
+    module.log('audiovideo', self.hasAudio, self.hasVideo);
 
     /**
     * Dispatched after the local media stream is added into MediaSession and before the ICE gathering starts for initial INVITE request or “200 OK” response transmission.
@@ -532,10 +532,10 @@
      * @param {object} handler.event Event object.
      */
     self.on = function (sessionEventTypes, handler) {
-      sip.utils.each([].concat(sessionEventTypes), function (sessionEventType) {
+      module.utils.each([].concat(sessionEventTypes), function (sessionEventType) {
         // Checking of eventType existance
-        if (!sip.utils.isString(eventNamesMap[sessionEventType])) {
-          throw new sip.Error({
+        if (!module.utils.isString(eventNamesMap[sessionEventType])) {
+          throw new module.Error({
             message: "Media session no such event type.",
             ecode: 'sip0121',
             data: sessionEventType
@@ -583,7 +583,7 @@
         index = 0;
       }
       var streams = evData.session.connection.peerConnection.getLocalStreams.call(evData.session.connection.peerConnection);
-      sip.log('attachLocalStream got streams and index', streams, index);
+      module.log('attachLocalStream got streams and index', streams, index);
       Media.attachMediaStream(element, streams[index]);
     };
 
@@ -600,7 +600,7 @@
         index = 0;
       }
       var streams = evData.session.connection.peerConnection.getRemoteStreams.call(evData.session.connection.peerConnection);
-      sip.log('attachRemoteStream got streams and index', streams, index);
+      module.log('attachRemoteStream got streams and index', streams, index);
       Media.attachMediaStream(element, streams[index]);
     };
 
@@ -628,7 +628,7 @@
       var localStream = evData.session.connection.peerConnection.getLocalStreams()[0];
 
       if (!localStream) {
-        sip.log('Local media stream is not initialized.');
+        module.log('Local media stream is not initialized.');
         return;
       }
 
@@ -636,17 +636,17 @@
       var videoTracks = localStream.getVideoTracks();
 
       if (videoTracks.length === 0) {
-        sip.log('No local video available.');
+        module.log('No local video available.');
         return;
       }
 
       for (var i = 0; i < videoTracks.length; i++) {
         if (!flag) {
           videoTracks[i].enabled = true;
-          sip.log('Video unmuted.');
+          module.log('Video unmuted.');
         } else {
           videoTracks[i].enabled = false;
-          sip.log('Video muted.');
+          module.log('Video muted.');
         }
       }
     };
@@ -664,7 +664,7 @@
       var localStream = evData.session.connection.peerConnection.getLocalStreams()[0];
 
       if (!localStream) {
-        sip.log('Local media stream is not initialized.');
+        module.log('Local media stream is not initialized.');
         return;
       }
 
@@ -672,17 +672,17 @@
       var audioTracks = localStream.getAudioTracks();
 
       if (audioTracks.length === 0) {
-        sip.log('No local audio available.');
+        module.log('No local audio available.');
         return;
       }
 
       for (var i = 0; i < audioTracks.length; i++) {
         if (!flag) {
           audioTracks[i].enabled = true;
-          sip.log('Audio unmuted.');
+          module.log('Audio unmuted.');
         } else {
           audioTracks[i].enabled = false;
-          sip.log('Audio muted.');
+          module.log('Audio muted.');
         }
       }
     };
@@ -699,7 +699,7 @@
      */
       self.answer = function () {
 
-        if (!sip.utils.isObject(arguments[0])) {
+        if (!module.utils.isObject(arguments[0])) {
           arguments[0] = {};
         }
 
@@ -714,7 +714,7 @@
         // Conversion to JsSIP object.
         arguments[0] = callOptionsConverter(arguments[0]);
 
-        sip.log('Modified answer arguments to', arguments[0]);
+        module.log('Modified answer arguments to', arguments[0]);
 
         return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
       };
@@ -742,7 +742,7 @@
      */
     self.end = function () {
 
-      if (!sip.utils.isObject(arguments[0])) {
+      if (!module.utils.isObject(arguments[0])) {
         arguments[0] = {};
       }
 
@@ -756,9 +756,9 @@
     };
 
     // Assigning internal event handlers for JsSIP events
-    sip.utils.each(eventNamesMap, function (jssipName, ourName) {
+    module.utils.each(eventNamesMap, function (jssipName, ourName) {
       evData.session.on(jssipName, function () {
-        sip.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
+        module.log('Mapping callback for session event', ourName, 'to JsSIP`s', jssipName);
 
         // Internal MediaSession before-events handling by type
 //         switch (jssipName) {
@@ -768,14 +768,14 @@
 //         }
 
         var args = [].slice.call(arguments, 0);
-        if (sip.utils.isArray(currentSession.callbacks[ourName])) {
-          sip.utils.each(currentSession.callbacks[ourName], function (handler) {
-            if (sip.utils.isFunction(handler)) {
-              sip.log('MediaSession applies handler for', ourName, 'event with args:', args);
+        if (module.utils.isArray(currentSession.callbacks[ourName])) {
+          module.utils.each(currentSession.callbacks[ourName], function (handler) {
+            if (module.utils.isFunction(handler)) {
+              module.log('MediaSession applies handler for', ourName, 'event with args:', args);
               try {
                 handler.apply(self, args);
               } catch (data) {
-                throw new sip.Error({
+                throw new module.Error({
                   message: "SIP media session handling error.",
                   ecode: 'sip0111',
                   data: data
@@ -790,8 +790,8 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            if (evData.session.connection && evData.session.connection.peerConnection && sip.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
-            sip.utils.each(evData.session.connection.peerConnection.getLocalStreams(), function (stream) {
+            if (evData.session.connection && evData.session.connection.peerConnection && module.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
+            module.utils.each(evData.session.connection.peerConnection.getLocalStreams(), function (stream) {
               stream.stop();
             });
             // Deleting current session TODO: Commented as something wrong with that
@@ -809,69 +809,69 @@
    * @memberof sip
    * @private
    */
-  sip.initialize = function (config) {
+  module.initialize = function (config) {
 
     Media.tryCapabilities(function (result, props) {
       if (result == 'success') {
         clientInt.canAudio = props.audio;
         clientInt.canVideo = props.video;
-        sip.trigger('gotMediaCapabilities', props);
+        module.trigger('gotMediaCapabilities', props);
       }
       else {
-        throw new sip.Error("Media capabilities are not found.");
+        throw new module.Error("Media capabilities are not found.");
       }
     });
 
     try {
       // JsSIP initialization
-      sip.JsSIPUA = new JsSIP.UA(config);
+      module.JsSIPUA = new JsSIP.UA(config);
     } catch (data) {
-      sip.trigger(['connectionFailed'], new sip.Error({
+      module.trigger(['connectionFailed'], new module.Error({
         message: "SIP configuration error.",
         ecode: 'sip0001',
         data: data
       }));
-      sip.trigger(['disconnected'], { initiator: 'system' });
+      module.trigger(['disconnected'], { initiator: 'system' });
     }
 
     // TODO: merge with other module stuff
-    attachTriggers(attachableEvents, sip.JsSIPUA.on, sip.JsSIPUA);
+    attachTriggers(attachableEvents, module.JsSIPUA.on, module.JsSIPUA);
 
   };
 
   // Sip start method
-  sip.connect = function () {
-    sip.JsSIPUA.start();
+  module.connect = function () {
+    module.JsSIPUA.start();
   };
 
   // Sip stop method
-  sip.disconnect = function () {
-    if (sip.JsSIPUA && sip.JsSIPUA.isConnected()) {
-      sip.JsSIPUA.stop();
+  module.disconnect = function () {
+    if (module.JsSIPUA && module.JsSIPUA.isConnected()) {
+      module.JsSIPUA.stop();
     } else {
       // If sip is already in disconnected state - signaling about that.
-      sip.trigger('disconnected');
+      module.trigger('disconnected');
     }
   };
 
-  sip.on('gotTempCreds', function (event) {
+  module.on('gotTempCreds', function (event) {
 
-    sip.log('Got temp creds', arguments);
+    module.log('Got temp creds', arguments);
 
     var hosts = [];
-    if (sip.config('gw.host')) {
-      hosts = hosts.concat(sip.config('gw.host'));
-    } else if (event.data.uris && sip.utils.isArray(event.data.uris.sip)) {
-      sip.utils.each(event.data.uris.sip, function (uri) {
+    if (module.config('gw.host')) {
+      hosts = hosts.concat(module.config('gw.host'));
+    } else if (event.data.uris && module.utils.isArray(event.data.uris.sip)) {
+      module.utils.each(event.data.uris.sip, function (uri) {
         var domain = uri.split(';')[0];
-        hosts.push(sip.config('gw.proto') + '://' + domain + (domain.split(':').length > 1?'':(':' + sip.config('gw.port'))) + '/' + sip.config('gw.url'));
+        hosts.push(module.config('gw.proto') + '://' + domain + (domain.split(':').length > 1?'':(':' + module.config('gw.port'))) + '/' + module.config('gw.url'));
       });
     }
 
     // Turn
     var turnServers = [];
-    if (event.data.uris && sip.utils.isArray(event.data.uris.turn)) {
-      sip.utils.each(event.data.uris.turn, function (uri) {
+    if (event.data.uris && module.utils.isArray(event.data.uris.turn)) {
+      module.utils.each(event.data.uris.turn, function (uri) {
         turnServers.push({
           urls: 'turn:' + uri.replace(';', '?'),
           username: event.data.username,
@@ -882,15 +882,15 @@
 
     // Stun
     var stunServers = [];
-    if (event.data.uris && sip.utils.isArray(event.data.uris.stun)) {
-      sip.utils.each(event.data.uris.stun, function (uri) {
+    if (event.data.uris && module.utils.isArray(event.data.uris.stun)) {
+      module.utils.each(event.data.uris.stun, function (uri) {
         stunServers.push('stun:' + uri.replace(/;.*$/, ''));
       });
     }
 
-    sip.initialize({
+    module.initialize({
       'log': {
-        'level': sip.debug?3:0
+        'level': module.debug?3:0
       },
       'ws_servers': hosts,
       'no_answer_timeout': 15,
@@ -906,64 +906,64 @@
       //,hack_via_tcp: true
     });
 
-    sip.connect();
+    module.connect();
 
   });
 
   // On auth disconnecting event
-  sip.on('disconnecting', function (data) {
-    sip.disconnectedByUser = (data.initiator == 'user')?true:false;
-    sip.disconnect();
+  module.on('disconnecting', function (data) {
+    module.disconnectedByUser = (data.initiator == 'user')?true:false;
+    module.disconnect();
   });
 
   // On other modules connectionFailed event
-  sip.on('connectionFailed', function (data) {
-    sip.disconnect();
+  module.on('connectionFailed', function (data) {
+    module.disconnect();
   });
 
   // TODO: replace with direct jssip listener
-  sip.on('sip_gotMediaSession', function (event) {
+  module.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
     var mediaSession = new MediaSession(event);
 
-    sip.trigger('gotMediaSession', mediaSession);
+    module.trigger('gotMediaSession', mediaSession);
     if(mediaSession.incoming) {
       if (mediaSession.isAudioCall) {
-        sip.trigger('gotIncomingAudioCall', mediaSession);
+        module.trigger('gotIncomingAudioCall', mediaSession);
       } else if (mediaSession.isVideoCall) {
-        sip.trigger('gotIncomingVideoCall', mediaSession);
+        module.trigger('gotIncomingVideoCall', mediaSession);
       }
     }
 
-    sip.log('Modified session to', mediaSession);
+    module.log('Modified session to', mediaSession);
 
   });
 
-  sip.on('sip_disconnected', function (event) {
+  module.on('sip_disconnected', function (event) {
     sessions.clear();
 
     var disconnectInitiator = 'system';
-    if(sip.disconnectedByUser) {
+    if(module.disconnectedByUser) {
       disconnectInitiator = 'user';
-      sip.disconnectedByUser = false;
+      module.disconnectedByUser = false;
     }
 
-    sip.trigger('disconnected', { initiator: disconnectInitiator });
+    module.trigger('disconnected', { initiator: disconnectInitiator });
   });
 
     // Handling internal sip_unregistered event
-  sip.on('sip_unregistered', function (event) {
+  module.on('sip_unregistered', function (event) {
 
-    if (sip.disconnectedByUser) {
+    if (module.disconnectedByUser) {
       return;
     }
 
-    sip.trigger('sip_connectionFailed', event);
+    module.trigger('sip_connectionFailed', event);
 
   });
 
-  sip.on('sip_registered', function (event) {
-  sip.log('sip_registered event object', event);
+  module.on('sip_registered', function (event) {
+  module.log('sip_registered event object', event);
     // Finding parallel sessions.
     var gruus = [];
 //     var response = event.data.data.response;
@@ -982,18 +982,18 @@
 
     event.data.otherSessions = gruus;
 
-    sip.trigger('connected', event);
+    module.trigger('connected', event);
 
   });
 
   // Handling internal connectionFailed event
-  sip.on('sip_connectionFailed', function (event) {
-    sip.trigger('connectionFailed', new sip.Error({
+  module.on('sip_connectionFailed', function (event) {
+    module.trigger('connectionFailed', new module.Error({
       message: "SIP connection failure.",
       ecode: 'sip0125',
       data: event
     }));
-    sip.trigger('disconnected', { initiator: 'system' });
+    module.trigger('disconnected', { initiator: 'system' });
   });
 
   /**
@@ -1003,87 +1003,88 @@
    *
    *
    */
-  sip.call = function () {
+  module.call = function () {
 
     var
-      callOptions = sip.utils.isObject(arguments[1])?callOptionsConverter(arguments[1]):null,
+      callOptions = module.utils.isObject(arguments[1])?callOptionsConverter(arguments[1]):null,
       opponent = arguments[0];
 
-    sip.log('JsSIP call arguments', arguments, callOptions);
+    module.log('JsSIP call arguments', arguments, callOptions);
 
-    sip.JsSIPUA.call.call(sip.JsSIPUA, opponent, callOptions);
+    module.JsSIPUA.call.call(module.JsSIPUA, opponent, callOptions);
 
   };
 
   // Simple audio call method
-  sip.audioCall = function (userID, callbacksObject) {
-    sip.call(userID, {
+  module.audioCall = function (userID, callbacksObject) {
+    module.call(userID, {
       audio: true,
       video: false,
-      callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
+      callbacks: module.utils.isObject(callbacksObject)?callbacksObject:false
     });
   };
 
   // Simple video call method
-  sip.videoCall = function (userID, callbacksObject) {
-    sip.call(userID, {
+  module.videoCall = function (userID, callbacksObject) {
+    module.call(userID, {
       audio: true,
       video: true,
-      callbacks: sip.utils.isObject(callbacksObject)?callbacksObject:false
+      callbacks: module.utils.isObject(callbacksObject)?callbacksObject:false
     });
   };
 
   // Expand user capabilities (add "instantMessaging")
-  if (typeof sip.factory.user != 'undefined') {
+  if (typeof module.factory.user != 'undefined') {
 
-    var fUser = new sip.factory.user();
+    var fUser = new module.factory.user();
 
     fUser.expandCapabilities('audioCall', false, false, 'sip');
     fUser.expandCapabilities('videoCall', false, false, 'sip');
 
   }
 
-  sip.on('windowBeforeUnload', function (event) {
-    sip.info('windowBeforeUnload start');
-    sessions.clear();
-    sip.info('windowBeforeUnload end');
-  });
+// Commented because clearing sessions goes while disconnecting 
+//   module.on('windowBeforeUnload', function (event) {
+//     module.info('windowBeforeUnload start');
+//     sessions.clear();
+//     module.info('windowBeforeUnload end');
+//   });
 
-  sip.checkCompatibility = function sipCheckCompatibility() {
+  module.checkCompatibility = function sipCheckCompatibility() {
     var err;
     if(!Media.getUserMedia) {
-      err = new sip.Error({
+      err = new module.Error({
         ecode: 'sip0002',
         message: 'Your browser do not support getUserMedia.'
       });
-      sip.trigger('incompatible', err);
+      module.trigger('incompatible', err);
       throw err;
     }
     if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
-      err = new sip.Error({
+      err = new module.Error({
         ecode: 'sip0003',
         message: 'Your browser do not support RTCPeerConnection.'
       });
-      sip.trigger('incompatible', err);
+      module.trigger('incompatible', err);
       throw err;
     }
     if(!window.WebSocket) {
-      err = new sip.Error({
+      err = new module.Error({
         ecode: 'sip0004',
         message: 'Your browser do not support WebSocket.'
       });
-      sip.trigger('incompatible', err);
+      module.trigger('incompatible', err);
       throw err;
     }
   };
 
-  sip.on('DOMContentLoaded', function () {
-    sip.checkCompatibility();
+  module.on('DOMContentLoaded', function () {
+    module.checkCompatibility();
   });
 
   // Registration stuff
 
-  sip.registerMethods({
+  module.registerMethods({
 
     /**
      * This method used to start media (audio or video) call to another user. For advanced use. User can specify type of media for this call (audio only, video only, audion and video, without media).
@@ -1098,7 +1099,7 @@
      * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      *
      */
-    'call': sip.call,
+    'call': module.call,
 
     /**
      * This method used to start audio call to another user.
@@ -1108,7 +1109,7 @@
      * @param {string} userID ID of opponent.
      * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      */
-    'audioCall': sip.audioCall,
+    'audioCall': module.audioCall,
 
     /**
      * This method used to start video call to another user.
@@ -1118,7 +1119,7 @@
      * @param {string} userID ID of opponent.
      * @param {object} options.callbacks MediaSession event handlers object (object keys represent event names).
      */
-    'videoCall': sip.videoCall,
+    'videoCall': module.videoCall,
 
     /**
      * This method used to attach media stream to HTML element.
@@ -1143,11 +1144,11 @@
   /*
    * Described in auth module.
    */
-  sip.registerNamespaces({
+  module.registerNamespaces({
     'mediaSessions': sessions // TODO: remove after DEBUG
   });
 
-  sip.registerEvents({
+  module.registerEvents({
 
     /*
      * Main events
@@ -1259,7 +1260,7 @@
     'incompatible': { other: true, client: true }
   });
 
-  sip.registerConfig(defaultConfig);
+  module.registerConfig(defaultConfig);
 
 
 })(oSDK, JsSIP);
