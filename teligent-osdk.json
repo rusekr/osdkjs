@@ -45,6 +45,10 @@
       "libs/jsjac/jsjac.js",
       "src/osdk.module.xmpp.js"
     ],
+    "cobrowsing": [
+      "libs/stompjs/stomp.js",
+      "src/osdk.module.cobrowsing.js"
+    ],
     "test": [
       "src/osdk.module.test.js"
     ]
@@ -53,7 +57,8 @@
   "modulesDefault": [
     "base",
     "sip",
-    "xmpp"
+    "xmpp",
+    "cobrowsing"
   ],
   "repository": {
     "type": "git",
