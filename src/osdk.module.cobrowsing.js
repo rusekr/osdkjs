@@ -10,7 +10,7 @@
   // Module specific DEBUG.
   module.debug = true;
 
-  module.disconnectedByUser = null;
+  module.disconnectInitiator = null;
 
   module.defaultConfig = {
     cobrowsing: {
@@ -22,84 +22,39 @@
     }
   };
 
-  // Module WebSocket connection.
-  module.connection = new module.WebsocketClient();
+  module.initialize = function (data) {
 
-  module.addConnectionEventListeners = function (authData) {
-    module.connection.on('connected', function (event) {
-      module.connection.send(JSON.stringify({
-        authorization: {
-          username: authData.username,
-          password: authData.password
-      }}));
-    });
+    module.stompClient = Stomp.client(module.config('server.proto') + '://' + module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : ''));
 
-    module.connection.on('disconnected', function (event) {
-      module.log('Got disconnected', event);
-      module.disconnect();
-    });
+    module.stompClient.connect(data.username, data.password, function connectCallback (event) {
+      module.trigger('connected');
 
-    module.connection.on('error', function (event) {
-      module.log('Got error', event);
-      module.disconnectedByUser = false;
+      module.log('connectCallback', event);
+
+      module.selfSubscribe = module.stompClient.subscribe("/queue/" + data.id, function selfSubscribeMessage (event) {
+        module.log('selfSubscribe', event);
+      });
+
+      module.stompClient.send('/queue/' + data.id, {}, 'ttttest');
+
+    }, function errorCallback (event) {
       module.trigger(['connectionFailed'], new module.Error({
         message: "Cobrowsing server connection error.",
         ecode: '0001',
         data: event
       }));
+      module.disconnectInitiator = 'system';
+      module.disconnect();
     });
-
-    module.connection.on('message', function (event) {
-      module.log('Got message', event);
-      var data = JSON.parse(event.data);
-
-      // First message need to be authorization related.
-      if (data.authorization) {
-        if (data.authorization.status == 'granted') {
-          // Connection successfull.
-          module.log('Connected to cobrowsing server.');
-          module.trigger('connected');
-        } else {
-          // Connection failed. Server need to disconnect next.
-          module.disconnectedByUser = false;
-          module.trigger(['connectionFailed'], new module.Error({
-            message: "Cobrowsing server wrong username or password.",
-            ecode: '0002',
-            data: event
-          }));
-        }
-      }
-    });
-  };
-
-  module.connect = function () {
-    module.connection.connect(module.config('server.proto') + '://' + module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : ''));
-  };
-
-  module.initialize = function (data) {
-    var authData = data;
-
-
-    module.stompClient = Stomp.client(module.config('server.proto') + '://' + module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : ''));
-    var connectCallback = function(event) {
-      module.log(event);
-    };
-    var errorCallback = function(event) {
-      module.log(event);
-    };
-    module.stompClient.connect(authData.username, authData.password, connectCallback, errorCallback);
-
-//     module.addConnectionEventListeners(authData);
-//
-//     module.connect();
 
   };
 
   module.disconnect = function cobrowsingDisconnect() {
-    if(module.connection && module.connection.connected) {
-      module.connection.close();
-    }
-    module.trigger(['disconnected'], { initiator: 'system' });
+    var initiatorObject = module.disconnectInitiator !== null ? { initiator: module.disconnectInitiator } : {};
+    module.stompClient.disconnect(function stompDisconnect () {
+      module.trigger('disconnected', initiatorObject);
+      module.disconnectInitiator = null;
+    });
   };
 
   module.checkCompatibility = function cobrowsingCheckCompatibility() {
@@ -125,7 +80,7 @@
 
   // On auth disconnecting event
   module.on('disconnecting', function (data) {
-    module.disconnectedByUser = (data.initiator == 'user')?true:false;
+    module.disconnectInitiator = data.initiator;
     module.disconnect();
   });
 
