@@ -537,7 +537,7 @@
         if (!module.utils.isString(eventNamesMap[sessionEventType])) {
           throw new module.Error({
             message: "Media session no such event type.",
-            ecode: 'sip0121',
+            ecode: '0121',
             data: sessionEventType
           });
         }
@@ -777,7 +777,7 @@
               } catch (data) {
                 throw new module.Error({
                   message: "SIP media session handling error.",
-                  ecode: 'sip0111',
+                  ecode: '0111',
                   data: data
                 });
               }
@@ -828,7 +828,7 @@
     } catch (data) {
       module.trigger(['connectionFailed'], new module.Error({
         message: "SIP configuration error.",
-        ecode: 'sip0001',
+        ecode: '0001',
         data: data
       }));
       module.trigger(['disconnected'], { initiator: 'system' });
@@ -990,7 +990,7 @@
   module.on('sip_connectionFailed', function (event) {
     module.trigger('connectionFailed', new module.Error({
       message: "SIP connection failure.",
-      ecode: 'sip0125',
+      ecode: '0125',
       data: event
     }));
     module.trigger('disconnected', { initiator: 'system' });
@@ -1054,7 +1054,7 @@
     var err;
     if(!Media.getUserMedia) {
       err = new module.Error({
-        ecode: 'sip0002',
+        ecode: '0002',
         message: 'Your browser do not support getUserMedia.'
       });
       module.trigger('incompatible', err);
@@ -1062,7 +1062,7 @@
     }
     if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
       err = new module.Error({
-        ecode: 'sip0003',
+        ecode: '0003',
         message: 'Your browser do not support RTCPeerConnection.'
       });
       module.trigger('incompatible', err);
@@ -1070,7 +1070,7 @@
     }
     if(!window.WebSocket) {
       err = new module.Error({
-        ecode: 'sip0004',
+        ecode: '0004',
         message: 'Your browser do not support WebSocket.'
       });
       module.trigger('incompatible', err);

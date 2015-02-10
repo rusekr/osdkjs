@@ -127,7 +127,7 @@
               // May be triggered after DOMContentLoaded
               auth.trigger('auth_oAuthError', new auth.Error({
                 message: error + (errorDescription ? ': ' + errorDescription : ''),
-                ecode: 'auth0010'
+                ecode: '0010'
               }));
             }
         };

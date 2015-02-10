@@ -44,7 +44,7 @@
       module.disconnectedByUser = false;
       module.trigger(['connectionFailed'], new module.Error({
         message: "Cobrowsing server connection error.",
-        ecode: 'cobrowsing0001',
+        ecode: '0001',
         data: event
       }));
     });
@@ -64,7 +64,7 @@
           module.disconnectedByUser = false;
           module.trigger(['connectionFailed'], new module.Error({
             message: "Cobrowsing server wrong username or password.",
-            ecode: 'cobrowsing0002',
+            ecode: '0002',
             data: event
           }));
         }
@@ -106,7 +106,7 @@
     var err;
     if(!window.WebSocket) {
       err = new module.Error({
-        ecode: 'cobrowsing0004',
+        ecode: '0004',
         message: 'Your browser do not support WebSocket.'
       });
       module.trigger('incompatible', err);

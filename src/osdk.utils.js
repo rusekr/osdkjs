@@ -331,7 +331,18 @@
        * @type string
        * @default 0
        */
-      this.ecode = 0;
+      var ecode = 0;
+      Object.defineProperties(this, {
+        ecode: {
+          enumerable: true,
+          get: function () {
+            return self.name+ecode;
+          },
+          set: function (value) {
+            ecode = value;
+          }
+        }
+      });
       /**
        * Module name error come from.
        *
@@ -349,7 +360,7 @@
        * @instance
        * @type string
        */
-      this.message = "Unknown error detected";
+      this.message = "Unspecified error";
       /**
        * HTML version of error message.
        *
@@ -384,7 +395,7 @@
 
       if (isString(eobj)) {
         this.message = eobj;
-      } else {
+      } else if (isObject(eobj)) {
         each(eobj, function (prop, propname) {
           selfError[propname] = prop;
         });
