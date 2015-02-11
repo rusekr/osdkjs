@@ -57,8 +57,7 @@
   "modulesDefault": [
     "base",
     "sip",
-    "xmpp",
-    "cobrowsing"
+    "xmpp"
   ],
   "repository": {
     "type": "git",
