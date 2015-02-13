@@ -137,6 +137,35 @@
   };
 
   /*
+   * List constructor function. Works with any objects. Functions: find, remove, add
+   */
+  var list = function () {
+    var store = [];
+
+    this.add = store.push;
+
+    this.remove = function (obj) {
+      var idx = store.indexOf(obj);
+      if (idx !== -1) {
+        store.splice(idx, 1);
+      }
+    };
+
+    this.find = function (obj) {
+      var idx = store.indexOf(obj);
+      if (idx !== -1) {
+        return obj;
+      }
+      return null;
+    };
+
+    this.show = function () {
+      return store;
+    };
+
+  };
+
+  /*
    * Safe hasOwnProperty property replacement
    */
   var ownProperty = function (obj, prop) {
@@ -300,11 +329,21 @@
         }
         var d = new Date();
 
-        var arr = ['oSDK:',d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3)  , ':'];
+        var arr = ['%coSDK %c' + d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3), ];
+        arr = arr.concat(['color:#2792ff', 'color:#0052ff']);
         if (self.oSDKModule && self.name != 'utils') {
-          arr.push(self.name + ':');
+          arr[0] += (' %c' + self.name);
+          arr.push('color:#1020ff');
         }
-        console[method].apply(console, arr.concat(Array.prototype.slice.call(arguments, 0)));
+        arr[0] += '%c: ';
+        arr.push('color:black');
+
+        var args = Array.prototype.slice.call(arguments, 0);
+        if (isString(args[0])) {
+          arr[0] += args.shift();
+        }
+
+        console[method].apply(console, arr.concat(args));
       };
     };
 
@@ -841,7 +880,7 @@
           var modulesFired = 0;
           var emittersLength = 0;
 
-          self.log('Checking event listener for last keyword', events[eventType].emittersObject[listener.module]);
+          //self.log('Checking event listener for last keyword', events[eventType].emittersObject[listener.module]);
           if (listener.last) {
             each(events[eventType].emitters, function (emitter) {
               emittersLength++;
@@ -856,7 +895,7 @@
           }
 
           if(notFiredModuleExists) {
-            self.log('Postponed', eventType, 'with event data', listener.data, 'for client listener', listener);
+            self.log('%cPostponed %c' + eventType + ' %cfor listener', 'color:#9400D3', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data);
             return;
           }
 
@@ -890,7 +929,7 @@
             fireArgs.push(listener.data);
           }
 
-          self.log('Firing', eventType, 'with event data', listener.data, 'as arguments',fireArgs , 'for listener', listener);
+          self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data, 'as arguments',fireArgs);
 
           listener.handler.apply(configObject.context, fireArgs);
 
@@ -1111,6 +1150,8 @@
   utils.isNull = isNull;
 
   utils.isEmpty = isEmpty;
+
+  utils.list = list;
 
   utils.pad = pad;
 
