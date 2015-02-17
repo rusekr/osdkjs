@@ -142,18 +142,26 @@
   var list = function () {
     var store = [];
 
-    this.add = store.push;
+    this.add = function () {
+      return store.push.apply(store, Array.prototype.slice.call(arguments, 0));
+    };
+
+    this.each = function () {
+      return store.forEach.apply(store, Array.prototype.slice.call(arguments, 0));
+    };
 
     this.remove = function (obj) {
       var idx = store.indexOf(obj);
       if (idx !== -1) {
         store.splice(idx, 1);
+        return true;
       }
+      return null;
     };
 
     this.find = function (obj) {
       var idx = store.indexOf(obj);
-      if (idx !== -1) {
+      if (idx != -1) {
         return obj;
       }
       return null;
@@ -162,6 +170,15 @@
     this.show = function () {
       return store;
     };
+
+    Object.defineProperties(this, {
+      length: {
+        enumerable: true,
+        get: function () {
+          return store.length;
+        }
+      }
+    });
 
   };
 
