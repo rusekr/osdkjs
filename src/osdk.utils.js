@@ -192,12 +192,12 @@
   /*
    * Iterator for arrays and objects
    */
-  var each = function (obj, fn) {
+  var each = function (obj, fn, ignoreHasOwnProperty) {
     if (obj.length) {
       for (var i = 0, ol = obj.length, v = obj[0]; i < ol && fn(v, i) !== false; v = obj[++i]);
     } else {
       for (var p in obj) {
-        if (!ownProperty(obj,p)) {
+        if (!ignoreHasOwnProperty && !ownProperty(obj,p)) {
           continue;
         }
         if (fn(obj[p], p) === false) {
