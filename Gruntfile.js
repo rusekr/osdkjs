@@ -49,7 +49,7 @@ module.exports = function(grunt) {
     },
     concat: {
       options: {
-        banner: '<%= pkg.banner.join("\\n") %>',
+        banner: '<%= pkg.banner.join("\\n") %>', // TODO: separate banner by libraries required by modules and build copyright from that.
         stripBanners: true,
         process: true
       },
