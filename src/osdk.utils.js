@@ -146,6 +146,14 @@
       return store.push.apply(store, Array.prototype.slice.call(arguments, 0));
     };
 
+    this.addUnique = function (object) {
+      if (this.find(object)) {
+        return false;
+      } else {
+        return this.add(object);
+      }
+    };
+
     this.each = function () {
       return store.forEach.apply(store, Array.prototype.slice.call(arguments, 0));
     };
@@ -169,6 +177,18 @@
 
     this.show = function () {
       return store;
+    };
+
+    this.toArray = function () {
+      return store;
+    };
+
+    this.toString = function () {
+      return store.toString();
+    };
+
+    this.fromArray = function (array) {
+      store = array;
     };
 
     Object.defineProperties(this, {
