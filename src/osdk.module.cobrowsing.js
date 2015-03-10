@@ -1,6 +1,8 @@
 /*
  * oSDK Cobrowsing module.
- * TODO: close timers (request timeouts)
+ * TODO: form fields changed transit
+ *
+ * NOTICE: jquery events must not return false. native events must not stop propagation.
  */
 (function (oSDK) {
   "use strict";
@@ -22,15 +24,170 @@
 
   module.defaultConfig = {
     cobrowsing: {
+      excludeCSSClass: 'ocobrowsing', // TODO: document
+//      enableClicks: false, // NOTICE: ocobrowsing UI option
       server: {
         proto: 'wss'
         //port: 8443,
-        //host: '192.168.2.161' // TODO: priority to host and other connection parameters from gotTempCreds event.
+        //host: '192.168.2.161'
       }
     }
   };
 
   module.auth = null;
+
+  // Grabs and signals events
+  module.eventAccumulator = (function () {
+
+    var subscriptions = {};
+
+    var fireEvent = function (data) {
+      Object.keys(subscriptions).forEach(function (ID) {
+        if(module.utils.isFunction(subscriptions[ID])) {
+          subscriptions[ID].call(this, data);
+        }
+      });
+    };
+
+    var grabMouseMove = function(e) {
+      e = e || window.event;
+      if (e.pageX === null && e.clientX !== null ) {
+        var html = document.documentElement;
+        var body = document.body;
+
+        e.pageX = e.clientX + (html.scrollLeft || body && body.scrollLeft || 0);
+        e.pageX -= html.clientLeft || 0;
+
+        e.pageY = e.clientY + (html.scrollTop || body && body.scrollTop || 0);
+        e.pageY -= html.clientTop || 0;
+      }
+
+      fireEvent({
+        type: 'mousemove',
+        mousemove: true,
+        options: {
+          x: e.pageX,
+          y: e.pageY
+        }
+      });
+    };
+
+    var grabMouseButton = function(e) {
+      module.log('grabMouseButton for event', e);
+      e = e || window.event;
+      var target = e.target || e.srcElement;
+
+      var getElementCSSPath = function elementLocation(el) {
+        if (el === null) {
+          module.warn('Got null element');
+        }
+        if (el instanceof $) {
+          // a jQuery element
+          el = el[0];
+        }
+        if (el[0] && el.attr && el[0].nodeType == 1) {
+          // Or a jQuery element not made by us
+          el = el[0];
+        }
+        if (el.id) {
+          return "#" + el.id;
+        }
+        if (el.tagName == "BODY") {
+          return "body";
+        }
+        if (el.tagName == "HEAD") {
+          return "head";
+        }
+        if (el === document) {
+          return "document";
+        }
+        var parent = el.parentNode;
+        if ((! parent) || parent == el) {
+          console.warn("elementLocation(", el, ") has null parent");
+          throw new module.Error("No locatable parent found");
+        }
+        var controlUI = false;
+        var parentLocation = elementLocation(parent);
+        if (!parentLocation) {
+          controlUI = true;
+        }
+        var children = parent.childNodes;
+        var _len = children.length;
+        var index = 0;
+        for (var i=0; i<_len; i++) {
+          if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClass') && children[i].className.indexOf(module.config('excludeCSSClass')) != -1) { // need to check several classes?
+            // Don't count our UI and it`s children
+            controlUI = true;
+            module.log('our UI detected in', children[i]);
+            break;
+          }
+          if (children[i] == el) {
+            break;
+          }
+          if (children[i].nodeType == document.ELEMENT_NODE) {
+            // Don't count text or comments
+            index++;
+          }
+        }
+        return (controlUI ? false : parentLocation + " :nth-child(" + (index + 1) + ")");
+      };
+      var targetPath = getElementCSSPath(target);
+      if (!e.osdkcobrowsinginternal && targetPath) {
+        var eventObject = {
+          type: e.type,
+          target: targetPath,
+          options: {
+            offsetX: e.offsetX===undefined?e.layerX:e.offsetX,
+            offsetY: e.offsetY===undefined?e.layerY:e.offsetY,
+            clientX: e.clientX,
+            clientY: e.clientY,
+            screenX: e.screenX,
+            screenY: e.screenY
+          }
+        };
+        eventObject[e.type] = true;
+        fireEvent(eventObject);
+      }
+    };
+
+    var startGrabbing = function () {
+      //document.addEventListener('mousemove', grabMouseMove, true);
+
+      document.addEventListener('click', grabMouseButton, true);
+      document.body.addEventListener('mousedown', grabMouseButton, true);
+      document.body.addEventListener('mouseup', grabMouseButton, true);
+    };
+
+    var stopGrabbing = function () {
+      //document.removeEventListener('mousemove', grabMouseMove, true);
+
+      document.removeEventListener('click', grabMouseButton, true);
+      document.body.removeEventListener('mousedown', grabMouseButton, true);
+      document.body.removeEventListener('mouseup', grabMouseButton, true);
+    };
+
+    return {
+      // Start grabbing
+      init: function () {
+        startGrabbing();
+      },
+      // Stop grabbing
+      shutdown: function () {
+        stopGrabbing();
+      },
+      // Add subscription
+      on: function (handlerFunction) {
+        var subscriptionID = module.utils.uuid();
+        subscriptions[subscriptionID] = handlerFunction;
+        return subscriptionID;
+      },
+      // Remove subscription
+      off: function (subscriptionID) {
+        delete subscriptions[subscriptionID];
+      }
+
+    };
+  })();
 
     // Stomp library wrapper.
   var stompClient = function (URI) {
@@ -45,17 +202,27 @@
       return client.send('/cobrowsing/' + sessionID, {}, JSON.stringify(data));
     };
 
+    client.logLevel = 1;
+
+    client.debug = function () {
+      if(module.debug && client.logLevel) {
+        module.log.apply(this, Array.prototype.slice.call(arguments, 0));
+      }
+    };
+
     return client;
   };
 
-  module.sessions = {};
+  var SessionsManager = function () {
+    this.store = {};
+  };
 
-  module.sessions.createIncoming = function (data) {
+  SessionsManager.prototype.createIncoming = function (data) {
     var session = new CobrowsingSession(data);
     module.trigger('cobrowsingSession', session);
   };
 
-  module.sessions.createOutgoing = function (data) {
+  SessionsManager.prototype.createOutgoing = function (data) {
     var session = new CobrowsingSession();
 
     session.initSubscription();
@@ -65,8 +232,8 @@
     module.trigger('cobrowsingSession', session);
   };
 
-  module.sessions.inviteAccepted = function (data) {
-    var session = module.sessions[data.sessionID];
+  SessionsManager.prototype.inviteAccepted = function (data) {
+    var session = this.store[data.sessionID];
     if (session.inviteTimers[data.senderID]) {
       clearTimeout(session.inviteTimers[data.senderID]);
       session.inviteTimers[data.senderID] = null;
@@ -74,22 +241,30 @@
     session.trigger('accepted', data);
   };
 
-  module.sessions.inviteRejected = function (data) {
-    var session = module.sessions[data.sessionID];
+  SessionsManager.prototype.inviteRejected = function (data) {
+    var session = this.store[data.sessionID];
     session.trigger('rejected', data);
+    if(session.participants.length == 1) {
+      session.end();
+    }
   };
 
-  module.sessions.userAdded = function (data) {
-    var session = module.sessions[data.sessionID];
-    session.participants.add(data.senderID);
+  SessionsManager.prototype.userAdded = function (data) {
+    var session = this.store[data.sessionID];
+    session.participants[data.senderID] = true;
     session.trigger('userAdded', data);
   };
 
-  module.sessions.userRemoved = function (data) {
-    var session = module.sessions[data.sessionID];
-    session.participants.remove(data.senderID);
+  SessionsManager.prototype.userRemoved = function (data) {
+    var session = this.store[data.sessionID];
+    delete session.participants[data.senderID];
     session.trigger('userRemoved', data);
+    if(session.participants.length == 1) {
+      session.end();
+    }
   };
+
+  module.sessions = new SessionsManager();
 
   var CobrowsingSession = function oSDKCobrowsingSession (configObject) {
     var self = this;
@@ -98,7 +273,6 @@
     var stompClient = module.stompClient;
     var warn = module.warn;
     var auth = module.auth;
-    var trigger = module.trigger;
 
     var sendForm = function (configObject) {
 
@@ -121,23 +295,50 @@
     self.id = configObject.sessionID || utils.uuid();
     self.initiatorID = configObject.initiatorID || self.myID;
     self.inviterID = configObject.senderID || self.initiatorID;
-    self.participants = new utils.list();
+    self.participants = {};
     self.incoming = ((self.myID != self.initiatorID) ? true : false);
     self.inviteTimers = {};
     self.defaultTimeout = 30000;
+    self.stompSubscription = null;
+    self.eventSubscription = null;
+    self.status = 'not initialized';
 
     if (configObject.participants) {
-      self.participants.fromArray(configObject.participants);
+      self.participants = configObject.participants;
     }
 
     self.eventHandlers = [];
+
+    Object.defineProperties(self.participants, {
+      length: {
+        enumerable: false, // !
+        get: function () {
+          var length = 0;
+          Object.keys(this).forEach(function (name) {
+            length++;
+          });
+          return length;
+        }
+      }
+    });
 
     self.initSubscription = function () {
       self.stompSubscription = stompClient.subscribe("/cobrowsing/" + self.id, function cobrowsingSubscriptionMessage (event) {
         if (event.body) {
           event.body = JSON.parse(event.body);
+
+          // Session message not for self
+          if (event.body.senderID == self.myID) {
+            return;
+          }
           // Fire message callback
           if (self.eventHandlers && self.eventHandlers.message) {
+
+            // Message prework
+            if (event.body.click || event.body.mousedown || event.body.mouseup) {
+              event.body.target = document.querySelector(event.body.target);
+            }
+
             utils.each(self.eventHandlers.message, function (listener) {
               if (listener instanceof Function) {
                 listener.call(listener, event.body);
@@ -146,37 +347,31 @@
           }
         }
       });
+      self.status = 'subscribed';
       self.trigger('subscribed');
 
-      self.participants.add(self.myID);
-      self.participants.each(function (userID) {
-        self.sendToUser(userID, { cobrowsingUserAdded: true });
+      Object.keys(self.participants).forEach(function (userID) {
+        if (userID == self.myID) {
+          return;
+        }
+        self.sendToUser(userID, {
+          cobrowsingUserAdded: true
+        });
       });
+      self.participants[self.myID] = true;
 
       // Starting to send cobrowsing information in session
-      // Mouse coordinates
-      document.addEventListener('mousemove', function(e) {
-        e = e || window.event;
-
-        if (e.pageX === null && e.clientX !== null ) {
-          var html = document.documentElement;
-          var body = document.body;
-
-          e.pageX = e.clientX + (html.scrollLeft || body && body.scrollLeft || 0);
-          e.pageX -= html.clientLeft || 0;
-
-          e.pageY = e.clientY + (html.scrollTop || body && body.scrollTop || 0);
-          e.pageY -= html.clientTop || 0;
+      self.eventSubscription = module.eventAccumulator.on(function (event) {
+        if (self.participants.length < 2) {
+          return;
         }
+        self.sendInSession(event);
+      });
+    };
 
-        self.sendInSession({
-          mouseMove: {
-            x: e.pageX,
-            y: e.pageY
-          }
-        });
-
-      }, false);
+    self.killSubscription = function () {
+      module.eventAccumulator.off(self.eventSubscription);
+      self.stompSubscription.unsubscribe();
     };
 
     self.sendInSession = function (data) {
@@ -189,7 +384,7 @@
 
     self.inviteUser = function (userID) {
 
-      if (self.participants.find(userID)) {
+      if (self.participants[userID]) {
         warn(userID + 'is already cobrowsed with.');
         return;
       }
@@ -202,29 +397,79 @@
       self.sendToUser(userID, {
         cobrowsingRequest: true,
         initiatorID: self.initiatorID,
-        participants: self.participants.toArray()
+        participants: self.participants
       });
 
       self.inviteTimers[userID] = setTimeout(function () {
         self.trigger('rejected', {
           userID: userID,
           reason: 'timeout'
-
         });
+        if(self.participants.length == 1) {
+          self.end();
+        }
+
       }, self.defaultTimeout);
     };
 
     self.end = function () {
-      self.participants.each(function (userID) {
-        if (userID != self.myID) {
-          self.sendToUser(userID, {
-            removedUser: self.myID
-          });
-        }
-      });
+      if (self.status == 'subscribed') {
+        Object.keys(self.participants).forEach(function (userID) {
+          if (userID != self.myID) {
+            self.sendToUser(userID, {
+              cobrowsingUserRemoved: true
+            });
+          }
+        });
+        self.killSubscription();
+      }
+      self.status = 'ended';
+      self.trigger('ended', {});
 
-      self.stompSubscription.unsubscribe();
-      trigger('sessionEnded', { sessionID: self.id });
+      module.trigger('sessionEnded', { sessionID: self.id });
+    };
+
+    // usability method
+    self.fireEvent = function (eventType, target, options) {
+      options = options || {};
+      options.osdkcobrowsinginternal = true;
+      var event = null;
+
+      if(eventType == 'click' || eventType == 'mousedown' || eventType == 'mouseup') {
+        event = document.createEvent("MouseEvents");
+        event.initMouseEvent(
+          eventType, // type
+          true, // canBubble
+          true, // cancelable
+          window, // view
+          0, // detail
+          options.screenX || 0, // screenX
+          options.screenY || 0, // screenY
+          options.clientX || 0, // clientX
+          options.clientY || 0, // clientY
+          false, // ctrlKey
+          false, // altKey
+          false, // shiftKey
+          false, // metaKey
+          0, // button
+          null // relatedTarget
+        );
+        event.osdkcobrowsinginternal = true;
+        target.dispatchEvent(event);
+        var cancelled = target.dispatchEvent(event);
+        if (cancelled) {
+          return;
+        }
+      } else {
+        if (target.fireEvent) {
+          target.fireEvent('on' + eventType, options);
+        } else {
+          event = document.createEvent('Events');
+          event.osdkcobrowsinginternal = true;
+          event.initEvent(eventType, true, true);
+          target.dispatchEvent(event);
+        }
+      }
     };
 
     // on: message (send), ended (end), accepted (accept), rejected (reject), error, addedUser, removedUser
@@ -252,7 +497,7 @@
         // Clearing timeout
         if (self.inviteTimers[self.myID]) {
           clearTimeout(self.inviteTimers[self.myID]);
-          self.inviteTimers[self.myID] = false;
+          delete self.inviteTimers[self.myID];
         }
 
         self.initSubscription();
@@ -262,16 +507,21 @@
         delete self.reject;
       };
 
-      self.reject = function () {
+      self.reject = function (reason) {
+
+        reason = utils.isString(reason)?reason:'';
 
         if (self.inviteTimers[self.myID]) {
           clearTimeout(self.inviteTimers[self.myID]);
           delete self.inviteTimers[self.myID];
         }
 
-        self.sendToUser(self.inviterID, { cobrowsingRejected: true });
+        self.sendToUser(self.inviterID, {
+          cobrowsingRejected: true,
+          reason: reason
+        });
 
-        trigger('sessionEnded', { sessionID: self.id });
+        self.end();
       };
 
       // Autoreject by timeout.
@@ -282,8 +532,9 @@
 
     }
 
+    self.status = 'created';
     // Initialization logic
-    trigger('sessionCreated', {
+    module.trigger('sessionCreated', {
       sessionID: self.id,
       session: self
     });
@@ -362,6 +613,8 @@
       module.disconnect();
     });
 
+    module.eventAccumulator.init();
+
   };
 
   module.disconnect = function cobrowsingDisconnect() {
@@ -378,8 +631,13 @@
 
     } else {
 
-      Object.keys(module.sessions, function (id) {
-        module.sessions[id].end();
+      module.eventAccumulator.shutdown();
+
+      Object.keys(module.sessions.store).forEach(function (id) {
+        console.info('killing cobrowsing session by id', id, module.sessions[id]);
+        if (module.sessions.store[id] && module.sessions.store[id].status != 'ended') {
+          module.sessions.store[id].end();
+        }
       });
 
       module.userSubscription.unsubscribe();
@@ -412,11 +670,11 @@
   };
 
   module.on('sessionCreated', function (event) {
-    module.sessions[event.sessionID] = event.session;
+    module.sessions.store[event.sessionID] = event.session;
   });
 
   module.on('sessionEnded', function (event) {
-    delete module.sessions[event.sessionID];
+    delete module.sessions.store[event.sessionID];
   });
 
   // Connection now on gotTempCreds, not ondemand.
@@ -489,7 +747,25 @@
   });
 
   module.registerMethods({
+    /**
+     * This method used to start cobrowsing session.
+     *
+     * @memberof CobrowsingAPI
+     * @method oSDK.cobrowsing
+     * @param {string} userID ID of opponent.
+     * @returns {object} [CobrowsingSession] CobrowsingSession object.
+     */
     cobrowsing: module.cobrowsingRequest,
+    /**
+     * This method used to configure defaults for new cobrowsing sessions.
+     *
+     * @memberof CobrowsingAPI
+     * @method oSDK.cobrowsing
+     * @param {string} userID ID of opponent.
+     * @returns {object} [CobrowsingSession] CobrowsingSession object.
+     */
+    cobrowsingOptions: module.setOptions,
+
   });
 
 })(oSDK);
