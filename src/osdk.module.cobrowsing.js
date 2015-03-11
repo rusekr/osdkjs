@@ -231,86 +231,93 @@
       });
     };
 
+    var getElementCSSPath = function elementLocation(el) {
+      if (el === null) {
+        module.warn('Got null element');
+      }
+      if (el instanceof $) {
+        // a jQuery element
+        el = el[0];
+      }
+      if (el[0] && el.attr && el[0].nodeType == 1) {
+        // Or a jQuery element not made by us
+        el = el[0];
+      }
+      if (el.id) {
+        return "#" + el.id;
+      }
+      if (el.tagName == "BODY") {
+        return "body";
+      }
+      if (el.tagName == "HEAD") {
+        return "head";
+      }
+      if (el === document) {
+        return "document";
+      }
+      var parent = el.parentNode;
+      if ((! parent) || parent == el) {
+        console.warn("elementLocation(", el, ") has null parent");
+        throw new module.Error("No locatable parent found");
+      }
+      var controlUI = false;
+      var parentLocation = elementLocation(parent);
+      if (!parentLocation) {
+        controlUI = true;
+      }
+      var children = parent.childNodes;
+      var _len = children.length;
+      var index = 0;
+      for (var i=0; i<_len; i++) {
+        if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClass') && children[i].className.indexOf(module.config('excludeCSSClass')) != -1) { // need to check several classes?
+          // Don't count our UI and it`s children
+          controlUI = true;
+          module.log('our UI detected in', children[i]);
+          break;
+        }
+        if (children[i] == el) {
+          break;
+        }
+        if (children[i].nodeType == document.ELEMENT_NODE) {
+          // Don't count text or comments
+          index++;
+        }
+      }
+      return (controlUI ? false : parentLocation + ">:nth-child(" + (index + 1) + ")");
+    };
+
     var grabMouseMove = function(e) {
       e = e || window.event;
-      if (e.pageX === null && e.clientX !== null ) {
-        var html = document.documentElement;
-        var body = document.body;
+      var target = e.target || e.srcElement;
+      var targetPath = getElementCSSPath(target);
+      if (!e.osdkcobrowsinginternal && targetPath) {
+        if (e.pageX === null && e.clientX !== null ) {
+          var html = document.documentElement;
+          var body = document.body;
 
-        e.pageX = e.clientX + (html.scrollLeft || body && body.scrollLeft || 0);
-        e.pageX -= html.clientLeft || 0;
+          e.pageX = e.clientX + (html.scrollLeft || body && body.scrollLeft || 0);
+          e.pageX -= html.clientLeft || 0;
 
-        e.pageY = e.clientY + (html.scrollTop || body && body.scrollTop || 0);
-        e.pageY -= html.clientTop || 0;
-      }
-
-      transmitEvent({
-        type: 'mousemove',
-        options: {
-          x: e.pageX,
-          y: e.pageY
+          e.pageY = e.clientY + (html.scrollTop || body && body.scrollTop || 0);
+          e.pageY -= html.clientTop || 0;
         }
-      });
+        // module.log('mousemove', e);
+        transmitEvent({
+          type: 'mousemove',
+          target: targetPath,
+          options: {
+            x: e.pageX,
+            y: e.pageY,
+            offsetX: e.offsetX,
+            offsetY: e.offsetY
+          }
+        });
+      }
     };
 
     var grabMouseButton = function(e) {
       e = e || window.event;
       var target = e.target || e.srcElement;
-
-      var getElementCSSPath = function elementLocation(el) {
-        if (el === null) {
-          module.warn('Got null element');
-        }
-        if (el instanceof $) {
-          // a jQuery element
-          el = el[0];
-        }
-        if (el[0] && el.attr && el[0].nodeType == 1) {
-          // Or a jQuery element not made by us
-          el = el[0];
-        }
-        if (el.id) {
-          return "#" + el.id;
-        }
-        if (el.tagName == "BODY") {
-          return "body";
-        }
-        if (el.tagName == "HEAD") {
-          return "head";
-        }
-        if (el === document) {
-          return "document";
-        }
-        var parent = el.parentNode;
-        if ((! parent) || parent == el) {
-          console.warn("elementLocation(", el, ") has null parent");
-          throw new module.Error("No locatable parent found");
-        }
-        var controlUI = false;
-        var parentLocation = elementLocation(parent);
-        if (!parentLocation) {
-          controlUI = true;
-        }
-        var children = parent.childNodes;
-        var _len = children.length;
-        var index = 0;
-        for (var i=0; i<_len; i++) {
-          if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClass') && children[i].className.indexOf(module.config('excludeCSSClass')) != -1) { // need to check several classes?
-            // Don't count our UI and it`s children
-            controlUI = true;
-            module.log('our UI detected in', children[i]);
-            break;
-          }
-          if (children[i] == el) {
-            break;
-          }
-          if (children[i].nodeType == document.ELEMENT_NODE) {
-            // Don't count text or comments
-            index++;
-          }
-        }
-        return (controlUI ? false : parentLocation + " :nth-child(" + (index + 1) + ")");
-      };
       var targetPath = getElementCSSPath(target);
       if (!e.osdkcobrowsinginternal && targetPath) {
         var eventObject = {
@@ -331,7 +338,7 @@
     };
 
     var startGrabbing = function () {
-      //document.addEventListener('mousemove', grabMouseMove, true);
+      document.addEventListener('mousemove', grabMouseMove, true);
 
       document.body.addEventListener('click', grabMouseButton, true);
       document.body.addEventListener('mousedown', grabMouseButton, true);
@@ -339,7 +346,7 @@
     };
 
     var stopGrabbing = function () {
-      //document.removeEventListener('mousemove', grabMouseMove, true);
+      document.removeEventListener('mousemove', grabMouseMove, true);
 
       document.body.removeEventListener('click', grabMouseButton, true);
       document.body.removeEventListener('mousedown', grabMouseButton, true);
@@ -519,6 +526,20 @@
             // Target string to object.
             if (event.body.target) {
               event.body.target = document.querySelector(event.body.target);
+            }
+
+            // Mouse coordinates normalize to target related
+            if (/mousemove/.test(event.body.type) && event.body.target) {
+              var offsetTarget = event.body.target;
+              var offsetLeft = 0;
+              var offsetTop = 0;
+              while (offsetTarget.tagName != "BODY") {
+                offsetLeft += offsetTarget.offsetLeft;
+                offsetTop += offsetTarget.offsetTop;
+                offsetTarget = offsetTarget.offsetParent;
+              }
+              event.body.options.x = (event.body.options.offsetX + offsetLeft) + 'px';
+              event.body.options.y = (event.body.options.offsetY + offsetTop) + 'px';
             }
 
             eventTypes = [event.body.type];
