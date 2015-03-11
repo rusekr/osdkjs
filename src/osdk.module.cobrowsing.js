@@ -36,12 +36,194 @@
 
   module.auth = null;
 
+
+  module.eventEmulator = (function() {
+
+    var
+      rkeyEvent = /^key/,
+      rmouseEvent = /^(?:mouse|contextmenu)|click/,
+      keyCode = {
+        BACKSPACE: 8,
+        COMMA: 188,
+        DELETE: 46,
+        DOWN: 40,
+        END: 35,
+        ENTER: 13,
+        ESCAPE: 27,
+        HOME: 36,
+        LEFT: 37,
+        NUMPAD_ADD: 107,
+        NUMPAD_DECIMAL: 110,
+        NUMPAD_DIVIDE: 111,
+        NUMPAD_ENTER: 108,
+        NUMPAD_MULTIPLY: 106,
+        NUMPAD_SUBTRACT: 109,
+        PAGE_DOWN: 34,
+        PAGE_UP: 33,
+        PERIOD: 190,
+        RIGHT: 39,
+        SPACE: 32,
+        TAB: 9,
+        UP: 38
+      },
+      buttonCode = {
+        LEFT: 0,
+        MIDDLE: 1,
+        RIGHT: 2
+      };
+
+
+    var instance = {};
+
+    instance.simulateEvent = function( elem, type, options ) {
+      var event = this.createEvent( type, options );
+      this.dispatchEvent( elem, type, event );
+    };
+
+    instance.createEvent = function( type, options ) {
+      if ( rkeyEvent.test( type ) ) {
+        return this.keyEvent( type, options );
+      }
+
+      if ( rmouseEvent.test( type ) ) {
+        return this.mouseEvent( type, options );
+      }
+    };
+
+    instance.mouseEvent = function( type, options ) {
+      var event, eventDoc, doc, body;
+      options = module.utils.extend({
+        bubbles: true,
+        cancelable: (type !== "mousemove"),
+        view: window,
+        detail: 0,
+        screenX: 0,
+        screenY: 0,
+        clientX: 1,
+        clientY: 1,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+        metaKey: false,
+        button: 0,
+        relatedTarget: undefined
+      }, options );
+
+      if ( document.createEvent ) {
+        event = document.createEvent( "MouseEvents" );
+        event.initMouseEvent( type, options.bubbles, options.cancelable,
+          options.view, options.detail,
+          options.screenX, options.screenY, options.clientX, options.clientY,
+          options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
+          options.button, options.relatedTarget || document.body.parentNode );
+
+        // IE 9+ creates events with pageX and pageY set to 0.
+        // Trying to modify the properties throws an error,
+        // so we define getters to return the correct values.
+        if ( event.pageX === 0 && event.pageY === 0 && Object.defineProperty ) {
+          eventDoc = event.relatedTarget.ownerDocument || document;
+          doc = eventDoc.documentElement;
+          body = eventDoc.body;
+
+          Object.defineProperty( event, "pageX", {
+            get: function() {
+              return options.clientX +
+                ( doc && doc.scrollLeft || body && body.scrollLeft || 0 ) -
+                ( doc && doc.clientLeft || body && body.clientLeft || 0 );
+            }
+          });
+          Object.defineProperty( event, "pageY", {
+            get: function() {
+              return options.clientY +
+                ( doc && doc.scrollTop || body && body.scrollTop || 0 ) -
+                ( doc && doc.clientTop || body && body.clientTop || 0 );
+            }
+          });
+        }
+      } else if ( document.createEventObject ) {
+        event = document.createEventObject();
+        module.utils.extend( event, options );
+        // standards event.button uses constants defined here: http://msdn.microsoft.com/en-us/library/ie/ff974877(v=vs.85).aspx
+        // old IE event.button uses constants defined here: http://msdn.microsoft.com/en-us/library/ie/ms533544(v=vs.85).aspx
+        // so we actually need to map the standard back to oldIE
+        event.button = {
+          0: 1,
+          1: 4,
+          2: 2
+        }[ event.button ] || ( event.button === -1 ? 0 : event.button );
+      }
+
+      return event;
+    };
+
+    instance.keyEvent = function( type, options ) {
+      var event;
+      options = module.utils.extend({
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+        metaKey: false,
+        keyCode: 0,
+        charCode: undefined
+      }, options );
+
+      if ( document.createEvent ) {
+        try {
+          event = document.createEvent( "KeyEvents" );
+          event.initKeyEvent( type, options.bubbles, options.cancelable, options.view,
+            options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
+            options.keyCode, options.charCode );
+        // initKeyEvent throws an exception in WebKit
+        // see: http://stackoverflow.com/questions/6406784/initkeyevent-keypress-only-works-in-firefox-need-a-cross-browser-solution
+        // and also https://bugs.webkit.org/show_bug.cgi?id=13368
+        // fall back to a generic event until we decide to implement initKeyboardEvent
+        } catch( err ) {
+          event = document.createEvent( "Events" );
+          event.initEvent( type, options.bubbles, options.cancelable );
+          module.utils.extend( event, {
+            view: options.view,
+            ctrlKey: options.ctrlKey,
+            altKey: options.altKey,
+            shiftKey: options.shiftKey,
+            metaKey: options.metaKey,
+            keyCode: options.keyCode,
+            charCode: options.charCode
+          });
+        }
+      } else if ( document.createEventObject ) {
+        event = document.createEventObject();
+        module.utils.extend( event, options );
+      }
+
+      if ( !!/msie [\w.]+/.exec( navigator.userAgent.toLowerCase() ) || (({}).toString.call( window.opera ) === "[object Opera]") ) {
+        event.keyCode = (options.charCode > 0) ? options.charCode : options.keyCode;
+        event.charCode = undefined;
+      }
+
+      return event;
+    };
+
+    instance.dispatchEvent = function( elem, type, event ) {
+      if ( elem.dispatchEvent ) {
+        elem.dispatchEvent( event );
+      } else if ( elem.fireEvent ) {
+        elem.fireEvent( "on" + type, event );
+      }
+    };
+
+    return instance;
+
+  })();
+
   // Grabs and signals events
   module.eventAccumulator = (function () {
 
     var subscriptions = {};
 
-    var fireEvent = function (data) {
+    var transmitEvent = function (data) {
       Object.keys(subscriptions).forEach(function (ID) {
         if(module.utils.isFunction(subscriptions[ID])) {
           subscriptions[ID].call(this, data);
@@ -62,9 +244,8 @@
         e.pageY -= html.clientTop || 0;
       }
 
-      fireEvent({
+      transmitEvent({
         type: 'mousemove',
-        mousemove: true,
         options: {
           x: e.pageX,
           y: e.pageY
@@ -73,7 +254,6 @@
     };
 
     var grabMouseButton = function(e) {
-      module.log('grabMouseButton for event', e);
       e = e || window.event;
       var target = e.target || e.srcElement;
 
@@ -145,15 +325,15 @@
             screenY: e.screenY
           }
         };
-        eventObject[e.type] = true;
-        fireEvent(eventObject);
+        // module.log('emitting captured event for listeners', e);
+        transmitEvent(eventObject);
       }
     };
 
     var startGrabbing = function () {
       //document.addEventListener('mousemove', grabMouseMove, true);
 
-      document.addEventListener('click', grabMouseButton, true);
+      document.body.addEventListener('click', grabMouseButton, true);
       document.body.addEventListener('mousedown', grabMouseButton, true);
       document.body.addEventListener('mouseup', grabMouseButton, true);
     };
@@ -161,7 +341,7 @@
     var stopGrabbing = function () {
       //document.removeEventListener('mousemove', grabMouseMove, true);
 
-      document.removeEventListener('click', grabMouseButton, true);
+      document.body.removeEventListener('click', grabMouseButton, true);
       document.body.removeEventListener('mousedown', grabMouseButton, true);
       document.body.removeEventListener('mouseup', grabMouseButton, true);
     };
@@ -334,15 +514,23 @@
           // Fire message callback
           if (self.eventHandlers && self.eventHandlers.message) {
 
-            // Message prework
-            if (event.body.click || event.body.mousedown || event.body.mouseup) {
+            var eventTypes = null;
+
+            // Target string to object.
+            if (event.body.target) {
               event.body.target = document.querySelector(event.body.target);
             }
 
-            utils.each(self.eventHandlers.message, function (listener) {
-              if (listener instanceof Function) {
-                listener.call(listener, event.body);
-              }
+            eventTypes = [event.body.type];
+
+            // Fire!
+            eventTypes.forEach(function (eventType) {
+              utils.each(self.eventHandlers.message, function (listener) {
+                if (listener instanceof Function) {
+                  event.body.type = eventType;
+                  listener.call(listener, event.body);
+                }
+              });
             });
           }
         }
@@ -431,45 +619,14 @@
 
     // usability method
     self.fireEvent = function (eventType, target, options) {
-      options = options || {};
-      options.osdkcobrowsinginternal = true;
-      var event = null;
-
-      if(eventType == 'click' || eventType == 'mousedown' || eventType == 'mouseup') {
-        event = document.createEvent("MouseEvents");
-        event.initMouseEvent(
-          eventType, // type
-          true, // canBubble
-          true, // cancelable
-          window, // view
-          0, // detail
-          options.screenX || 0, // screenX
-          options.screenY || 0, // screenY
-          options.clientX || 0, // clientX
-          options.clientY || 0, // clientY
-          false, // ctrlKey
-          false, // altKey
-          false, // shiftKey
-          false, // metaKey
-          0, // button
-          null // relatedTarget
-        );
-        event.osdkcobrowsinginternal = true;
-        target.dispatchEvent(event);
-        var cancelled = target.dispatchEvent(event);
-        if (cancelled) {
-          return;
+      var event = module.eventEmulator.createEvent(eventType, options);
+      // event.osdkcobrowsinginternal = true;
+      Object.defineProperty( event, 'osdkcobrowsinginternal', {
+        get: function() {
+          return true;
         }
-      } else {
-        if (target.fireEvent) {
-          target.fireEvent('on' + eventType, options);
-        } else {
-          event = document.createEvent('Events');
-          event.osdkcobrowsinginternal = true;
-          event.initEvent(eventType, true, true);
-          target.dispatchEvent(event);
-        }
-      }
+      });
+      module.eventEmulator.dispatchEvent(target, eventType, event);
     };
 
     // on: message (send), ended (end), accepted (accept), rejected (reject), error, addedUser, removedUser
@@ -565,10 +722,8 @@
       module.status = 'connected';
       module.trigger('connected');
 
-      module.log('stomp connect event callback', event);
-
       module.userSubscription = module.stompClient.subscribe("/user/" + module.auth.id, function userSubscriptionMessage (event) {
-        module.log('user subscribed event', event);
+        module.log('user subscription event', event);
 
         var data = null;
         try {
