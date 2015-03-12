@@ -286,7 +286,7 @@
       return (controlUI ? false : parentLocation + ">:nth-child(" + (index + 1) + ")");
     };
 
-    var grabMouseMove = function(e) {
+    var grabMouse = function(e) {
       e = e || window.event;
       var target = e.target || e.srcElement;
       var targetPath = getElementCSSPath(target);
@@ -301,35 +301,13 @@
           e.pageY = e.clientY + (html.scrollTop || body && body.scrollTop || 0);
           e.pageY -= html.clientTop || 0;
         }
-        // module.log('mousemove', e);
-        transmitEvent({
-          type: 'mousemove',
-          target: targetPath,
-          options: {
-            x: e.pageX,
-            y: e.pageY,
-            offsetX: e.offsetX,
-            offsetY: e.offsetY
-          }
-        });
-      }
-    };
-
-    var grabMouseButton = function(e) {
-      e = e || window.event;
-      var target = e.target || e.srcElement;
-      var targetPath = getElementCSSPath(target);
-      if (!e.osdkcobrowsinginternal && targetPath) {
+        // Chrome (40-41) gets incorrect offset(XY) properties for some spans
         var eventObject = {
           type: e.type,
           target: targetPath,
           options: {
-            offsetX: e.offsetX===undefined?e.layerX:e.offsetX,
-            offsetY: e.offsetY===undefined?e.layerY:e.offsetY,
-            clientX: e.clientX,
-            clientY: e.clientY,
-            screenX: e.screenX,
-            screenY: e.screenY
+            offsetX: (e.pageX - target.getBoundingClientRect().left) || (e.offsetX===undefined?e.layerX:e.offsetX),
+            offsetY: (e.pageY - target.getBoundingClientRect().top) || (e.offsetY===undefined?e.layerY:e.offsetY),
           }
         };
         // module.log('emitting captured event for listeners', e);
@@ -338,19 +316,19 @@
     };
 
     var startGrabbing = function () {
-      document.addEventListener('mousemove', grabMouseMove, true);
+      document.body.addEventListener('mousemove', grabMouse, true);
 
-      document.body.addEventListener('click', grabMouseButton, true);
-      document.body.addEventListener('mousedown', grabMouseButton, true);
-      document.body.addEventListener('mouseup', grabMouseButton, true);
+      document.body.addEventListener('click', grabMouse, true);
+      document.body.addEventListener('mousedown', grabMouse, true);
+      document.body.addEventListener('mouseup', grabMouse, true);
     };
 
     var stopGrabbing = function () {
-      document.removeEventListener('mousemove', grabMouseMove, true);
+      document.body.removeEventListener('mousemove', grabMouse, true);
 
-      document.body.removeEventListener('click', grabMouseButton, true);
-      document.body.removeEventListener('mousedown', grabMouseButton, true);
-      document.body.removeEventListener('mouseup', grabMouseButton, true);
+      document.body.removeEventListener('click', grabMouse, true);
+      document.body.removeEventListener('mousedown', grabMouse, true);
+      document.body.removeEventListener('mouseup', grabMouse, true);
     };
 
     return {
@@ -530,16 +508,8 @@
 
             // Mouse coordinates normalize to target related
             if (/mousemove/.test(event.body.type) && event.body.target) {
-              var offsetTarget = event.body.target;
-              var offsetLeft = 0;
-              var offsetTop = 0;
-              while (offsetTarget.tagName != "BODY") {
-                offsetLeft += offsetTarget.offsetLeft;
-                offsetTop += offsetTarget.offsetTop;
-                offsetTarget = offsetTarget.offsetParent;
-              }
-              event.body.options.x = (event.body.options.offsetX + offsetLeft) + 'px';
-              event.body.options.y = (event.body.options.offsetY + offsetTop) + 'px';
+              event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left) + 'px';
+              event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top) + 'px';
             }
 
             eventTypes = [event.body.type];
