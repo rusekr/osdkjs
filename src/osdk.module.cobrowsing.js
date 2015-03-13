@@ -25,6 +25,7 @@
   module.defaultConfig = {
     cobrowsing: {
       excludeCSSClass: 'ocobrowsing', // TODO: document
+      mouseMoveTimeout: 100,
 //      enableClicks: false, // NOTICE: ocobrowsing UI option
       server: {
         proto: 'wss'
@@ -170,7 +171,7 @@
       var event, eventDoc, doc, body;
       options = module.utils.extend({
         bubbles: true,
-        cancelable: (type !== "mousemove"),
+        cancelable: true,
         view: window,
         detail: 0,
         screenX: 0,
@@ -385,7 +386,7 @@
         if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClass') && children[i].className.indexOf(module.config('excludeCSSClass')) != -1) { // need to check several classes?
           // Don't count our UI and it`s children
           controlUI = true;
-          module.log('our UI detected in', children[i]);
+          // module.log('our UI detected in', children[i]);
           break;
         }
         if (children[i] == el) {
@@ -400,8 +401,18 @@
     };
 
     // mouse* and wheel events
+    var grabLastTime = 0;
     var grabMouse = function(e) {
       e = e || window.event;
+
+      if (e.type == 'mousemove' && module.config('mouseMoveTimeout')) {
+        var now = Date.now();
+        if (now - module.config('mouseMoveTimeout') < grabLastTime) {
+          return;
+        }
+        grabLastTime = now;
+      }
+
       var target = e.target || e.srcElement;
       var targetPath = getElementCSSPath(target);
       if (!e.osdkcobrowsinginternal && targetPath) {
@@ -434,6 +445,14 @@
       }
     };
 
+    var grabKeyboard = function(e) {
+      var target = e.target || e.srcElement;
+      var targetPath = getElementCSSPath(target);
+      if (!e.osdkcobrowsinginternal && targetPath) {
+
+      }
+    };
+
     var startGrabbing = function () {
       document.body.addEventListener('mousemove', grabMouse, true);
 
@@ -442,6 +461,10 @@
       document.body.addEventListener('click', grabMouse, true);
       document.body.addEventListener('mousedown', grabMouse, true);
       document.body.addEventListener('mouseup', grabMouse, true);
+
+      document.body.addEventListener('keydown', grabKeyboard, true);
+      document.body.addEventListener('keyup', grabKeyboard, true);
+      document.body.addEventListener('keypress', grabKeyboard, true);
     };
 
     var stopGrabbing = function () {
@@ -452,6 +475,10 @@
       document.body.removeEventListener('click', grabMouse, true);
       document.body.removeEventListener('mousedown', grabMouse, true);
       document.body.removeEventListener('mouseup', grabMouse, true);
+
+      document.body.removeEventListener('keydown', grabKeyboard, true);
+      document.body.removeEventListener('keyup', grabKeyboard, true);
+      document.body.removeEventListener('keypress', grabKeyboard, true);
     };
 
     return {
@@ -490,7 +517,7 @@
       return client.send('/cobrowsing/' + sessionID, {}, JSON.stringify(data));
     };
 
-    client.logLevel = 1;
+    client.logLevel = 0; // NOTICE: STOMP client library debug
 
     client.debug = function () {
       if(module.debug && client.logLevel) {
