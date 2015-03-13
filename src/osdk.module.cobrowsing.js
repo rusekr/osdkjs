@@ -42,6 +42,7 @@
     var
       rkeyEvent = /^key/,
       rmouseEvent = /^(?:mouse|contextmenu)|click/,
+      rwheelEvent = /^wheel/,
       keyCode = {
         BACKSPACE: 8,
         COMMA: 188,
@@ -70,6 +71,11 @@
         LEFT: 0,
         MIDDLE: 1,
         RIGHT: 2
+      },
+      deltaModeCode = {
+        DOM_DELTA_PIXEL: 0,
+        DOM_DELTA_LINE: 1,
+        DOM_DELTA_PAGE: 2
       };
 
 
@@ -87,6 +93,10 @@
 
       if ( rmouseEvent.test( type ) ) {
         return this.mouseEvent( type, options );
+      }
+
+      if ( rwheelEvent.test( type ) ) {
+        return this.wheelEvent( type, options );
       }
     };
 
@@ -117,6 +127,117 @@
           options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
           options.button, options.relatedTarget || document.body.parentNode );
 
+        // IE 9+ creates events with pageX and pageY set to 0.
+        // Trying to modify the properties throws an error,
+        // so we define getters to return the correct values.
+        if ( event.pageX === 0 && event.pageY === 0 && Object.defineProperty ) {
+          eventDoc = event.relatedTarget.ownerDocument || document;
+          doc = eventDoc.documentElement;
+          body = eventDoc.body;
+
+          Object.defineProperty( event, "pageX", {
+            get: function() {
+              return options.clientX +
+                ( doc && doc.scrollLeft || body && body.scrollLeft || 0 ) -
+                ( doc && doc.clientLeft || body && body.clientLeft || 0 );
+            }
+          });
+          Object.defineProperty( event, "pageY", {
+            get: function() {
+              return options.clientY +
+                ( doc && doc.scrollTop || body && body.scrollTop || 0 ) -
+                ( doc && doc.clientTop || body && body.clientTop || 0 );
+            }
+          });
+        }
+      } else if ( document.createEventObject ) {
+        event = document.createEventObject();
+        module.utils.extend( event, options );
+        // standards event.button uses constants defined here: http://msdn.microsoft.com/en-us/library/ie/ff974877(v=vs.85).aspx
+        // old IE event.button uses constants defined here: http://msdn.microsoft.com/en-us/library/ie/ms533544(v=vs.85).aspx
+        // so we actually need to map the standard back to oldIE
+        event.button = {
+          0: 1,
+          1: 4,
+          2: 2
+        }[ event.button ] || ( event.button === -1 ? 0 : event.button );
+      }
+
+      return event;
+    };
+
+    instance.wheelEvent = function( type, options ) {
+      var event, eventDoc, doc, body;
+      options = module.utils.extend({
+        bubbles: true,
+        cancelable: (type !== "mousemove"),
+        view: window,
+        detail: 0,
+        screenX: 0,
+        screenY: 0,
+        clientX: 1,
+        clientY: 1,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+        metaKey: false,
+        button: 0,
+        relatedTarget: undefined,
+        modifiersList: '',
+        deltaX: 0,
+        deltaY: 0,
+        deltaZ: 0,
+        deltaMode: 0
+      }, options );
+
+
+
+      if ( document.createEvent ) {
+        event = document.createEvent( "WheelEvent" );
+
+//         NOTICE: initWheelEvent not working for now
+//         if (!options.modifiersList) {
+//           options.modifiersList = [];
+//           ['altKey', 'ctrlKey', 'shiftKey', 'metaKey'].forEach(function (key) {
+//             if (options[key]) {
+//               options.modifiersList.push(key);
+//             }
+//           });
+//           options.modifiersList = options.modifiersList.join(' ');
+//         }
+//         event.initWheelEvent( type, options.bubbles, options.cancelable,
+//           options.view, options.detail,
+//           options.screenX, options.screenY, options.clientX, options.clientY,
+//           options.button, options.relatedTarget || document.body.parentNode,
+//           options.modifiersList,
+//           options.deltaX, options.deltaY, options.deltaZ, options.deltaMode);
+
+        event.initMouseEvent( type, options.bubbles, options.cancelable,
+          options.view, options.detail,
+          options.screenX, options.screenY, options.clientX, options.clientY,
+          options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
+          options.button, options.relatedTarget || document.body.parentNode );
+
+        Object.defineProperty( event, "deltaX", {
+          get: function() {
+            return options.deltaX;
+          }
+        });
+        Object.defineProperty( event, "deltaY", {
+          get: function() {
+            return options.deltaY;
+          }
+        });
+        Object.defineProperty( event, "deltaZ", {
+          get: function() {
+            return options.deltaZ;
+          }
+        });
+        Object.defineProperty( event, "deltaMode", {
+          get: function() {
+            return options.deltaMode;
+          }
+        });
         // IE 9+ creates events with pageX and pageY set to 0.
         // Trying to modify the properties throws an error,
         // so we define getters to return the correct values.
@@ -235,14 +356,6 @@
       if (el === null) {
         module.warn('Got null element');
       }
-      if (el instanceof $) {
-        // a jQuery element
-        el = el[0];
-      }
-      if (el[0] && el.attr && el[0].nodeType == 1) {
-        // Or a jQuery element not made by us
-        el = el[0];
-      }
       if (el.id) {
         return "#" + el.id;
       }
@@ -286,6 +399,7 @@
       return (controlUI ? false : parentLocation + ">:nth-child(" + (index + 1) + ")");
     };
 
+    // mouse* and wheel events
     var grabMouse = function(e) {
       e = e || window.event;
       var target = e.target || e.srcElement;
@@ -308,6 +422,11 @@
           options: {
             offsetX: (e.pageX - target.getBoundingClientRect().left) || (e.offsetX===undefined?e.layerX:e.offsetX),
             offsetY: (e.pageY - target.getBoundingClientRect().top) || (e.offsetY===undefined?e.layerY:e.offsetY),
+            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+            deltaX: e.deltaX || 0,
+            deltaY: e.deltaY || 0,
+            deltaZ: e.deltaZ || 0,
+            deltaMode: e.deltaMode || 0,
           }
         };
         // module.log('emitting captured event for listeners', e);
@@ -318,6 +437,8 @@
     var startGrabbing = function () {
       document.body.addEventListener('mousemove', grabMouse, true);
 
+      document.body.addEventListener('wheel', grabMouse, true);
+
       document.body.addEventListener('click', grabMouse, true);
       document.body.addEventListener('mousedown', grabMouse, true);
       document.body.addEventListener('mouseup', grabMouse, true);
@@ -325,6 +446,8 @@
 
     var stopGrabbing = function () {
       document.body.removeEventListener('mousemove', grabMouse, true);
+
+      document.body.removeEventListener('wheel', grabMouse, true);
 
       document.body.removeEventListener('click', grabMouse, true);
       document.body.removeEventListener('mousedown', grabMouse, true);
