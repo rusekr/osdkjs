@@ -25,7 +25,7 @@
   module.defaultConfig = {
     cobrowsing: {
       excludeCSSClass: 'ocobrowsing', // TODO: document
-      mouseMoveTimeout: 100,
+      mouseMoveTimeout: 50,
 //      enableClicks: false, // NOTICE: ocobrowsing UI option
       server: {
         proto: 'wss'
@@ -81,6 +81,19 @@
 
 
     var instance = {};
+
+    var generateModifirsList = function (options) {
+      if (!options.modifiersList) {
+        options.modifiersList = [];
+        ['altKey', 'ctrlKey', 'shiftKey', 'metaKey'].forEach(function (key) {
+          if (options[key]) {
+            options.modifiersList.push(key);
+          }
+        });
+        options.modifiersList = options.modifiersList.join(' ');
+      }
+      return options;
+    };
 
     instance.simulateEvent = function( elem, type, options ) {
       var event = this.createEvent( type, options );
@@ -191,21 +204,11 @@
         deltaMode: 0
       }, options );
 
-
-
       if ( document.createEvent ) {
         event = document.createEvent( "WheelEvent" );
 
 //         NOTICE: initWheelEvent not working for now
-//         if (!options.modifiersList) {
-//           options.modifiersList = [];
-//           ['altKey', 'ctrlKey', 'shiftKey', 'metaKey'].forEach(function (key) {
-//             if (options[key]) {
-//               options.modifiersList.push(key);
-//             }
-//           });
-//           options.modifiersList = options.modifiersList.join(' ');
-//         }
+//         options = generateModifirsList(options);
 //         event.initWheelEvent( type, options.bubbles, options.cancelable,
 //           options.view, options.detail,
 //           options.screenX, options.screenY, options.clientX, options.clientY,
@@ -303,17 +306,35 @@
         // and also https://bugs.webkit.org/show_bug.cgi?id=13368
         // fall back to a generic event until we decide to implement initKeyboardEvent
         } catch( err ) {
-          event = document.createEvent( "Events" );
-          event.initEvent( type, options.bubbles, options.cancelable );
-          module.utils.extend( event, {
-            view: options.view,
-            ctrlKey: options.ctrlKey,
-            altKey: options.altKey,
-            shiftKey: options.shiftKey,
-            metaKey: options.metaKey,
-            keyCode: options.keyCode,
-            charCode: options.charCode
-          });
+          try {
+            event = document.createEvent( "KeyboardEvents" );
+            options = generateModifirsList(options);
+            event.initKeyboardEvent( type, options.bubbles, options.cancelable, options.view,
+              options.keyIdentifier, options.location, options.modifiersList, options.repeat, options.locale );
+
+            // Workaround for webkit
+            var getterCode = {get: function() {return options.charCode;}};
+            var getterChar = {get: function() {return String.fromCharCode(options.charCode);}};
+            Object.defineProperties(event, {
+                charCode: getterCode,
+                which: getterChar,
+                keyCode: getterCode, // Not fully correct
+                key: getterChar,     // Not fully correct
+                char: getterChar
+            });
+          } catch ( errNext ) {
+            event = document.createEvent( "Events" );
+            event.initEvent( type, options.bubbles, options.cancelable );
+            module.utils.extend( event, {
+              view: options.view,
+              ctrlKey: options.ctrlKey,
+              altKey: options.altKey,
+              shiftKey: options.shiftKey,
+              metaKey: options.metaKey,
+              keyCode: options.keyCode,
+              charCode: options.charCode
+            });
+          }
         }
       } else if ( document.createEventObject ) {
         event = document.createEventObject();
@@ -431,9 +452,13 @@
           type: e.type,
           target: targetPath,
           options: {
+            ctrlKey: e.ctrlKey,
+            altKey: e.altKey,
+            shiftKey: e.shiftKey,
+            metaKey: e.metaKey,
             offsetX: (e.pageX - target.getBoundingClientRect().left) || (e.offsetX===undefined?e.layerX:e.offsetX),
             offsetY: (e.pageY - target.getBoundingClientRect().top) || (e.offsetY===undefined?e.layerY:e.offsetY),
-            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack for wheel
             deltaX: e.deltaX || 0,
             deltaY: e.deltaY || 0,
             deltaZ: e.deltaZ || 0,
@@ -449,7 +474,58 @@
       var target = e.target || e.srcElement;
       var targetPath = getElementCSSPath(target);
       if (!e.osdkcobrowsinginternal && targetPath) {
+        var eventObject = {
+          type: e.type,
+          target: targetPath,
+          options: {
+            ctrlKey: e.ctrlKey,
+            altKey: e.altKey,
+            shiftKey: e.shiftKey,
+            metaKey: e.metaKey,
+            detail: e.detail,
+            which: e.which,
+            keyCode: e.keyCode,
+            charCode: e.charCode,
+            keyIdentifier: e.keyIdentifier,
+            location: e.location,
+            repeat: e.repeat
+          }
+        };
+        module.log('emitting captured event for listeners', e);
+        transmitEvent(eventObject);
+      }
+    };
 
+    var grabFocus = function(e) {
+      var target = e.target || e.srcElement;
+      var targetPath = getElementCSSPath(target);
+      if (!e.osdkcobrowsinginternal && targetPath) {
+        var eventObject = {
+          type: e.type,
+          target: targetPath,
+          options: {
+            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+          }
+        };
+        module.log('emitting captured event for listeners', e);
+        transmitEvent(eventObject);
+      }
+    };
+
+    var grabChange = function(e) {
+      var target = e.target || e.srcElement;
+      var targetPath = getElementCSSPath(target);
+      if (!e.osdkcobrowsinginternal && targetPath) {
+        var eventObject = {
+          type: e.type,
+          target: targetPath,
+          options: {
+            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+            value: target.value ? target.value : ''
+          }
+        };
+        module.log('emitting captured event for listeners', e);
+        transmitEvent(eventObject);
       }
     };
 
@@ -461,6 +537,10 @@
       document.body.addEventListener('click', grabMouse, true);
       document.body.addEventListener('mousedown', grabMouse, true);
       document.body.addEventListener('mouseup', grabMouse, true);
+
+      document.body.addEventListener('focus', grabFocus, true);
+
+      document.body.addEventListener('change', grabChange, true);
 
       document.body.addEventListener('keydown', grabKeyboard, true);
       document.body.addEventListener('keyup', grabKeyboard, true);
@@ -475,6 +555,10 @@
       document.body.removeEventListener('click', grabMouse, true);
       document.body.removeEventListener('mousedown', grabMouse, true);
       document.body.removeEventListener('mouseup', grabMouse, true);
+
+      document.body.removeEventListener('focus', grabFocus, true);
+
+      document.body.removeEventListener('change', grabChange, true);
 
       document.body.removeEventListener('keydown', grabKeyboard, true);
       document.body.removeEventListener('keyup', grabKeyboard, true);
@@ -752,6 +836,13 @@
         });
         self.killSubscription();
       }
+
+      // Clearing inviteTimers
+      Object.keys(self.inviteTimers).forEach(function (timerID) {
+        clearTimeout(self.inviteTimers[timerID]);
+        delete self.inviteTimers[timerID];
+      });
+
       self.status = 'ended';
       self.trigger('ended', {});
 
@@ -767,6 +858,7 @@
           return true;
         }
       });
+      module.log('firing osdk event: ' + event.type, event, 'on target', target);
       module.eventEmulator.dispatchEvent(target, eventType, event);
     };
 
