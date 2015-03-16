@@ -491,7 +491,7 @@
             repeat: e.repeat
           }
         };
-        module.log('emitting captured event for listeners', e);
+        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
@@ -504,10 +504,10 @@
           type: e.type,
           target: targetPath,
           options: {
-            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+            detail: e.detail
           }
         };
-        module.log('emitting captured event for listeners', e);
+        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
@@ -517,14 +517,14 @@
       var targetPath = getElementCSSPath(target);
       if (!e.osdkcobrowsinginternal && targetPath) {
         var eventObject = {
-          type: e.type,
+          type: 'change', // Rewriting keyup when needed
           target: targetPath,
           options: {
-            detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack
+            detail: e.detail,
             value: target.value ? target.value : ''
           }
         };
-        module.log('emitting captured event for listeners', e);
+        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
@@ -541,6 +541,7 @@
       document.body.addEventListener('focus', grabFocus, true);
 
       document.body.addEventListener('change', grabChange, true);
+      document.body.addEventListener('keyup', grabChange, true); // Emulate maybe change
 
       document.body.addEventListener('keydown', grabKeyboard, true);
       document.body.addEventListener('keyup', grabKeyboard, true);
@@ -559,6 +560,7 @@
       document.body.removeEventListener('focus', grabFocus, true);
 
       document.body.removeEventListener('change', grabChange, true);
+      document.body.removeEventListener('keyup', grabChange, true); // Emulate maybe change
 
       document.body.removeEventListener('keydown', grabKeyboard, true);
       document.body.removeEventListener('keyup', grabKeyboard, true);
