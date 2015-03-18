@@ -203,6 +203,27 @@
   };
 
   /*
+   * Returns or updates value in object by specified path
+   */
+  var pathManage = function pathManage (obj, path, value) {
+    var parts = path.split('.');
+    var i, tmp;
+    for(i = 0; i < parts.length; i++) {
+        tmp = obj[parts[i]];
+        if (value !== undefined) {
+          if (i === parts.length - 1) {
+              tmp = obj[parts[i]] = value;
+          }
+          else if(tmp === undefined) {
+              tmp = obj[parts[i]] = {};
+          }
+        }
+        obj = tmp;
+    }
+    return obj;
+  };
+
+  /*
    * Safe hasOwnProperty property replacement
    */
   var ownProperty = function (obj, prop) {
@@ -269,7 +290,7 @@
           }
           if (deep) {
             // More recursion allowed
-            inObj[key] = extend(true, {}, inObj[key], obj[key]);
+            extend(true, inObj[key], obj[key]);
           } else {
             // Just replacing
             inObj[key] = obj[key];
@@ -975,15 +996,23 @@
     };
     self.trigger = self.constructor.prototype.trigger.bind(self);
 
-    self.constructor.prototype.config = function () {
+    self.constructor.prototype.config = function (name, value) {
 
-      // If we got parameter string like 'app.key' - returning <moduleName>.<this subpath> or <this subpath> if first was not found or throwing error.
-      if (arguments[0] && isString(arguments[0])) {
+      // If we got parameter string <subPath> like 'app.key' - returning <moduleName>.<subPath> or <subPath> if first was not found or throwing error.
+      // Setting parameters runtime only goes to prefixed with <moduleName> pathes.
+      if (name && isString(name)) {
+        // Setting in prefixed config
+        if (value !== undefined) {
+          var path = [nameInt].concat(name.split('.'));
+          return pathManage(mainConfig, path.join('.'), value);
+        }
+
         var parameter = mainConfig[nameInt];
-        var subParameter = arguments[0].split('.');
+        var subParameter = name.split('.');
         var i = 0;
+        // Getting in prefixed config
         if (isObject(parameter)) {
-          for (; i < subParameter.length; i++) {
+          for (i=0; i < subParameter.length; i++) {
             //self.log('config searching', parameter, subParameter[i]);
             if (!ownProperty(parameter, subParameter[i])) {
               parameter = undefined;
@@ -992,20 +1021,21 @@
             parameter = parameter[subParameter[i]];
           }
         }
+        // Getting in unprefixed config
         if (parameter === undefined) {
           parameter = mainConfig;
-          subParameter = arguments[0].split('.');
+          subParameter = name.split('.');
           for (i = 0; i < subParameter.length; i++) {
-            self.log('config searching', parameter, subParameter[i]);
+            // self.log('config searching', parameter, subParameter[i]);
             if (!ownProperty(parameter, subParameter[i])) {
-              throw new self.Error('Module.config: can\'t find config parameter:' + arguments[0]);
+              throw new self.Error('Module.config: can\'t find config parameter:' + name);
             }
             parameter = parameter[subParameter[i]];
           }
         }
         return parameter;
       } else {
-        throw new self.Error('Module.config: can\'t find config parameter:' + arguments[0]);
+        throw new self.Error('Module.config: can\'t find config parameter:' + name);
       }
     };
     self.config = self.constructor.prototype.config.bind(self);
@@ -1145,7 +1175,7 @@
     self.requires = self.constructor.prototype.requires.bind(self);
 
     self.constructor.prototype.registerConfig = function oSDKregisterConfig (configObject) {
-      mainConfig = extend(true, {}, mainConfig, configObject);
+      extend(true, mainConfig, configObject);
     };
     self.registerConfig = self.constructor.prototype.registerConfig.bind(self);
 
@@ -1169,6 +1199,7 @@
   });
 
   // Generic functions bindings
+  utils.pathManage = pathManage;
 
   utils.ownProperty = ownProperty;
 
@@ -1387,6 +1418,13 @@
       get: function () {
         return events;
       }
+    },
+    // Returns mainConfig
+    currentConfig: {
+      enumerable: true,
+      get: function () {
+        return mainConfig;
+      }
     }
   });
 
@@ -1567,7 +1605,7 @@
   };
 
   utils.mergeConfig = function (config) {
-    mainConfig = extend(true, {}, mainConfig, config);
+    extend(true, mainConfig, config);
     this.log('merged config', config, 'with main config', mainConfig);
   };
 
