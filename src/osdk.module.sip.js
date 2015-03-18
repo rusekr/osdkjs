@@ -776,7 +776,7 @@
                 handler.apply(self, args);
               } catch (data) {
                 throw new module.Error({
-                  message: "SIP media session handling error.",
+                  message: "MediaSession error in client handler.",
                   ecode: '0111',
                   data: data
                 });
