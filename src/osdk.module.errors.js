@@ -15,8 +15,8 @@
 
     // Triggering only our errors
     if(errors.utils.isObject(arguments[0]) && arguments[0].error && arguments[0].error.oSDKError) {
-      errors.log('Proxying oSDKError unhandled exception with data', arguments[0].error);
       errors.trigger('gotError', arguments[0].error);
+      errors.warn('Proxying oSDKError unhandled exception with data', arguments[0].error);
     }
 
     // NOTICE: Not suppressing errors propagation after this function
