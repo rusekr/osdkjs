@@ -24,8 +24,8 @@
 
   module.defaultConfig = {
     cobrowsing: {
-      excludeCSSClass: 'ocobrowsing', // TODO: document
-      mouseMoveTimeout: 50,
+      excludeCSSClasses: '', //'ocobrowsing', // TODO: document
+      mouseMoveTimeout: 25,
 //      enableClicks: false, // NOTICE: ocobrowsing UI option
       server: {
         proto: 'wss'
@@ -35,9 +35,73 @@
     }
   };
 
-  module.auth = null;
+  var authCache = null;
 
+  // Makes CSS path out of DOM elemet object.
+  var getElementCSSPath = function elementLocation(el) {
 
+    if (el === null) {
+      module.warn('Got null element');
+    }
+    if (el.id) {
+      return "#" + el.id;
+    }
+    if (el.tagName == "BODY") {
+      return "body";
+    }
+    if (el.tagName == "HEAD") {
+      return "head";
+    }
+    if (el === document) {
+      return "document";
+    }
+    var parent = el.parentNode;
+    if ((! parent) || parent == el) {
+      console.warn("elementLocation(", el, ") has null parent");
+      throw new module.Error("No locatable parent found");
+    }
+    var controlUI = false;
+    var parentLocation = elementLocation(parent);
+    if (!parentLocation) {
+      controlUI = true;
+    }
+    var children = parent.childNodes;
+    var _len = children.length;
+    var index = 0;
+    function findCSSHelper(excludeClassName) {
+      if(children[i].className.split(' ').indexOf(excludeClassName) != -1) {
+        foundOur = true;
+        return false;
+      }
+      return true;
+    }
+    for (var i=0; i<_len; i++) {
+      if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClasses')) {
+
+        var exludeClassArray = [].concat(module.config('excludeCSSClasses'));
+        var foundOur = false;
+        exludeClassArray.forEach(findCSSHelper);
+
+        if (foundOur) {
+          // Don't count our UI and it`s children
+          controlUI = true;
+          // module.log('our UI detected in', children[i]);
+          break;
+        }
+
+      }
+      if (children[i] == el) {
+        break;
+      }
+      if (children[i].nodeType == document.ELEMENT_NODE) {
+        // Don't count text or comments
+        index++;
+      }
+    }
+    return (controlUI ? false : parentLocation + ">:nth-child(" + (index + 1) + ")");
+  };
+
+  // Emulates DOM events
   module.eventEmulator = (function() {
 
     var
@@ -350,6 +414,10 @@
     };
 
     instance.dispatchEvent = function( elem, type, event ) {
+      if (!elem) {
+        module.warn('Cant`t dispatch event', event, 'of type', type, 'on target', elem);
+        return;
+      }
       if ( elem.dispatchEvent ) {
         elem.dispatchEvent( event );
       } else if ( elem.fireEvent ) {
@@ -361,7 +429,7 @@
 
   })();
 
-  // Grabs and signals events
+  // Grabs DOM events and signals to sessions
   module.eventAccumulator = (function () {
 
     var subscriptions = {};
@@ -372,53 +440,6 @@
           subscriptions[ID].call(this, data);
         }
       });
-    };
-
-    var getElementCSSPath = function elementLocation(el) {
-      if (el === null) {
-        module.warn('Got null element');
-      }
-      if (el.id) {
-        return "#" + el.id;
-      }
-      if (el.tagName == "BODY") {
-        return "body";
-      }
-      if (el.tagName == "HEAD") {
-        return "head";
-      }
-      if (el === document) {
-        return "document";
-      }
-      var parent = el.parentNode;
-      if ((! parent) || parent == el) {
-        console.warn("elementLocation(", el, ") has null parent");
-        throw new module.Error("No locatable parent found");
-      }
-      var controlUI = false;
-      var parentLocation = elementLocation(parent);
-      if (!parentLocation) {
-        controlUI = true;
-      }
-      var children = parent.childNodes;
-      var _len = children.length;
-      var index = 0;
-      for (var i=0; i<_len; i++) {
-        if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClass') && children[i].className.indexOf(module.config('excludeCSSClass')) != -1) { // need to check several classes?
-          // Don't count our UI and it`s children
-          controlUI = true;
-          // module.log('our UI detected in', children[i]);
-          break;
-        }
-        if (children[i] == el) {
-          break;
-        }
-        if (children[i].nodeType == document.ELEMENT_NODE) {
-          // Don't count text or comments
-          index++;
-        }
-      }
-      return (controlUI ? false : parentLocation + ">:nth-child(" + (index + 1) + ")");
     };
 
     // mouse* and wheel events
@@ -450,7 +471,7 @@
         // Chrome (40-41) gets incorrect offset(XY) properties for some spans
         var eventObject = {
           type: e.type,
-          target: targetPath,
+          targetPath: targetPath,
           options: {
             ctrlKey: e.ctrlKey,
             altKey: e.altKey,
@@ -476,7 +497,7 @@
       if (!e.osdkcobrowsinginternal && targetPath) {
         var eventObject = {
           type: e.type,
-          target: targetPath,
+          targetPath: targetPath,
           options: {
             ctrlKey: e.ctrlKey,
             altKey: e.altKey,
@@ -502,7 +523,7 @@
       if (!e.osdkcobrowsinginternal && targetPath) {
         var eventObject = {
           type: e.type,
-          target: targetPath,
+          targetPath: targetPath,
           options: {
             detail: e.detail
           }
@@ -518,7 +539,7 @@
       if (!e.osdkcobrowsinginternal && targetPath) {
         var eventObject = {
           type: 'change', // Rewriting keyup when needed
-          target: targetPath,
+          targetPath: targetPath,
           options: {
             detail: e.detail,
             value: target.value ? target.value : ''
@@ -538,7 +559,10 @@
       document.body.addEventListener('mousedown', grabMouse, true);
       document.body.addEventListener('mouseup', grabMouse, true);
 
-      document.body.addEventListener('focus', grabFocus, true);
+      document.body.addEventListener('mouseover', grabMouse, true); // FIXME: Grabbed but synthetic variant of eventEmulator do not respected by browser
+      document.body.addEventListener('mouseout', grabMouse, true); // FIXME: Grabbed but synthetic variant of eventEmulator do not respected by browser
+
+      document.body.addEventListener('focus', grabFocus, true); // FIXME: Grabbed but synthetic variant of eventEmulator do not respected by browser
 
       document.body.addEventListener('change', grabChange, true);
       document.body.addEventListener('keyup', grabChange, true); // Emulate maybe change
@@ -557,10 +581,13 @@
       document.body.removeEventListener('mousedown', grabMouse, true);
       document.body.removeEventListener('mouseup', grabMouse, true);
 
+      document.body.removeEventListener('mouseover', grabMouse, true);
+      document.body.removeEventListener('mouseout', grabMouse, true);
+
       document.body.removeEventListener('focus', grabFocus, true);
 
       document.body.removeEventListener('change', grabChange, true);
-      document.body.removeEventListener('keyup', grabChange, true); // Emulate maybe change
+      document.body.removeEventListener('keyup', grabChange, true); // Emulate "maybe" change
 
       document.body.removeEventListener('keydown', grabKeyboard, true);
       document.body.removeEventListener('keyup', grabKeyboard, true);
@@ -585,6 +612,45 @@
       // Remove subscription
       off: function (subscriptionID) {
         delete subscriptions[subscriptionID];
+      }
+
+    };
+  })();
+
+
+  module.domDataGrabber = (function () {
+
+    function isCheckable(el) {
+      var type = (el.type || "text").toLowerCase();
+      if (el.tagName == "INPUT" && ["radio", "checkbox"].indexOf(type) != -1) {
+        return true;
+      }
+      return false;
+    }
+
+    function collectForms () {
+      var elements = Array.prototype.slice.call(document.querySelectorAll('input, select, textarea'));
+
+      var formsData = [];
+
+      elements.forEach(function (element) {
+        var formData = {
+          targetPath: getElementCSSPath(element),
+          type: element.type.toLowerCase(),
+          value: (element.type.toLowerCase() == 'textarea' ? element.innerHTML : element.value),
+          checked: element.checked
+        };
+
+        formsData.push(formData);
+      });
+
+      return formsData;
+    }
+
+    return {
+      // Start grabbing
+      grabForms: function () {
+        return collectForms();
       }
 
     };
@@ -673,9 +739,9 @@
     var utils = module.utils;
     var stompClient = module.stompClient;
     var warn = module.warn;
-    var auth = module.auth;
+    var auth = authCache;
 
-    var sendForm = function (configObject) {
+    var messageSkel = function (configObject) {
 
       if (!configObject) {
         configObject = {};
@@ -738,14 +804,22 @@
             var eventTypes = null;
 
             // Target string to object.
-            if (event.body.target) {
-              event.body.target = document.querySelector(event.body.target);
+            if (event.body.targetPath) {
+              event.body.target = document.querySelector(event.body.targetPath);
             }
 
             // Mouse coordinates normalize to target related
             if (/mousemove/.test(event.body.type) && event.body.target) {
               event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left) + 'px';
               event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top) + 'px';
+            }
+
+            if (event.body.type == 'form-sync') {
+              if (event.body.elements && module.utils.isArray(event.body.elements)) {
+                event.body.elements.forEach(function (target, index) {
+                  event.body.elements[index].target = document.querySelector(event.body.elements[index].targetPath);
+                });
+              }
             }
 
             eventTypes = [event.body.type];
@@ -784,17 +858,25 @@
       });
     };
 
+    self.sendForms = function () {
+      var formData = module.domDataGrabber.grabForms();
+      self.sendInSession({
+        type: 'form-sync',
+        elements: formData
+      });
+    };
+
     self.killSubscription = function () {
       module.eventAccumulator.off(self.eventSubscription);
       self.stompSubscription.unsubscribe();
     };
 
     self.sendInSession = function (data) {
-      stompClient.sendInSession(self.id, sendForm(data));
+      stompClient.sendInSession(self.id, messageSkel(data));
     };
 
     self.sendToUser = function (userID, data) {
-      stompClient.sendToUser(userID, sendForm(data));
+      stompClient.sendToUser(userID, messageSkel(data));
     };
 
     self.inviteUser = function (userID) {
@@ -939,25 +1021,25 @@
     }
 
     // Local user attributes cache
-    module.auth = data;
+    authCache = data;
 
     // Forming STOMP URI
-    module.auth.stompURI = module.config('server.proto') + '://';
-    module.auth.stompURI += (module.auth.uris.stomp && Array.isArray(module.auth.uris.stomp) && module.auth.uris.stomp.length) ? module.auth.uris.stomp[0].split(';')[0] : ((module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : '')));
+    authCache.stompURI = module.config('server.proto') + '://';
+    authCache.stompURI += (authCache.uris.stomp && Array.isArray(authCache.uris.stomp) && authCache.uris.stomp.length) ? authCache.uris.stomp[0].split(';')[0] : ((module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : '')));
 
-    // module.log('stomp uri', module.auth.stompURI, 'proto', module.config('server.proto'));
+    // module.log('stomp uri', authCache.stompURI, 'proto', module.config('server.proto'));
 
-    // module.auth.stompURI = 'wss://192.168.2.161:8443'; // TODO: connect to fair server
+    // authCache.stompURI = 'wss://192.168.2.161:8443'; // TODO: connect to fair server
 
     // Creating STOMP client
-    module.stompClient = stompClient(module.auth.stompURI);
+    module.stompClient = stompClient(authCache.stompURI);
 
     // Connecting to STOMP server
-    module.stompClient.connect(module.auth.username, module.auth.password, function connectCallback (event) {
+    module.stompClient.connect(authCache.username, authCache.password, function connectCallback (event) {
       module.status = 'connected';
       module.trigger('connected');
 
-      module.userSubscription = module.stompClient.subscribe("/user/" + module.auth.id, function userSubscriptionMessage (event) {
+      module.userSubscription = module.stompClient.subscribe("/user/" + authCache.id, function userSubscriptionMessage (event) {
         module.log('user subscription event', event);
 
         var data = null;
@@ -1057,6 +1139,10 @@
     });
 
     return session;
+  };
+
+  module.setOptions = function oSDKCobrowsingSetOptions (path, value) {
+    module.config(path, value);
   };
 
   module.on('sessionCreated', function (event) {
