@@ -41,6 +41,7 @@
 
       "src/osdk.module.errors.js",
       "src/osdk.module.auth.js",
+      "src/osdk.module.history.js",
       "src/osdk.module.user.js",
 
       "src/osdk.module.client.js"
@@ -51,7 +52,20 @@
     ],
     "xmpp": [
       "libs/jsjac/jsjac.js",
-      "src/osdk.module.xmpp.js"
+      "src/xmpp/osdk.module.xmpp.00.general.js",
+      "src/xmpp/osdk.module.xmpp.01.config.js",
+      "src/xmpp/osdk.module.xmpp.02.errors.js",
+      "src/xmpp/osdk.module.xmpp.03.helpers.js",
+      "src/xmpp/osdk.module.xmpp.04.classes.js",
+      "src/xmpp/osdk.module.xmpp.05.commands.js",
+      "src/xmpp/osdk.module.xmpp.06.handlers.js",
+      "src/xmpp/osdk.module.xmpp.07.methods.client.js",
+      "src/xmpp/osdk.module.xmpp.08.methods.roster.js",
+      "src/xmpp/osdk.module.xmpp.09.methods.subscription.js",
+      "src/xmpp/osdk.module.xmpp.10.methods.message.js",
+      "src/xmpp/osdk.module.xmpp.11.methods.presence.js",
+      "src/xmpp/osdk.module.xmpp.12.methods.conference.js",
+      "src/xmpp/osdk.module.xmpp.XX.registration.js"
     ],
     "cobrowsing": [
       "libs/stompjs/stomp.js",

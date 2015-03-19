@@ -1038,9 +1038,6 @@
 
     var fUser = new module.factory.user();
 
-    fUser.expandCapabilities('audioCall', false, false, 'sip');
-    fUser.expandCapabilities('videoCall', false, false, 'sip');
-
   }
 
 // Commented because clearing sessions goes while disconnecting 

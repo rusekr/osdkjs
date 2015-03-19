@@ -1233,6 +1233,7 @@
    * Test to other data
    * @isValidLogin
    * @isValidID
+   * @isValidName
    */
   utils.isValidLogin = function(login) {
     if (login && utils.isString(login)) {
@@ -1246,6 +1247,15 @@
       var re = /^[-\w\d\._]+@[-\w\d\._]+\.\w{2,}$/i;
       // TODO: there are many international TLDs , need to check just @ in ID name
       return re.test(id);
+    }
+    return false;
+  };
+
+  utils.isValidName = function(name) {
+    if (name && utils.isString(name)) {
+      var re = /^[a-z_]{1,}[-a-z0-9_]*$/i;
+      // TODO: this is temp name test
+      return re.test(name);
     }
     return false;
   };
