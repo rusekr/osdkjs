@@ -52,6 +52,7 @@
       authURI: '{authorizePath}',
       expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
     },
+    webButtonMode: false,
     appID: null,
     popup: false,
     connectionRecovery: false,
@@ -315,7 +316,7 @@
 
     // Checking user token
     auth.log('connect method before token check.');
-    if(!auth.tokenCheck(true)) {
+    if (!auth.config('webButtonMode') && !auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect.
       // For popup doing personal status for second try after popup close.
       if (auth.config('popup')) {
@@ -328,57 +329,73 @@
     auth.log('connect method resumed after token check.');
 
     // Perform a ephemerals request
-    oauth.ajax({
+    if (!auth.config('webButtonMode')) {
+      oauth.ajax({
 
-      url: auth.config('apiServerURL')+auth.config('credsURI'),
-      type: 'get',
-      data: {
-        //service: 'sip' // Not needed now.
-      },
-      success: function(data) {
-        var uris = {};
-        if(data.error) {
-          auth.trigger('auth_connectionError', new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
-        } else {
+        url: auth.config('apiServerURL')+auth.config('credsURI'),
+        type: 'get',
+        data: {
+          //service: 'sip' // Not needed now.
+        },
+        success: function(data) {
+          var uris = {};
+          if(data.error) {
+            auth.trigger('auth_connectionError', new auth.Error({ 'message': data.error, 'ecode': 'auth0002' }));
+          } else {
 
-          // Filling User client sturcture
-          user.id = data.id = data.username.split(':')[1];
-          user.domain = data.domain = user.id.split('@')[1];
-          user.login = data.login = user.id.split('@')[0];
+            // Filling User client sturcture
+            user.id = data.id = data.username.split(':')[1];
+            user.domain = data.domain = user.id.split('@')[1];
+            user.login = data.login = user.id.split('@')[0];
 
-          // Array of mixed uris to object of grouped by service
-          if(auth.utils.isArray(data.uris)) {
-            auth.utils.each(data.uris, function (uri) {
-              var uriArray = uri.split(':');
-              var serviceName = uriArray.shift().toLowerCase();
-              if(!uris[serviceName]) {
-                uris[serviceName] = [];
-              }
-              uris[serviceName].push(uriArray.join(':'));
+            // Array of mixed uris to object of grouped by service
+            if(auth.utils.isArray(data.uris)) {
+              auth.utils.each(data.uris, function (uri) {
+                var uriArray = uri.split(':');
+                var serviceName = uriArray.shift().toLowerCase();
+                if(!uris[serviceName]) {
+                  uris[serviceName] = [];
+                }
+                uris[serviceName].push(uriArray.join(':'));
+              });
+              data.uris = uris;
+            }
+
+
+            auth.trigger(['gotTempCreds'], { 'data': data });
+
+            auth.trigger('connected', {
+              user: user
             });
-            data.uris = uris;
           }
-
-
-          auth.trigger(['gotTempCreds'], { 'data': data });
-
-          auth.trigger('connected', {
-            user: user
-          });
+        },
+        error: function(jqxhr) {
+          auth.log('ajax error args', arguments);
+          if (jqxhr.status === 401) {
+            // Force new token autoobtaining if old token returns 401.
+            auth.tokenCheck(true);
+          } else {
+            // If other error - throw connectionFailed event.
+            auth.trigger('auth_connectionError', new auth.Error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
+          }
         }
-      },
-      error: function(jqxhr) {
-        auth.log('ajax error args', arguments);
-        if (jqxhr.status === 401) {
-          // Force new token autoobtaining if old token returns 401.
-          auth.tokenCheck(true);
-        } else {
-          // If other error - throw connectionFailed event.
-          auth.trigger('auth_connectionError', new auth.Error({ 'message': 'Server error ' + jqxhr.status, 'ecode': 'auth0001' }));
-        }
-      }
-    });
-
+      });
+    } else {
+      // TODO: Get this from server
+      auth.trigger(['gotTempCreds'], { 'data': {
+        domain: "teligent.ru",
+        id: + "@teligent.ru",
+        login: "rusekr2",
+        password: "",
+        ttl: 263,
+        uris: {
+          sip: "osdp-teligent-test-icc01.virt.teligent.ru:443",
+          xmpp: "", // TODO: silent disable modules without urls
+          stomp: "",
+        },
+        username: + "@teligent.ru"
+      } });
+    }
   };
 
   // Disconnect function for clearing system stuff.
