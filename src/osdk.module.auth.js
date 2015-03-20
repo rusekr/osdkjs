@@ -18,11 +18,22 @@
 
   auth.disconnectedByUser = false;
 
+  // Internal user object
   var user = {
-    id: null,
     login: null,
-    domain: null
+    domain: null,
+    password: null
   };
+  Object.defineProperties(user, {
+    id: {
+      enumerable: true,
+      get: function () {
+        return user.login + '@' + user.domain;
+      }
+    }
+  });
+
+  // External user object
   auth.user = {};
   Object.defineProperties(auth.user, {
     id: {
@@ -52,7 +63,9 @@
       authURI: '{authorizePath}',
       expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
     },
-    webButtonMode: false,
+    nonEphemeral: false, // TODO: to document
+    username: null, // nonEphemeral related
+    password: null, // nonEphemeral related
     appID: null,
     popup: false,
     connectionRecovery: false,
@@ -316,7 +329,7 @@
 
     // Checking user token
     auth.log('connect method before token check.');
-    if (!auth.config('webButtonMode') && !auth.tokenCheck(true)) {
+    if (!auth.config('nonEphemeral') && !auth.tokenCheck(true)) {
       // No token, waiting for second try after auth in popup or redirect.
       // For popup doing personal status for second try after popup close.
       if (auth.config('popup')) {
@@ -329,7 +342,7 @@
     auth.log('connect method resumed after token check.');
 
     // Perform a ephemerals request
-    if (!auth.config('webButtonMode')) {
+    if (!auth.config('nonEphemeral')) {
       oauth.ajax({
 
         url: auth.config('apiServerURL')+auth.config('credsURI'),
@@ -344,9 +357,12 @@
           } else {
 
             // Filling User client sturcture
-            user.id = data.id = data.username.split(':')[1];
-            user.domain = data.domain = user.id.split('@')[1];
-            user.login = data.login = user.id.split('@')[0];
+            data.id = data.username.split(':').length > 1 ? data.username.split(':')[1] : data.username;
+            user.domain = data.domain = data.id.split('@')[1];
+            user.login = data.login = data.id.split('@')[0];
+            user.username = data.username;
+
+            // TODO: use provided ttl to delete token on specified time.
 
             // Array of mixed uris to object of grouped by service
             if(auth.utils.isArray(data.uris)) {
@@ -382,19 +398,23 @@
       });
     } else {
       // TODO: Get this from server
+      var login = auth.config('username').split('@')[0];
+      var domain = auth.config('username').split('@')[1];
+      user.domain = domain;
+      user.login = login;
+      user.password = auth.config('password');
+
       auth.trigger(['gotTempCreds'], { 'data': {
-        domain: "teligent.ru",
-        id: + "@teligent.ru",
-        login: "rusekr2",
-        password: "",
-        ttl: 263,
-        uris: {
-          sip: "osdp-teligent-test-icc01.virt.teligent.ru:443",
-          xmpp: "", // TODO: silent disable modules without urls
-          stomp: "",
-        },
-        username: + "@teligent.ru"
+        domain: user.domain,
+        id: user.id,
+        login: user.login,
+        password: user.password || '',
+        username: user.id
       } });
+
+      auth.trigger('connected', {
+        user: user
+      });
     }
   };
 

@@ -40,6 +40,9 @@
  * @property {boolean} [connectionRecovery=false] - Automatic reconnection on connection failures.
  * @property {string} [xmppResource=random] - User configurable XMPP resource or random string.
  * @property {string} [callbackURI=false] - oAuth redirect callback URI if differs from application URI.
+ * @property {boolean} [nonEphemeral=false] - Direct authorization by username and password.
+ * @property {string} [username=false] - Username (full, with domain) for direct authorization.
+ * @property {string} [password=false] - Password for direct authorization.
  */
 
 /**
