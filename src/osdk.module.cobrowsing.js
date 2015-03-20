@@ -27,10 +27,10 @@
       excludeCSSClasses: '', //'ocobrowsing', // TODO: document
       mouseMoveTimeout: 25,
 //      enableClicks: false, // NOTICE: ocobrowsing UI option
-      server: {
-        proto: 'wss'
-        //port: 8443,
-        //host: '192.168.2.161'
+      broker: {
+        proto: 'wss',
+        port: null, // 8443,
+        host: null // '192.168.2.161'
       }
     }
   };
@@ -1024,17 +1024,14 @@
     authCache = data;
 
     // Forming STOMP URI
-    authCache.stompURI = module.config('server.proto') + '://';
-    authCache.stompURI += (authCache.uris.stomp && Array.isArray(authCache.uris.stomp) && authCache.uris.stomp.length) ? authCache.uris.stomp[0].split(';')[0] : ((module.config('server.host') + (module.config('server.port') ? ':' + module.config('server.port') : '')));
-
-    // module.log('stomp uri', authCache.stompURI, 'proto', module.config('server.proto'));
-
-    // authCache.stompURI = 'wss://192.168.2.161:8443'; // TODO: connect to fair server
+    authCache.stompURI = module.config('broker.proto') + '://';
+    authCache.stompURI +=
+      module.config('broker.host') ? ((module.config('broker.host') + (module.config('broker.port') ? ':' + module.config('broker.port') : ''))) : ((authCache.uris.stomp && Array.isArray(authCache.uris.stomp) && authCache.uris.stomp.length) ? authCache.uris.stomp[0].split(';')[0] : '');
 
     // Creating STOMP client
     module.stompClient = stompClient(authCache.stompURI);
 
-    // Connecting to STOMP server
+    // Connecting to STOMP broker
     module.stompClient.connect(authCache.username, authCache.password, function connectCallback (event) {
       module.status = 'connected';
       module.trigger('connected');
@@ -1077,7 +1074,7 @@
 
     }, function errorCallback (event) {
       module.trigger(['connectionFailed'], new module.Error({
-        message: "Cobrowsing server connection error.",
+        message: "Cobrowsing STOMP broker connection error.",
         ecode: '0001',
         data: event
       }));
