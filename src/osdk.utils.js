@@ -82,7 +82,10 @@
     function fnIsEmpty(value) {
       return (fnIsNull(value) || ((typeof value.length !== 'undefined') && (value.length === 0)));
     }
-    return (!fnIsEmpty(value) && (typeof value == 'object'));
+    function fnIsArray(value) {
+      return Array.isArray(value);
+    }
+    return (!fnIsEmpty(value) && !fnIsArray(value) && (typeof value == 'object'));
   };
 
   var isFunction = function (obj) {
