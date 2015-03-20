@@ -26,7 +26,9 @@
         port: 8088,
         url: 'ws',
         host: null
-      }
+      },
+      stun: null,
+      turn: null
     }
   };
 
@@ -862,7 +864,6 @@
       module.trigger(['disconnected'], { initiator: 'system' });
     }
 
-    // TODO: merge with other module stuff
     attachTriggers(attachableEvents, module.JsSIPUA.on, module.JsSIPUA);
 
   };
@@ -898,7 +899,9 @@
 
     // Turn
     var turnServers = [];
-    if (event.data.uris && module.utils.isArray(event.data.uris.turn)) {
+    if (module.config('turn')) {
+      turnServers = [].concat(module.config('turn'));
+    } else if (event.data.uris && module.utils.isArray(event.data.uris.turn)) {
       module.utils.each(event.data.uris.turn, function (uri) {
         turnServers.push({
           urls: 'turn:' + uri.replace(';', '?'),
@@ -910,7 +913,10 @@
 
     // Stun
     var stunServers = [];
-    if (event.data.uris && module.utils.isArray(event.data.uris.stun)) {
+    module.log('stun', module.config('stun'));
+    if (module.config('stun')) {
+      stunServers = [].concat(module.config('stun'));
+    } else if (event.data.uris && module.utils.isArray(event.data.uris.stun)) {
       module.utils.each(event.data.uris.stun, function (uri) {
         stunServers.push('stun:' + uri.replace(/;.*$/, ''));
       });
@@ -949,7 +955,6 @@
     module.disconnect();
   });
 
-  // TODO: replace with direct jssip listener
   module.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
     var mediaSession = new MediaSession(event);
