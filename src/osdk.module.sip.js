@@ -95,7 +95,7 @@
       getUserMedia = n.webkitGetUserMedia.bind(n);
 
       attachMediaStream = function (element, stream) {
-        element.src = webkitURL.createObjectURL(stream);
+        element.src = (URL || webkitURL).createObjectURL(stream);
       };
     }
     else if (n.mozGetUserMedia) {
@@ -243,13 +243,18 @@
     var evData = JsSIPrtcSessionEvent.data,
         self = this,
         eventNamesMap = {
-          'connecting': 'connecting',
-          'progress': 'progress',
           'accepted': 'accepted',
-          'started': 'confirmed',
-          'gotDTMF': 'newDTMF',
+          'connecting': 'connecting',
+          'ended': 'ended',
           'failed': 'failed',
-          'ended': 'ended'
+          'gotDTMF': 'newDTMF',
+          'progress': 'progress',
+          'started': 'confirmed',
+          'streamadded': 'addstream',
+          'streamremoved': 'removestream'
+
+
+
         },
         currentSession = sessions.create(evData.session.id, { mediaSessionObject: self });
 
@@ -519,6 +524,24 @@
     * @param {string} initiator Initiator of this event. Can be 'remote', 'local' and 'system'.
     * @param {object} dtmf Object representing parameters of DTMF signal.
     * @param {object} response Instance of the incoming/outgoing INFO request.
+    *
+    */
+
+    /**
+    * Dispatched when remote mediastream added to current media session.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#streamadded
+    * @param {object} MediaStream - Object representing the remote MediaStream.
+    *
+    */
+
+    /**
+    * Dispatched when remote mediastream removed from current media session.
+    *
+    * @memberof MediaSession
+    * @event MediaSession#streamremoved
+    * @param {object} MediaStream - Object representing the remote MediaStream.
     *
     */
 
@@ -823,6 +846,11 @@
     });
 
     try {
+      if (module.debug) {
+        JsSIP.debug.enable('JsSIP:*');
+      } else {
+        JsSIP.debug.disable('JsSIP:*');
+      }
       // JsSIP initialization
       module.JsSIPUA = new JsSIP.UA(config);
     } catch (data) {
@@ -888,23 +916,23 @@
       });
     }
 
-    module.initialize({
-      'log': {
-        'level': module.debug?3:0
-      },
+    var registrarUsername = event.data.username.split(':')[1] ? event.data.username.split(':')[1] : event.data.username;
+    var registrarConfig = {
       'ws_servers': hosts,
       'no_answer_timeout': 15,
       'connection_autorecovery': false,
-      'uri': 'sip:' + event.data.username.split(':')[1],
+      'uri': 'sip:' + registrarUsername,
       'password': event.data.password,
       'stun_servers': stunServers,
       'turn_servers': turnServers,
       'trace_sip': true,
       'register': true,
-      'authorization_user': event.data.username.split(':')[1],
+      'authorization_user': registrarUsername,
       'use_preloaded_route': false
       //,hack_via_tcp: true
-    });
+    };
+    module.log('SIP registering with config', registrarConfig);
+    module.initialize(registrarConfig);
 
     module.connect();
 
