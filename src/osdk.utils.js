@@ -621,6 +621,7 @@
         url: '',
         type: 'GET',
         data: {},
+        dataType: null,
         success: function () {},
         error: function () {},
         async: true,
@@ -635,14 +636,20 @@
 
       // Request data forming
       // String data goes as is.
-      if (typeof(config.data) != 'string') {
-        // Data encoding for requests
-        if (typeof(config.data) == 'object') {
-          var tempData = [];
-          each(config.data, function (d, i) {
-            tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
-          });
-          config.data = tempData.join('&');
+      if (config.dataType) {
+        if (config.dataType == 'json') {
+          config.data = JSON.stringify(config.data);
+        }
+      } else {
+        if (typeof(config.data) != 'string') {
+          // Data encoding for requests
+          if (typeof(config.data) == 'object') {
+            var tempData = [];
+            each(config.data, function (d, i) {
+              tempData.push(encodeURIComponent(i) + '=' + encodeURIComponent(d));
+            });
+            config.data = tempData.join('&');
+          }
         }
       }
       // For 'get' in url, for other - in body
