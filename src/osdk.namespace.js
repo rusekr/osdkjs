@@ -43,6 +43,7 @@
  * @property {boolean} [nonEphemeral=false] - Direct authorization by username and password.
  * @property {string} [username=false] - Username (full, with domain) for direct authorization.
  * @property {string} [password=false] - Password for direct authorization.
+ * @property {string|string[]} [excludeCSSClasses] - See {@link CobrowsingAPI CobrowsingAPI}.
  */
 
 /**

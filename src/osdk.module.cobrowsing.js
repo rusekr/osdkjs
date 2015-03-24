@@ -23,10 +23,9 @@
   module.status = 'disconnected';
 
   module.defaultConfig = {
+    excludeCSSClasses: null, //'ocobrowsing', // TODO: document
     cobrowsing: {
-      excludeCSSClasses: '', //'ocobrowsing', // TODO: document
       mouseMoveTimeout: 25,
-//      enableClicks: false, // NOTICE: ocobrowsing UI option
       broker: {
         proto: 'wss',
         port: null, // 8443,
@@ -435,6 +434,9 @@
     var subscriptions = {};
 
     var transmitEvent = function (data) {
+      if (0/*data.type != 'mousemove'*/) {
+        module.log('transmitting event', data);
+      }
       Object.keys(subscriptions).forEach(function (ID) {
         if(module.utils.isFunction(subscriptions[ID])) {
           subscriptions[ID].call(this, data);
@@ -512,7 +514,6 @@
             repeat: e.repeat
           }
         };
-        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
@@ -528,7 +529,6 @@
             detail: e.detail
           }
         };
-        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
@@ -545,13 +545,12 @@
             value: target.value ? target.value : ''
           }
         };
-        module.log('emitting captured event ' + e.type + ' for listeners', e);
         transmitEvent(eventObject);
       }
     };
 
     var startGrabbing = function () {
-      document.body.addEventListener('mousemove', grabMouse, true);
+      document.body.addEventListener('mousemove', grabMouse, true); // NOTICE: not working if too little content on page that body and even document height less than height of browser window.
 
       document.body.addEventListener('wheel', grabMouse, true);
 
@@ -640,8 +639,10 @@
           value: (element.type.toLowerCase() == 'textarea' ? element.innerHTML : element.value),
           checked: element.checked
         };
-
-        formsData.push(formData);
+        // Collect only non-excluded forms.
+        if (formData.targetPath) {
+          formsData.push(formData);
+        }
       });
 
       return formsData;
@@ -733,6 +734,11 @@
 
   module.sessions = new SessionsManager();
 
+/**
+  * Cobrowsing session object. Emitted as first parameter of {@link CobrowsingAPI.html#cobrowsingSession cobrowsingSession} event. With this object you can control associated cobrowsing channel. Each channel is represented with separate <code>CobrowsingSession</code> object.
+  *
+  * @constructor CobrowsingSession
+  */
   var CobrowsingSession = function oSDKCobrowsingSession (configObject) {
     var self = this;
 
@@ -757,15 +763,68 @@
 
     configObject = configObject || {};
 
-
+    /**
+    * My ID.
+    *
+    * @alias myID
+    * @memberof CobrowsingSession
+    * @instance
+    * @type string
+    */
     self.myID = auth.id;
+
+    /**
+    * Current session ID.
+    *
+    * @alias id
+    * @memberof CobrowsingSession
+    * @instance
+    * @type string
+    */
     self.id = configObject.sessionID || utils.uuid();
+
+    /**
+    * ID of user initiated this session.
+    *
+    * @alias initiatorID
+    * @memberof CobrowsingSession
+    * @instance
+    * @type string
+    */
     self.initiatorID = configObject.initiatorID || self.myID;
+
+    /**
+    * ID of user invited current user to this session (may be any session user, not always session initiator).
+    *
+    * @alias inviterID
+    * @memberof CobrowsingSession
+    * @instance
+    * @type string
+    */
     self.inviterID = configObject.senderID || self.initiatorID;
+
+    /**
+    * Current session participants as object. Each key - ID of participant. It can be iterated with Object.keys(participants).forEach() method.
+    *
+    * @alias participants
+    * @memberof CobrowsingSession
+    * @instance
+    * @type object
+    * @property {number} length - Number of participants
+    */
     self.participants = {};
+
+    /**
+    * This flag determines whether this session is incoming or requested by current user.
+    *
+    * @alias incoming
+    * @memberof CobrowsingSession
+    * @instance
+    * @type boolean
+    */
     self.incoming = ((self.myID != self.initiatorID) ? true : false);
     self.inviteTimers = {};
-    self.defaultTimeout = 30000;
+    self.defaultTimeout = 30000; // TODO: make configurable through cobrowsingOptions
     self.stompSubscription = null;
     self.eventSubscription = null;
     self.status = 'not initialized';
@@ -858,6 +917,13 @@
       });
     };
 
+    /**
+    * Collect and send html forms data to other users of this session.
+    *
+    * @alias sendForms
+    * @memberof CobrowsingSession
+    * @instance
+    */
     self.sendForms = function () {
       var formData = module.domDataGrabber.grabForms();
       self.sendInSession({
@@ -871,6 +937,14 @@
       self.stompSubscription.unsubscribe();
     };
 
+    /**
+    * Send custom message to other users in this session.
+    *
+    * @alias sendInSession
+    * @memberof CobrowsingSession
+    * @instance
+    * @param {object} data - Data to send.
+    */
     self.sendInSession = function (data) {
       stompClient.sendInSession(self.id, messageSkel(data));
     };
@@ -879,6 +953,14 @@
       stompClient.sendToUser(userID, messageSkel(data));
     };
 
+    /**
+    * Invite user to this session.
+    *
+    * @alias inviteUser
+    * @memberof CobrowsingSession
+    * @instance
+    * @param {string} userID - ID of user to invite.
+    */
     self.inviteUser = function (userID) {
 
       if (self.participants[userID]) {
@@ -909,6 +991,13 @@
       }, self.defaultTimeout);
     };
 
+    /**
+    * Disconnect from this session. Other users of this session will get 'userRemoved' event.
+    *
+    * @alias end
+    * @memberof CobrowsingSession
+    * @instance
+    */
     self.end = function () {
       if (self.status == 'subscribed') {
         Object.keys(self.participants).forEach(function (userID) {
@@ -933,7 +1022,16 @@
       module.trigger('sessionEnded', { sessionID: self.id });
     };
 
-    // usability method
+    /**
+    * Method to conveniently fire incoming DOM events to self page html elements. Can be easily used with data provided by `message` session event.
+    *
+    * @alias fireEvent
+    * @memberof CobrowsingSession
+    * @instance
+    * @param {string} eventType - Type of event to fire.
+    * @param {DOMNodeObject} node - Target element to fire event on.
+    * @param {object} options - Event options.
+    */
     self.fireEvent = function (eventType, target, options) {
       var event = module.eventEmulator.createEvent(eventType, options);
       // event.osdkcobrowsinginternal = true;
@@ -942,11 +1040,79 @@
           return true;
         }
       });
-      module.log('firing osdk event: ' + event.type, event, 'on target', target);
       module.eventEmulator.dispatchEvent(target, eventType, event);
     };
 
-    // on: message (send), ended (end), accepted (accept), rejected (reject), error, addedUser, removedUser
+    /**
+    * Dispatched for inviter if invited user accepted this session.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#accepted
+    * @param {object} data - Data object for this event.
+    * @param {string} data.senderID - ID of user accepted session.
+    */
+
+    /**
+    * Dispatched for inviter if invited user rejected this session.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#rejected
+    * @param {object} data - Data object for this event.
+    * @param {string} data.senderID - ID of user rejected session.
+    *
+    */
+
+    /**
+    * Dispatched when session ended for current user.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#ended
+    *
+    */
+
+    /**
+    * Dispatched when user added to current session.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#userAdded
+    * @param {object} data - Data object for this event.
+    * @param {string} data.senderID - ID of user added to session.
+    *
+    */
+
+    /**
+    * Dispatched when user removed from current session.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#userRemoved
+    * @param {object} data - Data object for this event.
+    * @param {string} data.senderID - ID of user removed from session.
+    *
+    */
+
+    /**
+    * Dispatched when message with cobrowsing data arrived from other user. Main event for handling shared cobrowsing data.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#message
+    * @param {object} data - Data object for this event. See sample application for extended information.
+    * @param {string} data.senderID - ID of user sent this data.
+    * @param {string} data.type - event name or other type of cobrowsing information.
+    * @param {DOMNodeObject} data.target - DOM node to fire event on or related to other type of cobrowsing information html object.
+    * @param {object} data.options - Object with options for event or other type of cobrowsing information.
+    * @param {array} data.elements - Array of targets and it`s states for global forms syncronization (generated by sendForms session method).
+    *
+    */
+
+    /**
+    * Set handlers for this session events.
+    *
+    * @alias on
+    * @memberof CobrowsingSession
+    * @instance
+    * @param {string} eventName - Name of one of the session events.
+    * @param {function} callback - Function-handler for that event.
+    */
     self.on = function (eventType, callback) {
       if (!self.eventHandlers[eventType]) {
         self.eventHandlers[eventType] = [];
@@ -967,6 +1133,14 @@
 
     if (self.incoming) {
       // incoming session only.
+
+      /**
+      * Accept this incoming session and add self to it.
+      *
+      * @alias accept
+      * @memberof CobrowsingSession
+      * @instance
+      */
       self.accept = function () {
         // Clearing timeout
         if (self.inviteTimers[self.myID]) {
@@ -981,6 +1155,13 @@
         delete self.reject;
       };
 
+      /**
+      * Reject this incoming session.
+      *
+      * @alias reject
+      * @memberof CobrowsingSession
+      * @instance
+      */
       self.reject = function (reason) {
 
         reason = utils.isString(reason)?reason:'';
@@ -1067,6 +1248,13 @@
 
             module.sessions.userRemoved(data);
 
+          } else if (data.textMessage) {
+
+            module.trigger('cobrowsingTextMessage', {
+              senderID: data.senderID,
+              message: data.message
+            });
+
           }
         }
 
@@ -1138,8 +1326,16 @@
     return session;
   };
 
+  module.sendTextMessage = function oSDKCobrowsingSendTextMessage (userID, message) {
+    module.stompClient.sendToUser(userID, {
+      senderID: authCache.id,
+      textMessage: true,
+      message: message
+    });
+  };
+
   module.setOptions = function oSDKCobrowsingSetOptions (path, value) {
-    module.config(path, value);
+    return module.config(path, value);
   };
 
   module.on('sessionCreated', function (event) {
@@ -1186,17 +1382,26 @@
     'sessionEnded': { self: true },
 
     /**
-    * Dispatched when cobrowsing module got cobrowsing session request.
+    * Dispatched when cobrowsing module created cobrowsing session from current or other user`s request.
     *
-    * @private
     * @memberof CobrowsingAPI
     * @event cobrowsingSession
-    * @param {object} event - The event object associated with this event.
-    * @param {string} event.userID - User requesting cobrowsing session.
-    * @param {string} event.sessionID - Cobrowsing session ID.
+    * @param {CobrowsingSession} cobrowsingSession - New cobrowsing session.
     *
     */
     'cobrowsingSession': { client: true },
+
+    /**
+    * Dispatched when cobrowsing module got incoming text message.
+    *
+    * @memberof CobrowsingAPI
+    * @event cobrowsingTextMessage
+    * @param {CobrowsingTextMessage} cobrowsingTextMessage - Text message object.
+    * @param {string} cobrowsingTextMessage.senderID - ID of user sent message.
+    * @param {string} cobrowsingTextMessage.message - Text message string.
+    *
+    */
+    'cobrowsingTextMessage': { client: true },
 
     /*
      * Described in auth module
@@ -1220,22 +1425,37 @@
   });
 
   module.registerMethods({
+
     /**
-     * This method used to start cobrowsing session.
+     * This method used to request cobrowsing session with given user. Session will be returned with {@link cobrowsingSession CobrowsingSession} event.
      *
      * @memberof CobrowsingAPI
      * @method oSDK.cobrowsing
-     * @param {string} userID ID of opponent.
-     * @returns {object} [CobrowsingSession] CobrowsingSession object.
+     * @param {string} userID - ID of opponent.
+     * @returns {CobrowsingSession} cobrowsingSession - CobrowsingSession object.
      */
     cobrowsing: module.cobrowsingRequest,
+
     /**
-     * This method used to configure defaults for new cobrowsing sessions.
+     * This method used to send text message to given user.
      *
      * @memberof CobrowsingAPI
-     * @method oSDK.cobrowsing
-     * @param {string} userID ID of opponent.
-     * @returns {object} [CobrowsingSession] CobrowsingSession object.
+     * @method oSDK.cobrowsingTextMessage
+     * @param {string} userID - ID of user to send message.
+     * @param {string} textMessage - Text message to send.
+     */
+    cobrowsingTextMessage: module.sendTextMessage,
+
+    /**
+     * This method used to configure defaults for new cobrowsing sessions and some common cobrowsing options.
+     * Parameters can be:<br>
+     * 'excludeCSSClasses' - exclude html elements marked with this classes and it`s children from capturing and transmitting assoceated events. Can be string or array of strings.
+     *
+     * @memberof CobrowsingAPI
+     * @method oSDK.cobrowsingOptions
+     * @param {string} parameterName - Name of parameter.
+     * @param {*} [parameterValue] - Parameter value.
+     * @returns {*} actualValue - Actual parameter value.
      */
     cobrowsingOptions: module.setOptions,
 

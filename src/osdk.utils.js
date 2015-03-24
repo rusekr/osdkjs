@@ -1017,10 +1017,10 @@
           return pathManage(mainConfig, path.join('.'), value);
         }
 
+        // Getting in prefixed config
         var parameter = mainConfig[nameInt];
         var subParameter = name.split('.');
         var i = 0;
-        // Getting in prefixed config
         if (isObject(parameter)) {
           for (i=0; i < subParameter.length; i++) {
             //self.log('config searching', parameter, subParameter[i]);
