@@ -693,11 +693,12 @@
   SessionsManager.prototype.createOutgoing = function (data) {
     var session = new CobrowsingSession();
 
+    module.trigger('cobrowsingSession', session);
+
     session.initSubscription();
 
     session.inviteUser(data.userID);
 
-    module.trigger('cobrowsingSession', session);
   };
 
   SessionsManager.prototype.inviteAccepted = function (data) {
@@ -1017,7 +1018,7 @@
       });
 
       self.status = 'ended';
-      self.trigger('ended', {});
+      self.trigger('ended');
 
       module.trigger('sessionEnded', { sessionID: self.id });
     };
@@ -1042,6 +1043,13 @@
       });
       module.eventEmulator.dispatchEvent(target, eventType, event);
     };
+
+    /**
+    * Dispatched for current user when subscription to event-broadcasting server is initiated.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#subscribed
+    */
 
     /**
     * Dispatched for inviter if invited user accepted this session.
