@@ -868,9 +868,9 @@
             }
 
             // Mouse coordinates normalize to target related
-            if (/mousemove/.test(event.body.type) && event.body.target) {
-              event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left) + 'px';
-              event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top) + 'px';
+            if (event.body.options.offsetX && event.body.target) {
+              event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left);
+              event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top);
             }
 
             if (event.body.type == 'form-sync') {
