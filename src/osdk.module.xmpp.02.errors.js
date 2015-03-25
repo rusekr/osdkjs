@@ -39,7 +39,7 @@
         /* 01 */ 'Invalid client status',
         /* 02 */ 'Invalid nickname',
         /* 03 */ 'Invalid group name',
-        /* 04 */ 'Invalid contacts parameters',
+        /* 04 */ 'Invalid contacts\' parameters',
         /* 05 */ 'Invalid message format',
         /* 06 */ 'Invalid data format'
       ],
@@ -47,35 +47,35 @@
       [
         /* 00 */ 'Unregistered client status',
         /* 01 */ 'You can not set system status',
-        /* 02 */ 'Status not set'
+        /* 02 */ 'Status has not set'
       ],
       // Section 04 - Signatures
       [
         /* 00 */ 'Invalid signature',
-        /* 01 */ 'Signature not set'
+        /* 01 */ 'Signature has not set'
       ],
       // Section 05 - Contacts
       [
-        /* 00 */ 'This contact does not exists in your contact list',
+        /* 00 */ 'This contact does not exist in your contact list',
         /* 01 */ 'This contact is already in your contact list',
         /* 02 */ 'You can not add youself to contact list',
         /* 03 */ 'You can not remove youself from contact list'
       ],
       // Section 06 - Requests
       [
-        /* 00 */ 'You can not reject youself auth request',
-        /* 01 */ 'You can not accept youself auth request',
-        /* 02 */ 'Request is not exists'
+        /* 00 */ 'You can not reject your auth request',
+        /* 01 */ 'You can not accept your auth request',
+        /* 02 */ 'Request does not exist'
       ],
       // Section 07 - Subscriptions
       [
         /* 00 */ 'You can not send youself auth request',
-        /* 01 */ 'Auth request to contact already sent',
-        /* 02 */ 'You already subscribed to contact'
+        /* 01 */ 'Auth request to contact has already sent',
+        /* 02 */ 'You have already subscribed to contact'
       ],
       // Section 08 - Messages
       [
-        /* 00 */ 'You can not send message youself'
+        /* 00 */ 'You can not send message to youself'
       ]
     ];
 

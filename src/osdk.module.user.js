@@ -20,7 +20,7 @@
   var utils = module.utils;
 
   /**
-   * Объект, описывающий элементы текущего авторизованного пользователя, элементы списка контактов или входящие запросы. В зависимости от назначения описания меняется состав свойст
+   * An object describes the elements of the currently logged in user, list items or contacts for incoming requests. Depending on the purpose of description the composition of the properties changes
    *
    * @constructor IUser
    */
@@ -42,7 +42,7 @@
           Object.defineProperties(result, {
 
             /**
-              * Идентификатор контакта или запроса
+              * Contact ID or request
               *
               * @alias id
               * @memberof IUser
@@ -57,7 +57,7 @@
             },
 
             /**
-              * Логин контакта или запроса
+              * Login of the contact or request
               *
               * @alias login
               * @memberof IUser
@@ -72,7 +72,7 @@
             },
 
             /**
-              * Домен контакта или запроса
+              * Domain of the contact or request
               *
               * @alias domain
               * @memberof IUser
@@ -93,7 +93,7 @@
             Object.defineProperties(result, {
 
               /**
-               * JID контакта или запроса, создается для тех экземпляров класса {IUser}, для которых при создании был указан ресурс
+               * JID of the contact or request,is created for those instances of the class {IUser}, which was specified when creating the resource
                *
                * @alias jid
                * @memberof IUser
@@ -108,7 +108,7 @@
               },
 
               /**
-               * Ресурс контакта или запроса
+               * Resource of the contact or request
                *
                * @alias resource
                * @memberof IUser

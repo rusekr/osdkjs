@@ -21,7 +21,7 @@
   var utils = module.utils;
 
   /**
-   * Элемент массива объектов {IHistory}, хранит базовые данные о записи и пользовательские параметры
+   * Element of an array of objects {IHistory} keeps the basic data of the entry and user settings
    *
    * @constructor IHistoryElement
    */
@@ -38,7 +38,7 @@
     this.type = null;
 
     /**
-     * Идентификатор отправителя сообщения или инициатора звонка
+     * ID of the message sender or caller
      *
      * @alias from
      * @memberof IHistoryElement
@@ -48,7 +48,7 @@
     this.from = null;
 
     /**
-     * Идентификатор адресата сообщения или принимающего звонок
+     * ID of the message recipient or call recipient
      *
      * @alias to
      * @memberof IHistoryElement
@@ -58,7 +58,7 @@
     this.to = null;
 
     /**
-     * Флаг, сообщающий о том, что данная запись сделана о входящем сообщении или звонке
+     * The flag informs that the record is made about an incomming message or call
      *
      * @alias incoming
      * @memberof IHistoryElement
@@ -68,7 +68,7 @@
     this.incoming = null;
 
     /**
-     * Флаг, сообщающий о том, что данная запись сделана о исходящем сообщении или звонке
+     * The flag informs that the record is made about an outgoing message or call
      *
      * @alias outgoing
      * @memberof IHistoryElement
@@ -78,7 +78,7 @@
     this.outgoing = null;
 
     /**
-     * Объект, хранящий дополнительные клиентские параметры записи
+     * An object contains additional entries of client options
      *
      * @alias params
      * @memberof IHistoryElement
@@ -117,7 +117,7 @@
     var date = new Date();
 
     /**
-     * Время создания объекта в секундах
+     * Time of creation in seconds
      *
      * @alias timestamp
      * @memberof IHistoryElement
@@ -127,7 +127,7 @@
     this.timestamp = date.getTime() / 1000;
 
     /**
-     * Часовой пояс в часах
+     * Time zone in hours
      *
      * @alias timeZoneOffset
      * @memberof IHistoryElement
@@ -137,7 +137,7 @@
     this.timeZoneOffset = date.getTimezoneOffset() / 60;
 
     /**
-     * День месяца 1-31
+     * Day of month 1-31
      *
      * @alias day
      * @memberof IHistoryElement
@@ -147,7 +147,7 @@
     this.day = date.getDate();
 
     /**
-     * Месяц 0-11
+     * Month 0-11
      *
      * @alias month
      * @memberof IHistoryElement
@@ -157,7 +157,7 @@
     this.month = date.getMonth();
 
     /**
-     * Год
+     * Year
      *
      * @alias year
      * @memberof IHistoryElement
@@ -167,7 +167,7 @@
     this.year = date.getFullYear();
 
     /**
-     * Часы 0-23
+     * Hours 0-23
      *
      * @alias hours
      * @memberof IHistoryElement
@@ -177,7 +177,7 @@
     this.hours = date.getHours();
 
     /**
-     * Минуты 0-59
+     * Minutes 0-59
      *
      * @alias minutes
      * @memberof IHistoryElement
@@ -187,7 +187,7 @@
     this.minutes = date.getMinutes();
 
     /**
-     * Секунды 0-59
+     * Seconds 0-59
      *
      * @alias seconds
      * @memberof IHistoryElement
@@ -199,7 +199,7 @@
   }
 
   /**
-   * Объект истории, хранящий историю сообщений и звонков для каждого элемента списка контактов, или для текущего авторизованного пользователя
+   *The history object keeps message and call history for each element of contact list for the currently logged in user
    *
    * @constructor IHistory
    */
@@ -238,7 +238,7 @@
     };
 
     /**
-     * Очищает массив истории того контакта, к которому прикреплен объект
+     * Clears the array of history for the contact which the object is attached to
      *
      * @alias clear
      * @memberof IHistory
@@ -251,7 +251,7 @@
     };
 
     /**
-     * Возвращает историю контакта или ее фрагмент
+     * Returns contact history or its fragment
      *
      * @alias state
      * @memberof IHistory
@@ -277,7 +277,7 @@
     };
 
     /**
-     * Добавляет элемент {IHistoryElement} в историю контакта
+     * Adding element  {IHistoryElement} into contact history
      *
      * @alias push
      * @memberof IHistory

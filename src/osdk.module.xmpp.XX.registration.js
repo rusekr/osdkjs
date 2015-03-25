@@ -45,41 +45,41 @@
       'connectionFailed': { other: true, client: true },
 
       /**
-       * Dispatched when с сервера был загружен список контактов
+       * Dispatched when the contact list was downloaded from serverв
        *
        * @memberof RosterAPI
        * @event rosterLoaded
-       * @param {array} array Список контактов
+       * @param {array} array Contact list
        *
        */
       'rosterLoaded': {client: true},
 
       /**
-       * Dispatched when в списке контактов изменилось количество записей
+       * Dispatched when the number of entries was changed in conact list
        *
        * @memberof RosterAPI
        * @event rosterUpdated
-       * @param {array} array Список контактов
+       * @param {array} array Contact list
        *
        */
       'rosterUpdated': {client: true},
 
       /**
-       * Dispatched when было обменено одно или более свойств текущего авторизованного пользователя
+       * Dispatched when one or more properties were changed for currently logged in user
        *
        * @memberof PresenceAPI
        * @event clientUpdated
-       * @param {IUser} object Текущий авторизованный клиент
+       * @param {IUser} object currently logged in user
        *
        */
       'clientUpdated': {client: true},
 
       /**
-       * Dispatched when когда было изменено одно или более свойств определенного элемента из списка контактов
+       * Dispatched when one or more properties of certain element were changed in contact list
        *
        * @memberof RosterAPI
        * @event contactUpdated
-       * @param {IUser} object Элемент списка контактов
+       * @param {IUser} object element of contact list
        *
        */
       'contactUpdated': {client: true},
@@ -87,41 +87,41 @@
       'receivedData': {client: true},
 
       /**
-       * Dispatched when было получено новое сообщение
+       * Dispatched when new message was recieved
        *
        * @memberof MessagingAPI
        * @event receivedMessage
-       * @param {IHistoryElement} object Элемент списка истории сообщений
+       * @param {IHistoryElement} object element of message history
        *
        */
       'receivedMessage': {client: true},
 
       /**
-       * Dispatched when когда поступил новый авторизационный запрос
+       * Dispatched when new authorization request is recieved
        *
        * @memberof RosterAPI
        * @event receivedRequest
-       * @param {IUser} object Запрос авторизации
+       * @param {IUser} object authorization request
        *
        */
       'receivedRequest': {client: true},
 
       /**
-       * Dispatched when когда запрос текущего авторизованного пользователя был принят второй стороной
+       * Dispatched when the request of the currently logged in user was approved by the other side
        *
        * @memberof RosterAPI
        * @event requestAccepted
-       * @param {IUser} object Элемент списка контактов
+       * @param {IUser} object element of contact list
        *
        */
       'requestAccepted': {client: true},
 
       /**
-       * Dispatched when когда запрос текущего авторизованного пользователя был отклонен второй стороной
+       * Dispatched when the request of the currently logged in user was rejected by the other side
        *
        * @memberof RosterAPI
        * @event requestRejected
-       * @param {IUser} object Элемент списка контактов
+       * @param {IUser} object element of contact list
        *
        */
       'requestRejected': {client: true}
@@ -137,50 +137,50 @@
       // Client
 
       /**
-       * Возвращает информацию о текущем авторизованном пользователе
+       * Return information about the currently logged in user
        *
        * @memberof PresenceAPI
        * @method oSDK.getClient
-       * @returns {IUser} - текущий авторизованный пользователь
+       * @returns {IUser} - the currently logged in user
        */
       getClient: general.getClient,
 
       /**
-       * Изменяет данные системного или регистрирует пользовательский статус
+       * Change system status or registering user status
        *
        * @memberof PresenceAPI
        * @method oSDK.registerStatus
-       * @param {object} Информация о статусе
+       * @param {object} status info
        * @returns {boolean}
        */
       registerStatus: general.registerStatus,
 
       /**
-       * Изменяет данные системных или регистрирует несколько пользовательских статусов
+       * Change system statuses or registering several user statuses
        *
        * @memberof PresenceAPI
        * @method oSDK.registerStatuses
-       * @param {array} Массив объектов, хранящий информацию о регистрируемых статусах
+       * @param {array} array of the objects that keeps info about registered statuses
        * @returns {boolean}
        */
       registerStatuses: general.registerStatuses,
 
       /**
-       * Изменяет статус текущего авторизованного пользователя
+       * Change status of the currently logged in user
        *
        * @memberof PresenceAPI
        * @method oSDK.setStatus
-       * @param {string} Новый статус пользователя
+       * @param {string} new user status
        * @returns {boolean}
        */
       setStatus: general.setStatus,
 
       /**
-       * Изменяет подпись текущего авторизованного пользователя
+       * Change signature of the currently logged in user
        *
        * @memberof PresenceAPI
        * @method oSDK.setSignature
-       * @param {string} Новый подпись пользователя
+       * @param {string} new user signature
        * @returns {boolean}
        */
       setSignature: general.setSignature,
@@ -188,68 +188,68 @@
       // Contact
 
       /**
-       * Возвращает элемент списка контактов
+       * Return element of the contact list
        *
        * @memberof RosterAPI
        * @method oSDK.getContact
-       * @param {string} Идентификатор контакта
-       * @returns {IUser} Элемент списка контактов
+       * @param {string} contact ID
+       * @returns {IUser} element of the contact list
        */
       getContact: general.getContact,
 
       /**
-       * Возвращает список контактов
+       * Return contact list
        *
        * @memberof RosterAPI
        * @method oSDK.getContacts
-       * @returns {array} Список контактов
+       * @returns {array} contact list
        */
       getContacts: general.getContacts,
 
       /**
-       * Возвращает элемент списка контактов, а если такового нет - создает его
+       * Return element of the contact list, or create it if it does not exist
        *
        * @memberof RosterAPI
        * @method oSDK.getOrCreateContact
-       * @param {string} Идентификатор контакта
-       * @returns {IUser} Элемент списка контактов
+       * @param {string} Contact ID
+       * @returns {IUser} element of the contact list
        */
       getOrCreateContact: general.getOrCreateContact,
 
       /**
-       * Добавляет элемент в список контактов
+       * Add element into the contact list
        *
        * @memberof RosterAPI
        * @method oSDK.addContact
-       * @param {object}.id Идентификатор контакта
-       * @param {object}.group Группа контакта
-       * @param {object}.nickname Псевдоним контакта
+       * @param {object}.id contact ID
+       * @param {object}.group group of the contact
+       * @param {object}.nickname nickname of the contact
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
-       * @returns {IUser} Элемент списка контактов
+       * @returns {IUser} element of the contact list
        */
       addContact: general.addContact,
 
       /**
-       * Изменяет информацию об элементе в списке контактов
+       * Change info about element in contact list
        *
        * @memberof RosterAPI
        * @method oSDK.updateContact
-       * @param {object}.id Идентификатор контакта
-       * @param {object}.group Группа контакта
-       * @param {object}.nickname Псевдоним контакта
+       * @param {object}.id contact ID
+       * @param {object}.group group of the contact
+       * @param {object}.nickname nickname of the contact
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
-       * @returns {IUser} Элемент списка контактов
+       * @returns {IUser} element of the contact list
        */
       updateContact: general.updateContact,
 
       /**
-       * Удаляет элемент из списка контактов
+       * Remove element from the contact list
        *
        * @memberof RosterAPI
        * @method oSDK.removeContact
-       * @param {string} Идентификатор контакта
+       * @param {string} contact ID
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
        * @returns {boolean}
@@ -257,60 +257,60 @@
       removeContact: general.removeContact,
 
       /**
-       * Возвращает список контактов, отфильтрованных по группе к которой они принадлежат
+       * Return contact list filtered by the group it belongs to
        *
        * @memberof RosterAPI
        * @method oSDK.getGroup
-       * @param {string} Имя группы
-       * @returns {array} Список контактов
+       * @param {string} Group name
+       * @returns {array} Contact list
        */
       getGroup: general.getGroup,
 
       /**
-       * Возвращает список c именами всех существующих групп
+       * Return list of names of all existing groups
        *
        * @memberof RosterAPI
        * @method oSDK.getGroups
-       * @returns {array} Список имен групп
+       * @returns {array} list of group names
        */
       getGroups: general.getGroups,
 
       /**
-       * Сортирует список контактов по именам групп
+       * Filter contact list by group name
        *
        * @memberof RosterAPI
        * @method oSDK.sortContactsByGroups
-       * @returns {object} Возвращает комбинированный список контактов
+       * @returns {object} Return combined contact list
        */
       sortContactsByGroups: general.sortContactsByGroups,
 
       // Request
 
       /**
-       * Возвращает запрос из списка поступивших запросов авторизации
+       * Return the request from the list of recieved authirization requests
        *
        * @memberof RosterAPI
        * @method oSDK.getRequest
-       * @param {string} Идентификатор запроса
-       * @returns {IUser} Элемент списка запросов
+       * @param {string} Request ID
+       * @returns {IUser} element of the request list
        */
       getRequest: general.getRequest,
 
       /**
-       * Возвращает список поступивших запросов
+       * Return the list of recieved requests
        *
        * @memberof RosterAPI
        * @method oSDK.getRequests
-       * @returns {array} Список запросов
+       * @returns {array} the request list
        */
       getRequests: general.getRequests,
 
       /**
-       * Отправляет авторизационный запрос
+       * Send authorization request
        *
        * @memberof RosterAPI
        * @method oSDK.sendAuthRequest
-       * @param {string} Идентификатор контакта
+       * @param {string} contact ID
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
        * @returns {boolean}
@@ -318,11 +318,11 @@
       sendAuthRequest: general.sendAuthRequest,
 
       /**
-       * Принимает поступивший авторизационный запрос
+       * Get authorization request
        *
        * @memberof RosterAPI
        * @method oSDK.acceptRequest
-       * @param {string} Идентификатор запроса
+       * @param {string} request ID
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
        * @returns {boolean}
@@ -330,11 +330,11 @@
       acceptRequest: general.acceptRequest,
 
       /**
-       * Отклоняет поступивший авторизационный запрос
+       * Reject recieved authorization request
        *
        * @memberof RosterAPI
        * @method oSDK.rejectRequest
-       * @param {string} Идентификатор запроса
+       * @param {string} request ID
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
        * @returns {boolean}
@@ -344,13 +344,13 @@
       // Message
 
       /**
-       * Отправляет текстовое сообщение
+       * Send text message
        *
        * @memberof MessagingAPI
        * @method oSDK.sendMessage
-       * @param {string} Идентификатор адресата
-       * @param {object}.subject Заголовок сообщения
-       * @param {object}.message Текстовое сообщение
+       * @param {string} recipient ID
+       * @param {object}.subject Message caption
+       * @param {object}.message Text message
        * @param {callbacks}.onError
        * @param {callbacks}.onSuccess
        * @returns {boolean}
