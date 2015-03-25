@@ -24,6 +24,7 @@
    * Element of an array of objects {IHistory} keeps the basic data of the entry and user settings
    *
    * @constructor IHistoryElement
+   * @memberof HistoryAPI
    */
   function IHistoryElement(params, client) {
 
@@ -202,6 +203,7 @@
    *The history object keeps message and call history for each element of contact list for the currently logged in user
    *
    * @constructor IHistory
+   * @memberof HistoryAPI
    */
   function IHistory(clientId, contactId) {
 
