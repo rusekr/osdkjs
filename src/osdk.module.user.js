@@ -19,7 +19,11 @@
   // Utils
   var utils = module.utils;
 
-  // Base User object
+  /**
+   * Объект, описывающий элементы текущего авторизованного пользователя, элементы списка контактов или входящие запросы. В зависимости от назначения описания меняется состав свойст
+   *
+   * @constructor IUser
+   */
   function IUser() { /* empty */ }
 
   // Register protected methods to create default User
@@ -37,6 +41,14 @@
 
           Object.defineProperties(result, {
 
+            /**
+              * Идентификатор контакта или запроса
+              *
+              * @alias id
+              * @memberof IUser
+              * @instance
+              * @type string
+              */
             "id": {
               value: id,
               writable: false,
@@ -44,6 +56,14 @@
               enumerable: false
             },
 
+            /**
+              * Логин контакта или запроса
+              *
+              * @alias login
+              * @memberof IUser
+              * @instance
+              * @type string
+              */
             "login": {
               value: id.split('@')[0],
               writable: false,
@@ -51,6 +71,14 @@
               enumerable: false
             },
 
+            /**
+              * Домен контакта или запроса
+              *
+              * @alias domain
+              * @memberof IUser
+              * @instance
+              * @type string
+              */
             "domain": {
               value: id.split('@')[1],
               writable: false,
@@ -64,6 +92,14 @@
 
             Object.defineProperties(result, {
 
+              /**
+               * JID контакта или запроса, создается для тех экземпляров класса {IUser}, для которых при создании был указан ресурс
+               *
+               * @alias jid
+               * @memberof IUser
+               * @instance
+               * @type string
+               */
               "jid": {
                 value: (id + '/' + resource),
                 writable: false,
@@ -71,6 +107,14 @@
                 enumerable: false
               },
 
+              /**
+               * Ресурс контакта или запроса
+               *
+               * @alias resource
+               * @memberof IUser
+               * @instance
+               * @type string
+               */
               "resource": {
                 value: resource,
                 writable: false,

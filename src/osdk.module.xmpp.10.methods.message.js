@@ -99,7 +99,7 @@
             message: data.message
           };
           var item = this.factory.history.createItem(this.storage.client.id, params);
-          var contact = this.storage.contacts.get(id);
+          var contact = this.storage.contacts.get(params.to) || this.getOrCreateContact(params.to);
           if (contact) {
             contact.history.push(params);
           }

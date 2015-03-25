@@ -30,7 +30,7 @@
         return '_' + utils.md5(value.toLowerCase());
       }
       return '_' + value;
-    }
+    };
 
     /*
      * Statuses

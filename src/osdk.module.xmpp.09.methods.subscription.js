@@ -129,8 +129,7 @@
             this.rosterLoad();
             module.trigger('rosterUpdated', {changed: 'contacts', contacts: this.storage.contacts.get()});
           }
-          module.trigger('requestAccepted', {type: 'accept', id: id});
-          handlers.onSuccess('requestAccepted', {type: 'accept', id: id});
+          handlers.onSuccess({type: 'accept', id: id});
           return true;
         }
 
@@ -167,8 +166,7 @@
           return false;
         } else {
           this.storage.requests.remove(id);
-          module.trigger('requestRejected', {type: 'reject', id: id});
-          handlers.onSuccess('requestRejected', {type: 'reject', id: id});
+          handlers.onSuccess({type: 'reject', id: id});
           return true;
         }
 

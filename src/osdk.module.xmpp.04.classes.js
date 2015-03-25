@@ -203,10 +203,6 @@
             this.clear();
           };
 
-        },
-
-        ITextMessage: function() {
-
         }
 
       }

@@ -8,14 +8,8 @@
   // Strict mode
   "use strict";
 
-  // Compatibility test
-  if (oSDK && JSJaC) {
-
-    // Create new oSDK module
-    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true;
-
-    // Create general component of oSDK XMPP module
-    oSDKModule.general = new (function() {
+    // oSDK XMPP general object
+    var IXMPP = function() {
 
       // Save instance
       var instance = this;
@@ -297,7 +291,16 @@
         return undefined;
       });
 
-    });
+    };
+
+  // Compatibility test
+  if (oSDK && JSJaC) {
+
+    // Create new oSDK module
+    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true;
+
+    // Create general component of oSDK XMPP module
+    oSDKModule.general = new IXMPP();
 
   }
 

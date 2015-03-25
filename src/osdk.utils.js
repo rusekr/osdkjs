@@ -1263,7 +1263,7 @@
 
   utils.isValidName = function(name) {
     if (name && utils.isString(name)) {
-      var re = /^[a-z_]{1,}[-a-z0-9_]*$/i;
+      var re = /^[a-zа-я]{1,}[-a-zа-я0-9_\s\.]*[a-zа-я]{1,}$/i;
       // TODO: this is temp name test
       return re.test(name);
     }

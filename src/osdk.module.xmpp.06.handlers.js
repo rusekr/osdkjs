@@ -77,20 +77,24 @@
                 return false;
               }
             }
-            var params = {
-              type: 'text message',
-              from: from,
-              to: general.storage.client.id,
-              subject: packet.getSubject().htmlEnc(),
-              message: packet.getBody().htmlEnc()
-            };
-            var item = general.factory.history.createItem(general.storage.client.id, params);
-            var contact = general.storage.contacts.get(from);
-            if (contact) {
-              contact.history.push(params);
+            if (packet.getBody().htmlEnc() || packet.getSubject().htmlEnc()) {
+              var params = {
+                type: 'text message',
+                from: from,
+                to: general.storage.client.id,
+                subject: packet.getSubject().htmlEnc(),
+                message: packet.getBody().htmlEnc()
+              };
+              var item = general.factory.history.createItem(general.storage.client.id, params);
+              var contact = general.storage.contacts.get(params.from) || general.getOrCreateContact(params.from);
+              if (contact) {
+                contact.history.push(params);
+              }
+              general.storage.client.history.push(params);
+              module.trigger('receivedMessage', {type: 'text message', data: item});
+            } else {
+              /* TODO */
             }
-            general.storage.client.history.push(params);
-            module.trigger('receivedMessage', {type: 'text message', data: item});
             return undefined;
           },
 
@@ -146,6 +150,9 @@
                     // SUBSCRIBED
                     case general.XMPP_PRESENCE_TYPE_SUBSCRIBED :
                       if (contact) {
+                        if (contact.ask) {
+                          module.trigger('requestAccepted', {contact: contact, changed: 'ask'});
+                        }
                         contact.ask = false;
                         if (contact.subscription == general.XMPP_SUBSCRIPTION_FROM) {
                           contact.subscription = general.XMPP_SUBSCRIPTION_BOTH;
@@ -160,10 +167,13 @@
                     // UNSUBSCRIBED
                     case general.XMPP_PRESENCE_TYPE_UNSUBSCRIBED :
                       if (contact) {
+                        if (contact.ask) {
+                          module.trigger('requestRejected', {contact: contact, changed: 'ask'});
+                        }
                         contact.ask = false;
                         contact.subscription = 'none';
                       }
-                      module.trigger('contactUpdated', {contact: contact, changed: 'request rejected'});
+                      module.trigger('contactUpdated', {contact: contact, changed: 'subscription'});
                       break;
                     // UNSUBSCRIBE
                     case general.XMPP_PRESENCE_TYPE_UNSUBSCRIBE :
@@ -181,7 +191,7 @@
                   }
                 }
                 if (presence.data) {
-                  
+
                 }
               }
             }
