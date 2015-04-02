@@ -552,7 +552,7 @@
     var startGrabbing = function () {
       document.body.addEventListener('mousemove', grabMouse, true); // NOTICE: not working if too little content on page that body and even document height less than height of browser window.
 
-      document.body.addEventListener('wheel', grabMouse, true);
+      document.body.addEventListener('wheel', grabMouse, true);// FIXME: Grabbed but synthetic variant of eventEmulator do not respected by at least native scrollable textareas
 
       document.body.addEventListener('click', grabMouse, true);
       document.body.addEventListener('mousedown', grabMouse, true);
