@@ -8,7 +8,7 @@
    * @namespace MediaAPI
    */
 
-    /**
+  /**
    * @namespace CapabilitiesAPI
    */
 
@@ -20,6 +20,7 @@
   module.disconnectedByUser = false;
 
   var defaultConfig = {
+    tryMediaCapabilities: true, // Try media capabilities on app start
     sip: {
       gw: {
         proto: 'wss',
@@ -850,16 +851,18 @@
    */
   module.initialize = function (config) {
 
-    Media.tryCapabilities(function (result, props) {
-      if (result == 'success') {
-        clientInt.canAudio = props.audio;
-        clientInt.canVideo = props.video;
-        module.trigger('gotMediaCapabilities', props);
-      }
-      else {
-        throw new module.Error("Media capabilities are not found.");
-      }
-    });
+    if (module.config('tryMediaCapabilities')) {
+      Media.tryCapabilities(function (result, props) {
+        if (result == 'success') {
+          clientInt.canAudio = props.audio;
+          clientInt.canVideo = props.video;
+          module.trigger('gotMediaCapabilities', props);
+        }
+        else {
+          throw new module.Error("Media capabilities are not found.");
+        }
+      });
+    }
 
     try {
       if (module.debug) {

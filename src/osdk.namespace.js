@@ -27,7 +27,7 @@
  *   }
  * });</code></pre>
  *
- * <p>After configuring and adding your listeners you can switch to {@link ConnectionAPI ConnectionAPI} for connection related topics such methods you must invoke to start oSDK.
+ * <p>After configuring and adding your listeners you can switch to {@link ConnectionAPI Connection API} for connection related topics such methods you must invoke to start oSDK.
  *
  * @namespace CoreAPI
  */
@@ -43,7 +43,8 @@
  * @property {boolean} [nonEphemeral=false] - Direct authorization by username and password.
  * @property {string} [username=false] - Username (full, with domain) for direct authorization.
  * @property {string} [password=false] - Password for direct authorization.
- * @property {string|string[]} [excludeCSSClasses] - See {@link CobrowsingAPI CobrowsingAPI}.
+ * @property {string|string[]} [excludeCSSClasses] - See {@link CobrowsingAPI Cobrowsing API}.
+ * @property {boolean} [tryMediaCapabilities=true] - Try access to local videocamera and/or microphone at initialization time and send gotMediaCapabilities event ({@link CapabilitiesAPI Capabilities API}).
  */
 
 /**
