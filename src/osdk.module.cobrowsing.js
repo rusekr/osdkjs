@@ -552,7 +552,7 @@
     var startGrabbing = function () {
       document.body.addEventListener('mousemove', grabMouse, true); // NOTICE: not working if too little content on page that body and even document height less than height of browser window.
 
-      document.body.addEventListener('wheel', grabMouse, true);
+      document.body.addEventListener('wheel', grabMouse, true);// FIXME: Grabbed but synthetic variant of eventEmulator do not respected by at least native scrollable textareas
 
       document.body.addEventListener('click', grabMouse, true);
       document.body.addEventListener('mousedown', grabMouse, true);
@@ -693,42 +693,51 @@
   SessionsManager.prototype.createOutgoing = function (data) {
     var session = new CobrowsingSession();
 
+    module.trigger('cobrowsingSession', session);
+
     session.initSubscription();
 
     session.inviteUser(data.userID);
 
-    module.trigger('cobrowsingSession', session);
   };
 
   SessionsManager.prototype.inviteAccepted = function (data) {
     var session = this.store[data.sessionID];
-    if (session.inviteTimers[data.senderID]) {
-      clearTimeout(session.inviteTimers[data.senderID]);
-      session.inviteTimers[data.senderID] = null;
+    if (session) {
+      if (session.inviteTimers[data.senderID]) {
+        clearTimeout(session.inviteTimers[data.senderID]);
+        session.inviteTimers[data.senderID] = null;
+      }
+      session.trigger('accepted', data);
     }
-    session.trigger('accepted', data);
   };
 
   SessionsManager.prototype.inviteRejected = function (data) {
     var session = this.store[data.sessionID];
-    session.trigger('rejected', data);
-    if(session.participants.length == 1) {
-      session.end();
+    if (session) {
+      session.trigger('rejected', data);
+      if(session.participants.length == 1) {
+        session.end();
+      }
     }
   };
 
   SessionsManager.prototype.userAdded = function (data) {
     var session = this.store[data.sessionID];
-    session.participants[data.senderID] = true;
-    session.trigger('userAdded', data);
+    if (session) {
+      session.participants[data.senderID] = true;
+      session.trigger('userAdded', data);
+    }
   };
 
   SessionsManager.prototype.userRemoved = function (data) {
     var session = this.store[data.sessionID];
-    delete session.participants[data.senderID];
-    session.trigger('userRemoved', data);
-    if(session.participants.length == 1) {
-      session.end();
+    if (session) {
+      delete session.participants[data.senderID];
+      session.trigger('userRemoved', data);
+      if(session.participants.length <= 1) {
+        session.end();
+      }
     }
   };
 
@@ -868,9 +877,9 @@
             }
 
             // Mouse coordinates normalize to target related
-            if (/mousemove/.test(event.body.type) && event.body.target) {
-              event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left) + 'px';
-              event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top) + 'px';
+            if (event.body.options.offsetX && event.body.target) {
+              event.body.options.x = (event.body.options.offsetX + event.body.target.getBoundingClientRect().left);
+              event.body.options.y = (event.body.options.offsetY + event.body.target.getBoundingClientRect().top);
             }
 
             if (event.body.type == 'form-sync') {
@@ -908,7 +917,7 @@
       });
       self.participants[self.myID] = true;
 
-      // Starting to send cobrowsing information in session
+      // Starting to send cobrowsing information in session TODO: make capturing and sending own events switchable off.
       self.eventSubscription = module.eventAccumulator.on(function (event) {
         if (self.participants.length < 2) {
           return;
@@ -1000,6 +1009,7 @@
     */
     self.end = function () {
       if (self.status == 'subscribed') {
+        // Send to participants
         Object.keys(self.participants).forEach(function (userID) {
           if (userID != self.myID) {
             self.sendToUser(userID, {
@@ -1010,14 +1020,19 @@
         self.killSubscription();
       }
 
-      // Clearing inviteTimers
-      Object.keys(self.inviteTimers).forEach(function (timerID) {
-        clearTimeout(self.inviteTimers[timerID]);
-        delete self.inviteTimers[timerID];
+      // Clearing inviteTimers and sending self removal to invited users.
+      Object.keys(self.inviteTimers).forEach(function (userID) {
+        clearTimeout(self.inviteTimers[userID]);
+        delete self.inviteTimers[userID];
+        if (userID != self.myID) {
+          self.sendToUser(userID, {
+            cobrowsingUserRemoved: true
+          });
+        }
       });
 
       self.status = 'ended';
-      self.trigger('ended', {});
+      self.trigger('ended');
 
       module.trigger('sessionEnded', { sessionID: self.id });
     };
@@ -1042,6 +1057,13 @@
       });
       module.eventEmulator.dispatchEvent(target, eventType, event);
     };
+
+    /**
+    * Dispatched for current user when subscription to event-broadcasting server is initiated.
+    *
+    * @memberof CobrowsingSession
+    * @event CobrowsingSession#subscribed
+    */
 
     /**
     * Dispatched for inviter if invited user accepted this session.
@@ -1148,11 +1170,16 @@
           delete self.inviteTimers[self.myID];
         }
 
-        self.initSubscription();
-
-        self.sendToUser(self.inviterID, { cobrowsingAccepted: true });
-
+        // If inviter was lone session user and removed self from it before accepted by current user no need to even subscribe
+        if (self.participants.length) {
+          self.initSubscription();
+        }
+        // Inviter can end session before current user accepts it.
+        if (self.participants[self.inviterID]) {
+          self.sendToUser(self.inviterID, { cobrowsingAccepted: true });
+        }
         delete self.reject;
+
       };
 
       /**

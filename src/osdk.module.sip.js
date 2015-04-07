@@ -8,7 +8,7 @@
    * @namespace MediaAPI
    */
 
-    /**
+  /**
    * @namespace CapabilitiesAPI
    */
 
@@ -20,6 +20,7 @@
   module.disconnectedByUser = false;
 
   var defaultConfig = {
+    tryMediaCapabilities: true, // Try media capabilities on app start
     sip: {
       gw: {
         proto: 'wss',
@@ -114,6 +115,20 @@
         element.src = stream;
       };
     }
+
+    // Override
+    attachMediaStream = function (element, stream) {
+      if (typeof element.srcObject !== 'undefined') {
+        element.srcObject = stream;
+      } else if (typeof element.mozSrcObject !== 'undefined') {
+        element.mozSrcObject = stream;
+      } else if (typeof element.src !== 'undefined') {
+        element.src = URL.createObjectURL(stream);
+      } else {
+        console.log('Error attaching stream to element.');
+      }
+      return element; // !!!
+    };
 
     return {
       tryCapabilities: function (callback) {
@@ -836,16 +851,18 @@
    */
   module.initialize = function (config) {
 
-    Media.tryCapabilities(function (result, props) {
-      if (result == 'success') {
-        clientInt.canAudio = props.audio;
-        clientInt.canVideo = props.video;
-        module.trigger('gotMediaCapabilities', props);
-      }
-      else {
-        throw new module.Error("Media capabilities are not found.");
-      }
-    });
+    if (module.config('tryMediaCapabilities')) {
+      Media.tryCapabilities(function (result, props) {
+        if (result == 'success') {
+          clientInt.canAudio = props.audio;
+          clientInt.canVideo = props.video;
+          module.trigger('gotMediaCapabilities', props);
+        }
+        else {
+          throw new module.Error("Media capabilities are not found.");
+        }
+      });
+    }
 
     try {
       if (module.debug) {
@@ -1087,7 +1104,7 @@
         ecode: '0002',
         message: 'Your browser do not support getUserMedia.'
       });
-      module.trigger('incompatible', err);
+      module.trigger(['incompatible', 'connectionFailed'], err);
       throw err;
     }
     if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
@@ -1095,7 +1112,7 @@
         ecode: '0003',
         message: 'Your browser do not support RTCPeerConnection.'
       });
-      module.trigger('incompatible', err);
+      module.trigger(['incompatible', 'connectionFailed'], err);
       throw err;
     }
     if(!window.WebSocket) {
@@ -1103,7 +1120,7 @@
         ecode: '0004',
         message: 'Your browser do not support WebSocket.'
       });
-      module.trigger('incompatible', err);
+      module.trigger(['incompatible', 'connectionFailed'], err);
       throw err;
     }
   };

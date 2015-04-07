@@ -823,31 +823,39 @@
 
       // TODO: this if else if must be in external addon for generic trigger function
       // Transit event must fire without waiting
-      if (['transitEvent', 'mergedUserConfig'].indexOf(arguments[0]) == -1) {
-        if (earlyMainEvents.fired != 'all') {
-          self.log('NOT Triggered early event name', arguments[0]);
-          // Not main events
-          if (typeof earlyMainEvents[arguments[0]] == 'undefined') {
-            earlyEvents.push([self].concat(Array.prototype.slice.call(arguments, 0)));
-            self.log('NOT Triggered early event name pushed to', earlyEvents);
-            return;
-          } else {
-            self.log('NOT Triggered early event is main', arguments[0]);
-            earlyMainEvents[arguments[0]] = self;
+      var cancelTrigger = false;
+      [].concat(arguments[0]).forEach(function (eventType) {
+        if (['transitEvent', 'mergedUserConfig'].indexOf(eventType) == -1) {
+          if (earlyMainEvents.fired != 'all') {
+            self.log('NOT Triggered early event name', eventType);
+            // Not main events
+            if (typeof earlyMainEvents[eventType] == 'undefined') {
+              earlyEvents.push([self].concat(Array.prototype.slice.call(arguments, 0)));
+              self.log('NOT Triggered early event name pushed to', earlyEvents);
+              cancelTrigger = true;
+              return false;
+            } else {
+              self.log('NOT Triggered early event is main', eventType);
+              earlyMainEvents[eventType] = self;
+            }
+          }
+          if (!earlyEventsTriggered && earlyMainEvents.fired == 'all') {
+            earlyEventsTriggered = true;
+            self.log('All main events triggered, triggering stashed events');
+  //           earlyMainEvents.mergedUserConfig.trigger('mergedUserConfig');
+            earlyMainEvents.DOMContentLoaded.trigger('DOMContentLoaded');
+            earlyEvents.map(function (args) {
+              var module = args.shift();
+              var name = args.shift();
+              module.trigger.apply(module, [name].concat(args));
+            });
           }
         }
-        if (!earlyEventsTriggered && earlyMainEvents.fired == 'all') {
-          earlyEventsTriggered = true;
-          self.log('All main events triggered, triggering stashed events');
-//           earlyMainEvents.mergedUserConfig.trigger('mergedUserConfig');
-          earlyMainEvents.DOMContentLoaded.trigger('DOMContentLoaded');
-          earlyEvents.map(function (args) {
-            var module = args.shift();
-            var name = args.shift();
-            module.trigger.apply(module, [name].concat(args));
-          });
-        }
+      });
+      if (cancelTrigger) {
+        return;
       }
+
 
       var configObject = {
         type: [], // Event type(s) to trigger.
