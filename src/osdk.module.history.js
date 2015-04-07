@@ -248,7 +248,7 @@
      * @type boolean
      */
     this.clear = function() {
-      setHistory(keygen(), null);
+      utils.storage.setItem(keygen(), []);
       return true;
     };
 

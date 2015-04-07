@@ -41,6 +41,8 @@
           return false;
         }
 
+        id = this.getId(id);
+
         if (!this.test('valide id', id)) {
           if (utils.isString(id) && id.substr(0,1) == '#') {
             if (!this.test('valide id', id.substr(1))) {
@@ -118,6 +120,8 @@
           handlers.onError(this.error('1x0'));
           return false;
         }
+
+        id = this.getId(id);
 
         if (!this.test('valide id', id)) {
           if (utils.isString(id) && id.substr(0,1) == '#') {

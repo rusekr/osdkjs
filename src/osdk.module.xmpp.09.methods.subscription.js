@@ -33,6 +33,7 @@
     var methods = {
 
       getRequest: function(id) {
+        id = this.getId(id);
         return this.storage.requests.get(id);
       },
 
@@ -48,6 +49,8 @@
           handlers.onError(this.error('1x0'));
           return false;
         }
+
+        id = this.getId(id);
 
         if (!this.test('valide id', id)) {
           handlers.onError(this.error('2x0'));
@@ -97,6 +100,8 @@
           return false;
         }
 
+        id = this.getId(id);
+
         if (!this.test('valide id', id)) {
           handlers.onError(this.error('2x0'));
           return false;
@@ -143,6 +148,8 @@
           handlers.onError(this.error('1x0'));
           return false;
         }
+
+        id = this.getId(id);
 
         if (!this.test('valide id', id)) {
           handlers.onError(this.error('2x0'));

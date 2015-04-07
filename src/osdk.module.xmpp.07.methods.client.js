@@ -298,6 +298,8 @@
           return false;
         }
 
+        id = this.getId(id);
+
         if (!this.test('valide id', id)) {
           handlers.onError(this.error('2x0'));
           return false;

@@ -40,6 +40,12 @@
             if (utils.isObject(param) && param.id && utils.isValidID(param.id)) {
               return param.id;
             }
+            if (utils.isObject(param) && param.id && utils.isValidLogin(param.id) && module.config('autoDomain')) {
+              return param.id + '@' + this.storage.client.domain;
+            }
+          }
+          if (utils.isString(param) && utils.isValidLogin(param) && module.config('autoDomain')) {
+            return param + '@' + this.storage.client.domain;
           }
         }
         return undefined;

@@ -252,6 +252,7 @@
       },
 
       getContact: function(id) {
+        id = this.getId(id);
         return this.storage.contacts.get(id);
       },
 
@@ -262,6 +263,9 @@
       getOrCreateContact: function(param) {
         if (param && utils.isString(param)) {
           var params = param.split('/');
+          if (params[0] && utils.isValidLogin(params[0])) {
+            params[0] = this.getId(params[0]);
+          }
           if (params[0] && utils.isValidID(params[0])) {
             var id = params[0];
             if (id != general.storage.client.id) {
@@ -410,6 +414,8 @@
           handlers.onError(this.error('1x0'));
           return false;
         }
+
+        id = this.getId(id);
 
         if (!this.test('valide id', id)) {
           handlers.onError(this.error('2x0'));
