@@ -663,6 +663,7 @@
 
     // Custom methods.
     client.sendToUser = function (userID, data) {
+      userID = authCache.autoDomainHelper(userID);
       return client.send('/user/' + userID, {}, JSON.stringify(data));
     };
 
@@ -959,7 +960,7 @@
     };
 
     self.sendToUser = function (userID, data) {
-      stompClient.sendToUser(userID, messageSkel(data));
+      stompClient.sendToUser(auth.autoDomainHelper(userID), messageSkel(data));
     };
 
     /**
@@ -971,6 +972,8 @@
     * @param {string} userID - ID of user to invite.
     */
     self.inviteUser = function (userID) {
+
+      userID = auth.autoDomainHelper(userID);
 
       if (self.participants[userID]) {
         warn(userID + 'is already cobrowsed with.');
@@ -1347,13 +1350,14 @@
   module.cobrowsingRequest = function oSDKCobrowsingRequestSession (userID) {
 
     var session = module.sessions.createOutgoing({
-      userID: userID
+      userID: authCache.autoDomainHelper(userID)
     });
 
     return session;
   };
 
   module.sendTextMessage = function oSDKCobrowsingSendTextMessage (userID, message) {
+    userID = authCache.autoDomainHelper(userID);
     module.stompClient.sendToUser(userID, {
       senderID: authCache.id,
       textMessage: true,

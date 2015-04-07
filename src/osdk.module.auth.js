@@ -69,7 +69,8 @@
     appID: null,
     popup: false,
     connectionRecovery: false,
-    callbackURI: false
+    callbackURI: false,
+    autoDomain: true, // Auto add domain if user not specified. NOTICE: Used in other modules.
   };
 
   // For not adding more than one event listener.
@@ -341,6 +342,14 @@
     }
     auth.log('connect method resumed after token check.');
 
+    // Auto addition of domain to username helper
+    function autoDomainHelper (username) {
+      if (auth.config('autoDomain') && username.indexOf('@') == -1 && user.domain) {
+        username += '@' + user.domain;
+      }
+      return username;
+    }
+
     // Perform a ephemerals request
     if (!auth.config('nonEphemeral')) {
       oauth.ajax({
@@ -377,6 +386,7 @@
               data.uris = uris;
             }
 
+            data.autoDomainHelper = autoDomainHelper;
 
             auth.trigger(['gotTempCreds'], { 'data': data });
 
@@ -409,7 +419,8 @@
         id: user.id,
         login: user.login,
         password: user.password || '',
-        username: user.id
+        username: user.id,
+        autoDomainHelper: autoDomainHelper
       } });
 
       auth.trigger('connected', {

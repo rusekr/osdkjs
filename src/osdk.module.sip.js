@@ -84,6 +84,8 @@
     return instance;
   })();
 
+  var authCache = null;
+
   // Unified media object
   var Media = (function () {
     var mediaToGet = {};
@@ -902,13 +904,15 @@
 
   module.on('gotTempCreds', function (event) {
 
+    authCache = event.data;
+
     module.log('Got temp creds', arguments);
 
     var hosts = [];
     if (module.config('gw.host')) {
       hosts = hosts.concat(module.config('gw.host'));
-    } else if (event.data.uris && module.utils.isArray(event.data.uris.sip)) {
-      module.utils.each(event.data.uris.sip, function (uri) {
+    } else if (authCache.uris && module.utils.isArray(authCache.uris.sip)) {
+      module.utils.each(authCache.uris.sip, function (uri) {
         var domain = uri.split(';')[0];
         hosts.push(module.config('gw.proto') + '://' + domain + (domain.split(':').length > 1?'':(':' + module.config('gw.port'))) + '/' + module.config('gw.url'));
       });
@@ -918,12 +922,12 @@
     var turnServers = [];
     if (module.config('turn')) {
       turnServers = [].concat(module.config('turn'));
-    } else if (event.data.uris && module.utils.isArray(event.data.uris.turn)) {
-      module.utils.each(event.data.uris.turn, function (uri) {
+    } else if (authCache.uris && module.utils.isArray(authCache.uris.turn)) {
+      module.utils.each(authCache.uris.turn, function (uri) {
         turnServers.push({
           urls: 'turn:' + uri.replace(';', '?'),
-          username: event.data.username,
-          credential: event.data.password
+          username: authCache.username,
+          credential: authCache.password
         });
       });
     }
@@ -933,19 +937,19 @@
     module.log('stun', module.config('stun'));
     if (module.config('stun')) {
       stunServers = [].concat(module.config('stun'));
-    } else if (event.data.uris && module.utils.isArray(event.data.uris.stun)) {
-      module.utils.each(event.data.uris.stun, function (uri) {
+    } else if (authCache.uris && module.utils.isArray(authCache.uris.stun)) {
+      module.utils.each(authCache.uris.stun, function (uri) {
         stunServers.push('stun:' + uri.replace(/;.*$/, ''));
       });
     }
 
-    var registrarUsername = event.data.username.split(':')[1] ? event.data.username.split(':')[1] : event.data.username;
+    var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
     var registrarConfig = {
       'ws_servers': hosts,
       'no_answer_timeout': 15,
       'connection_autorecovery': false,
       'uri': 'sip:' + registrarUsername,
-      'password': event.data.password,
+      'password': authCache.password,
       'stun_servers': stunServers,
       'turn_servers': turnServers,
       'trace_sip': true,
@@ -1058,6 +1062,8 @@
     var
       callOptions = module.utils.isObject(arguments[1])?callOptionsConverter(arguments[1]):null,
       opponent = arguments[0];
+
+    opponent = authCache.autoDomainHelper(opponent);
 
     module.log('JsSIP call arguments', arguments, callOptions);
 

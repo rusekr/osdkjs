@@ -45,6 +45,7 @@
  * @property {string} [password=false] - Password for direct authorization.
  * @property {string|string[]} [excludeCSSClasses] - See {@link CobrowsingAPI Cobrowsing API}.
  * @property {boolean} [tryMediaCapabilities=true] - Try access to local videocamera and/or microphone at initialization time and send gotMediaCapabilities event ({@link CapabilitiesAPI Capabilities API}).
+ * @property {boolean} [autoDomian] - Autoaddition of own user domain to domain-less user ID`s in user-related methods (like `sendMessage` or `call`).
  */
 
 /**
