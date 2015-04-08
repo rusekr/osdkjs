@@ -44,6 +44,11 @@
 
       'connectionFailed': { other: true, client: true },
 
+      /*
+       * Described in auth module.
+       */
+      'incompatible': { other: true, client: true },
+
       /**
        * Dispatched when the contact list was downloaded from serverв
        *

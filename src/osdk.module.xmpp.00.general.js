@@ -299,6 +299,23 @@
     // Create new oSDK module
     var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true;
 
+    // Compatibility
+    oSDKModule.checkCompatibility = function sipCheckCompatibility() {
+      var err;
+      if(!window.WebSocket) {
+        err = new oSDKModule.Error({
+          ecode: '0004',
+          message: 'Your browser do not support WebSocket.'
+        });
+        oSDKModule.trigger(['incompatible', 'connectionFailed'], err);
+        throw err;
+      }
+    };
+
+    oSDKModule.on('DOMContentLoaded', function () {
+      oSDKModule.checkCompatibility();
+    });
+
     // Create general component of oSDK XMPP module
     oSDKModule.general = new IXMPP();
 
