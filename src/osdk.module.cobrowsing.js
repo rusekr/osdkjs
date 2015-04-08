@@ -42,6 +42,31 @@
     if (el === null) {
       module.warn('Got null element');
     }
+
+    function findCSSHelper (excludeClassName) {
+      if (!tmpEl || typeof tmpEl.className == 'undefined') {
+        // module.warn('No element or className property, skipping', tmpEl);
+        return true;
+      }
+      if (tmpEl.className.split(' ').indexOf(excludeClassName) != -1) {
+        foundOur = true;
+        return false;
+      }
+      return true;
+    }
+
+    var tmpEl = null;
+    var exludeClassArray = [].concat(module.config('excludeCSSClasses'));
+    var foundOur = false;
+
+    tmpEl = el;
+    exludeClassArray.forEach(findCSSHelper);
+
+    // Element itself has excluded class(es).
+    if (foundOur) {
+      return false;
+    }
+
     if (el.id) {
       return "#" + el.id;
     }
@@ -59,6 +84,7 @@
       console.warn("elementLocation(", el, ") has null parent");
       throw new module.Error("No locatable parent found");
     }
+
     var controlUI = false;
     var parentLocation = elementLocation(parent);
     if (!parentLocation) {
@@ -67,18 +93,11 @@
     var children = parent.childNodes;
     var _len = children.length;
     var index = 0;
-    function findCSSHelper(excludeClassName) {
-      if(children[i].className.split(' ').indexOf(excludeClassName) != -1) {
-        foundOur = true;
-        return false;
-      }
-      return true;
-    }
     for (var i=0; i<_len; i++) {
+
       if (children[i].nodeType == document.ELEMENT_NODE && module.config('excludeCSSClasses')) {
 
-        var exludeClassArray = [].concat(module.config('excludeCSSClasses'));
-        var foundOur = false;
+        tmpEl = children[i];
         exludeClassArray.forEach(findCSSHelper);
 
         if (foundOur) {
@@ -459,6 +478,7 @@
 
       var target = e.target || e.srcElement;
       var targetPath = getElementCSSPath(target);
+      // module.info('targetPath', targetPath);
       if (!e.osdkcobrowsinginternal && targetPath) {
         if (e.pageX === null && e.clientX !== null ) {
           var html = document.documentElement;
@@ -479,8 +499,8 @@
             altKey: e.altKey,
             shiftKey: e.shiftKey,
             metaKey: e.metaKey,
-            offsetX: (e.pageX - target.getBoundingClientRect().left) || (e.offsetX===undefined?e.layerX:e.offsetX),
-            offsetY: (e.pageY - target.getBoundingClientRect().top) || (e.offsetY===undefined?e.layerY:e.offsetY),
+            offsetX: (target.getBoundingClientRect ? (e.pageX - target.getBoundingClientRect().left) : false ) || (e.offsetX===undefined?e.layerX:e.offsetX),
+            offsetY: (target.getBoundingClientRect ? (e.pageY - target.getBoundingClientRect().top) : false ) || (e.offsetY===undefined?e.layerY:e.offsetY),
             detail: e.detail || e.deltaX || e.deltaY || e.deltaZ || 0, // NOTICE: Hack for wheel
             deltaX: e.deltaX || 0,
             deltaY: e.deltaY || 0,

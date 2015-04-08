@@ -96,31 +96,33 @@
     var n = window.navigator;
 
     // getUserMedia
-    if (n.webkitGetUserMedia) {
+    if (n.getUserMedia) {
+      getUserMedia = n.getUserMedia.bind(n);
+
+//       attachMediaStream = function (element, stream) {
+//         element.src = stream;
+//       };
+    } else if (n.webkitGetUserMedia) {
       getUserMedia = n.webkitGetUserMedia.bind(n);
 
-      attachMediaStream = function (element, stream) {
-        element.src = (URL || webkitURL).createObjectURL(stream);
-      };
+//       attachMediaStream = function (element, stream) {
+//         element.src = (URL || webkitURL).createObjectURL(stream);
+//       };
     }
     else if (n.mozGetUserMedia) {
       getUserMedia = n.mozGetUserMedia.bind(n);
 
-      attachMediaStream = function (element, stream) {
-        element.mozSrcObject = stream;
-      };
-    }
-    else if (n.getUserMedia) {
-      getUserMedia = n.getUserMedia.bind(n);
-
-      attachMediaStream = function (element, stream) {
-        element.src = stream;
-      };
+//       attachMediaStream = function (element, stream) {
+//         element.mozSrcObject = stream;
+//       };
     }
 
     // Override
     attachMediaStream = function (element, stream) {
-      if (typeof element.srcObject !== 'undefined') {
+
+      if (window.attachMediaStream) {
+        return window.attachMediaStream(element, stream);
+      } else if (typeof element.srcObject !== 'undefined') {
         element.srcObject = stream;
       } else if (typeof element.mozSrcObject !== 'undefined') {
         element.mozSrcObject = stream;
