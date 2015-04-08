@@ -84,6 +84,14 @@
        */
       'contactUpdated': {client: true},
 
+      /**
+       * Dispatched when new data from other contact was recieved
+       *
+       * @memberof MessagingAPI
+       * @event receivedData
+       * @param {Object} object of received data
+       *
+       */
       'receivedData': {client: true},
 
       /**
@@ -357,7 +365,18 @@
        */
       sendMessage: general.sendMessage,
 
-      sendData: general.sendData
+      /**
+       * Send custom data to contact
+       *
+       * @memberof MessagingAPI
+       * @method oSDK.sendCustomData
+       * @param {string} recipient ID
+       * @param {object} Custom date as object
+       * @param {callbacks}.onError
+       * @param {callbacks}.onSuccess
+       * @returns {boolean}
+       */
+      sendCustomData: general.sendCustomData
 
     });
 

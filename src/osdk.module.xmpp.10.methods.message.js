@@ -112,7 +112,7 @@
 
       },
 
-      sendData: function(id, param, callbacks) {
+      sendCustomData: function(id, param, callbacks) {
 
         var handlers = this.prepareHandlers(callbacks);
 
@@ -141,11 +141,10 @@
         }
 
         if (!utils.isObject(param)) {
-          handlers.onError(this.error('2x6'));
-          return false;
+          param = {data: param};
         }
 
-        if (!this.sendPresence(id, param)) {
+        if (!this.sendPresence({to: id, data: param})) {
           handlers.onError(this.error('0x0'));
           return false;
         } else {
@@ -155,13 +154,7 @@
             to: id,
             data: param
           };
-          var item = this.factory.history.createItem(this.storage.client.id, params);
-          var contact = this.storage.contacts.get(id);
-          if (contact) {
-            contact.history.push(params);
-          }
-          this.storage.client.history.push(params);
-          handlers.onSuccess({type: 'data', data: item});
+          handlers.onSuccess(params);
           return false;
         }
 

@@ -191,7 +191,11 @@
                   }
                 }
                 if (presence.data) {
-
+                  module.trigger('receivedData', {
+                    from: presence.from,
+                    to: presence.to,
+                    data: presence.data
+                  });
                 }
               }
             }
