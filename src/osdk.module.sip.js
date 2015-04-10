@@ -28,6 +28,7 @@
         url: 'ws',
         host: null
       },
+      debug: true,
       stun: null,
       turn: null
     }
@@ -40,14 +41,28 @@
       store = {};
 
       // Clears one or all sessions
-    instance.clear = function sessionsClear(sessionID) {
+    instance.clear = function sessionsClear(sessionID, doNotDelete) {
 
       var deleteSession = function (sessionID) {
-        // TODO: make sure session is opened
-//         if (store[sessionID].mediaSessionObject && !store[sessionID].mediaSessionObject.end_time) {
-//           store[sessionID].mediaSessionObject.end();
-//         }
-        delete store[sessionID];
+        // make sure session is opened
+        if (store[sessionID].mediaSessionObject) {
+          if (!store[sessionID].mediaSessionObject.isEnded) {
+            store[sessionID].mediaSessionObject.end();
+          }
+          store[sessionID].mediaSessionObject.localStreams().forEach(function (stream) {
+            if (stream.stop) {
+              stream.stop();
+            }
+          });
+          store[sessionID].mediaSessionObject.remoteStreams().forEach(function (stream) {
+            if (stream.stop) {
+              stream.stop();
+            }
+          });
+        }
+        if (!doNotDelete) {
+          delete store[sessionID];
+        }
       };
 
       if (typeof sessionID != 'undefined') {
@@ -121,7 +136,7 @@
     attachMediaStream = function (element, stream) {
 
       if (window.attachMediaStream) {
-        return window.attachMediaStream(element, stream);
+        window.attachMediaStream(element, stream);
       } else if (typeof element.srcObject !== 'undefined') {
         element.srcObject = stream;
       } else if (typeof element.mozSrcObject !== 'undefined') {
@@ -471,6 +486,19 @@
             return self.me;
           }
         }
+      },
+     /**
+     * Whether session ended or not.
+     * @alias isEnded
+     * @memberof MediaSession
+     * @instance
+     * @type string
+     */
+      isEnded: {
+        enumerable: true,
+        get: function () {
+          return evData.session.isEnded();
+        }
       }
     });
 
@@ -628,7 +656,7 @@
       }
       var streams = evData.session.connection.peerConnection.getLocalStreams.call(evData.session.connection.peerConnection);
       module.log('attachLocalStream got streams and index', streams, index);
-      Media.attachMediaStream(element, streams[index]);
+      return Media.attachMediaStream(element, streams[index]);
     };
 
     /**
@@ -645,7 +673,7 @@
       }
       var streams = evData.session.connection.peerConnection.getRemoteStreams.call(evData.session.connection.peerConnection);
       module.log('attachRemoteStream got streams and index', streams, index);
-      Media.attachMediaStream(element, streams[index]);
+      return Media.attachMediaStream(element, streams[index]);
     };
 
     /**
@@ -834,12 +862,7 @@
           case 'ended':
           case 'failed':
             // Stopping getting of local media stream to release camera/microphone.
-            if (evData.session.connection && evData.session.connection.peerConnection && module.utils.isArray(evData.session.connection.peerConnection.getLocalStreams()))
-            module.utils.each(evData.session.connection.peerConnection.getLocalStreams(), function (stream) {
-              stream.stop();
-            });
-            // Deleting current session TODO: Commented as something wrong with that
-            // sessions.clear(currentSession.id);
+            sessions.clear(currentSession.id, true);
             break;
         }
       });
