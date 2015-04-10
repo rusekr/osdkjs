@@ -15,6 +15,5 @@
 ## Tutorials ##
 <p>{@tutorial tutorial1}
 <p>{@tutorial tutorial2}
-<p>{@tutorial tutorial3}
 <p>{@tutorial tutorial4}
 <p>{@tutorial tutorial5}

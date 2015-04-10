@@ -204,23 +204,12 @@
             create: function(id, resource) {
               var result = instance.create.user(id, resource);
               if (result) {
+                
               }
               return result;
             }
           }
         });
-
-        this.factory.client = new oSDKModule.factory.client();
-        this.create.client = this.factory.client.create;
-
-        this.factory.contact = new oSDKModule.factory.contact();
-        this.create.contact = this.factory.client.contact;
-
-        this.factory.request = new oSDKModule.factory.request();
-        this.create.request = this.factory.client.request;
-
-        this.factory.conference = new oSDKModule.factory.conference();
-        this.create.conference = this.factory.client.conference;
 
       } else {
         return false;

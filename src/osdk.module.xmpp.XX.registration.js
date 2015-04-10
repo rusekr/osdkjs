@@ -381,7 +381,9 @@
        * @param {callbacks}.onSuccess
        * @returns {boolean}
        */
-      sendCustomData: general.sendCustomData
+      sendCustomData: general.sendCustomData,
+
+      createConference: general.createConference
 
     });
 

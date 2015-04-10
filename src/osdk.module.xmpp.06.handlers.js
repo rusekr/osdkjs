@@ -109,6 +109,9 @@
           fnOnIncoming: function(packet) {
             if (packet) {
               var presence = general.parsePresence(packet);
+              if (presence && presence.type == general.XMPP_PRESENCE_TYPE_ERROR) {
+                console.warn('Presence type error: ', packet);
+              }
               if (presence && (presence.from != general.storage.client.id && presence.from != general.storage.client.jid)) {
                 general.debug('JSJaC handling event "onIncomingPresence": ', presence);
                 var contact = general.storage.contacts.get(presence.from);

@@ -35,7 +35,7 @@
 
         var result = new IUser();
 
-        if (id && utils.isString(id) && utils.isValidID(id)) {
+        if (id && utils.isString(id) && (utils.isValidID(id) || (id.substr(0, 1) == '#' && utils.isValidID(id.substr(1))))) {
 
           id = id.toLowerCase();
 
