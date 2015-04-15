@@ -24,13 +24,12 @@
 
   module.defaultConfig = {
     excludeCSSClasses: null, //'ocobrowsing', // TODO: document
-    cobrowsing: {
-      mouseMoveTimeout: 25,
-      broker: {
-        proto: 'wss',
-        port: null, // 8443,
-        host: null // '192.168.2.161'
-      }
+
+    mouseMoveTimeout: 25,
+    broker: {
+      proto: 'wss',
+      port: null, // 8443,
+      host: null // '192.168.2.161'
     }
   };
 
@@ -996,12 +995,12 @@
       userID = auth.autoDomainHelper(userID);
 
       if (self.participants[userID]) {
-        warn(userID + 'is already cobrowsed with.');
+        warn(userID + ' is already cobrowsed with.');
         return;
       }
 
       if (self.inviteTimers[userID]) {
-        warn('Inviting of' + userID + 'in progress.');
+        warn('Inviting of ' + userID + ' in progress.');
         return;
       }
 

@@ -212,6 +212,7 @@
     var parts = path.split('.');
     var i, tmp;
     for(i = 0; i < parts.length; i++) {
+        // if (Object.prototype.hasOwnProperty())
         tmp = obj[parts[i]];
         if (value !== undefined) {
           if (i === parts.length - 1) {
@@ -222,6 +223,10 @@
           }
         }
         obj = tmp;
+
+        if (tmp === undefined) {
+          break;
+        }
     }
     return obj;
   };
@@ -375,6 +380,12 @@
         enumerable: true,
         get: function () {
           return nameInt;
+        }
+      },
+      clientModuleName: {
+        enumerable: true,
+        get: function () {
+          return clientModuleName;
         }
       }
     });
@@ -1019,41 +1030,29 @@
       // If we got parameter string <subPath> like 'app.key' - returning <moduleName>.<subPath> or <subPath> if first was not found or throwing error.
       // Setting parameters runtime only goes to prefixed with <moduleName> pathes.
       if (name && isString(name)) {
-        // Setting in prefixed config
-        if (value !== undefined) {
-          var path = [nameInt].concat(name.split('.'));
-          return pathManage(mainConfig, path.join('.'), value);
-        }
 
-        // Getting in prefixed config
-        var parameter = mainConfig[nameInt];
-        var subParameter = name.split('.');
-        var i = 0;
-        if (isObject(parameter)) {
-          for (i=0; i < subParameter.length; i++) {
-            //self.log('config searching', parameter, subParameter[i]);
-            if (!ownProperty(parameter, subParameter[i])) {
-              parameter = undefined;
-              break;
-            }
-            parameter = parameter[subParameter[i]];
+        var parameter;
+        var pathByClientAndModule = [clientModuleName, nameInt].concat(name.split('.'));
+        var pathByClient = [clientModuleName].concat(name.split('.'));
+        var pathByModule = [nameInt].concat(name.split('.'));
+        if (value !== undefined) {
+          // Setting in prefixed config
+          parameter = pathManage(mainConfig, pathByClientAndModule.join('.'), value);
+        } else {
+          // Getting in prefixed config
+          parameter = pathManage(mainConfig, pathByClientAndModule.join('.'), value);
+          // Getting in prefixed config
+          if (parameter === undefined) {
+            parameter = pathManage(mainConfig, pathByClient.join('.'), value);
           }
-        }
-        // Getting in unprefixed config
-        if (parameter === undefined) {
-          parameter = mainConfig;
-          subParameter = name.split('.');
-          for (i = 0; i < subParameter.length; i++) {
-            // self.log('config searching', parameter, subParameter[i]);
-            if (!ownProperty(parameter, subParameter[i])) {
-              throw new self.Error('Module.config: can\'t find config parameter:' + name);
-            }
-            parameter = parameter[subParameter[i]];
+          // Getting in prefixed config
+          if (parameter === undefined) {
+            parameter = pathManage(mainConfig, pathByModule.join('.'), value);
           }
         }
         return parameter;
       } else {
-        throw new self.Error('Module.config: can\'t find config parameter:' + name);
+        throw new self.warn('Module.config: no/incorrect parameter name:' + name);
       }
     };
     self.config = self.constructor.prototype.config.bind(self);
@@ -1193,7 +1192,9 @@
     self.requires = self.constructor.prototype.requires.bind(self);
 
     self.constructor.prototype.registerConfig = function oSDKregisterConfig (configObject) {
-      extend(true, mainConfig, configObject);
+      var prefixed = {};
+      prefixed[self.name] = configObject;
+      extend(true, mainConfig, prefixed);
     };
     self.registerConfig = self.constructor.prototype.registerConfig.bind(self);
 
@@ -1632,9 +1633,17 @@
     return temp.toLowerCase();
   };
 
+  // Merge config as unprefixed.
   utils.mergeConfig = function (config) {
     extend(true, mainConfig, config);
     this.log('merged config', config, 'with main config', mainConfig);
+  };
+
+  // Merge config as prefixed.
+  utils.mergeClientConfig = function (config) {
+    var clientConfig = {};
+    clientConfig[oSDK.utils.clientModuleName] = config;
+    utils.mergeConfig(clientConfig);
   };
 
   utils.Module = Module;

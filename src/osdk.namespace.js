@@ -80,7 +80,7 @@ var oSDK = function (config) {
   "use strict";
 
   // Merge default config with initialization config
-  oSDK.utils.mergeConfig(config);
+  oSDK.utils.mergeClientConfig(config);
   oSDK.utils.trigger('mergedUserConfig');
 
   return oSDK;
