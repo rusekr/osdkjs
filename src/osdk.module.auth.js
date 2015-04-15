@@ -57,12 +57,6 @@
   });
 
   var defaultConfig = {
-    auth: {
-      apiServerURL: '{APIServerURI}', //TODO: replace this and following with sdk build parameter
-      credsURI: '{ephemeralsPath}',
-      authURI: '{authorizePath}',
-      expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
-    },
     nonEphemeral: false, // TODO: to document
     username: null, // nonEphemeral related
     password: null, // nonEphemeral related
@@ -70,7 +64,12 @@
     popup: false,
     connectionRecovery: false,
     callbackURI: false,
-    autoDomain: true, // Auto add domain if user not specified. NOTICE: Used in other modules.
+    autoDomain: true, // Auto add domain if user not specified
+
+    apiServerURL: '{APIServerURI}', //TODO: replace this and following with sdk build parameter
+    credsURI: '{ephemeralsPath}',
+    authURI: '{authorizePath}',
+    expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
   };
 
   // For not adding more than one event listener.

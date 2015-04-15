@@ -21,17 +21,16 @@
 
   var defaultConfig = {
     tryMediaCapabilities: true, // Try media capabilities on app start
-    sip: {
-      gw: {
-        proto: 'wss',
-        port: 8088,
-        url: 'ws',
-        host: null
-      },
-      debug: true,
-      stun: null,
-      turn: null
-    }
+
+    gw: {
+      proto: 'wss',
+      port: 8088,
+      url: 'ws',
+      host: null
+    },
+    debug: true,
+    stun: null,
+    turn: null
   };
 
   // RTC sessions array

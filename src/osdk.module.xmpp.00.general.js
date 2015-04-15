@@ -267,6 +267,7 @@
           resource: (instance.config('resource') || 'client-' + oSDKModule.utils.uuid().replace('-', '')),
           timestamp: arguments[0].data.username.split(':')[0]
         };
+        instance.authDomainHelper = arguments[0].data.authDomainHelper;
         instance.storage = new instance.classes.IStorage(params);
         instance.createConnection(params);
         return undefined;
