@@ -27,8 +27,6 @@
     var configuration = {
       // Debug level
       debug: 6,
-      // Client resource
-      resource: 'oSDK',
       // Connection
       connection: {
         // Timer

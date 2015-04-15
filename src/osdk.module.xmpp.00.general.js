@@ -204,7 +204,7 @@
             create: function(id, resource) {
               var result = instance.create.user(id, resource);
               if (result) {
-                
+
               }
               return result;
             }
@@ -264,7 +264,7 @@
           login: arguments[0].data.username.split(':')[1].split('@')[0],
           password: arguments[0].data.password,
           domain: arguments[0].data.username.split(':')[1].split('@')[1],
-          resource: (instance.config('resource') || 'client-' + oSDKModule.utils.uuid().replace('-', '')),
+          resource: (instance.config('resource') || 'oSDK-client-' + oSDKModule.utils.uuid().replace('-', '')),
           timestamp: arguments[0].data.username.split(':')[0]
         };
         instance.authDomainHelper = arguments[0].data.authDomainHelper;
