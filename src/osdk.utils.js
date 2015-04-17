@@ -31,7 +31,7 @@
   };
   Object.defineProperties(earlyMainEvents, {
     fired: {
-      enumerable: true,
+      enumerable: false,
       get: function () {
         var all = 0;
         var fired = 0;
@@ -258,6 +258,9 @@
 
   /*
    * JQuery-like object extender
+   * if first parameter is true - deep extend
+   * if first parameter is string containing "deep" - deep extend
+   * if first parameter is string containing "addonly" - function will not replace any existing input object properties
    */
   var extend = function () {
 
@@ -266,10 +269,20 @@
     var args = Array.prototype.slice.call(arguments, 0);
     var inObj = args.shift();
     var deep = false;
+    var addonly = false;
 
     // Checking for deep copy flag as first param
     if ( inObj === true ) {
       deep = inObj;
+      inObj = args.shift();
+    }
+    if (isString(inObj)) {
+      if (inObj.indexOf('deep') != -1) {
+        deep = inObj;
+      }
+      if (inObj.indexOf('addonly') != -1) {
+        addonly = true;
+      }
       inObj = args.shift();
     }
 
@@ -292,20 +305,30 @@
         }
 
         if (isObject(obj[key])) {
-          if (!isObject(inObj[key])) {
-            // Just replacing all other with object in priority
-            inObj[key] = {};
-          }
+
           if (deep) {
+
+            if (!isObject(inObj[key])) {
+              // Just replacing all other with object in priority
+              if (!inObj[key] || !addonly) {
+                inObj[key] = {};
+              }
+            }
             // More recursion allowed
-            extend(true, inObj[key], obj[key]);
+            if (isObject(inObj[key])) {
+              extend(deep, inObj[key], obj[key]);
+            }
           } else {
             // Just replacing
-            inObj[key] = obj[key];
+            if (!inObj[key] || !addonly) {
+              inObj[key] = obj[key];
+            }
           }
         } else {
           // Just copying anything else
-          inObj[key] = obj[key];
+          if (!inObj[key] || !addonly) {
+            inObj[key] = obj[key];
+          }
           continue;
         }
       }
@@ -832,47 +855,12 @@
      */
     self.constructor.prototype.trigger = function oSDKtrigger () {
 
-      // TODO: this if else if must be in external addon for generic trigger function
-      // Transit event must fire without waiting
-      var cancelTrigger = false;
-      [].concat(arguments[0]).forEach(function (eventType) {
-        if (['transitEvent', 'mergedUserConfig'].indexOf(eventType) == -1) {
-          if (earlyMainEvents.fired != 'all') {
-            self.log('NOT Triggered early event name', eventType);
-            // Not main events
-            if (typeof earlyMainEvents[eventType] == 'undefined') {
-              earlyEvents.push([self].concat(Array.prototype.slice.call(arguments, 0)));
-              self.log('NOT Triggered early event name pushed to', earlyEvents);
-              cancelTrigger = true;
-              return false;
-            } else {
-              self.log('NOT Triggered early event is main', eventType);
-              earlyMainEvents[eventType] = self;
-            }
-          }
-          if (!earlyEventsTriggered && earlyMainEvents.fired == 'all') {
-            earlyEventsTriggered = true;
-            self.log('All main events triggered, triggering stashed events');
-  //           earlyMainEvents.mergedUserConfig.trigger('mergedUserConfig');
-            earlyMainEvents.DOMContentLoaded.trigger('DOMContentLoaded');
-            earlyEvents.map(function (args) {
-              var module = args.shift();
-              var name = args.shift();
-              module.trigger.apply(module, [name].concat(args));
-            });
-          }
-        }
-      });
-      if (cancelTrigger) {
-        return;
-      }
-
-
-      var configObject = {
+      // Forming event object.
+      var triggerEventObject = {
         type: [], // Event type(s) to trigger.
         data: {}, // Parameter(s) to pass with event(s).
         context: self, // Context in which trigger event(s).
-        arguments: false
+        arguments: false // False or array of clean arguments to trigger event with (overrides data propery)
       };
 
       if (!isArray(arguments[0]) && !isString(arguments[0]) && !isObject(arguments[0])) {
@@ -881,19 +869,74 @@
       } else if (isString(arguments[0]) || isArray(arguments[0])) {
         // If first argument is string or array then.
         // First argument is event type or array of event types.
-        configObject.type = [].concat(arguments[0]);
+        triggerEventObject.type = arguments[0];
         // Second argument is event data.
-        configObject.data = isObject(arguments[1])?arguments[1]:{};
+        triggerEventObject.data = isObject(arguments[1]) ? arguments[1] : { data: arguments[1] };
         // Third argument is context
         if (arguments[2]) {
-          configObject.context = arguments[2];
+          triggerEventObject.context = arguments[2];
         }
       } else {
-        // First argument is object then assume that it is configObject compatible.
-        extend(configObject, arguments[0]);
+        // First argument is object then assume that it is triggerEventObject compatible.
+        extend(triggerEventObject, arguments[0]);
       }
-      // TODO: group data of bound events
-      configObject.type.forEach(function (eventType) {
+      // Normalization of type to array
+      triggerEventObject.type = [].concat(triggerEventObject.type);
+      console.log('Formed event object', triggerEventObject);
+
+
+      //START OF QUEUEING EARLY EVENTS WITH EXCEPTIONS
+      var stashedEventsNames = []; // Cancelled event names.
+      var exeptionTypes = ['transitEvent', 'mergedUserConfig', 'windowError']; // Transparent events that fire instantly even before DOMContentLoaded
+      triggerEventObject.type.forEach(function (eventType) {
+        if (exeptionTypes.indexOf(eventType) == -1) {
+          if (earlyMainEvents.fired != 'all') {
+            self.log('NOT Triggered early event name', eventType);
+
+            if (typeof earlyMainEvents[eventType] == 'undefined') {
+              // Not main events
+              var storedEventObject = extend(true, {}, triggerEventObject);
+              storedEventObject.type = eventType; // Only current event type if several.
+              var storedEventModule = self;
+              self.log('NOT Triggered storing event for module', storedEventModule, 'with event object', storedEventObject);
+              earlyEvents.push([storedEventModule, storedEventObject]);
+            } else {
+              // Main events
+              self.log('NOT Triggered early event is main', eventType);
+              earlyMainEvents[eventType] = self;
+            }
+
+            stashedEventsNames.push(eventType);
+          }
+          if (!earlyEventsTriggered && earlyMainEvents.fired == 'all') {
+            earlyEventsTriggered = true;
+            self.log('Triggering main events for real');
+            Object.keys(earlyMainEvents).forEach(function (name) {
+              earlyMainEvents[name].trigger(name); // NOTICE: main events supported are only without params
+            });
+            self.log('All main events triggered, triggering stashed early events');
+            earlyEvents.map(function (args) {
+              var module = args.shift();
+              module.trigger.apply(module, args);
+            });
+            earlyEvents = [];
+          }
+        }
+      });
+      if (stashedEventsNames.length) {
+        stashedEventsNames.forEach(function (eventType) {
+          triggerEventObject.type.splice(triggerEventObject.type.indexOf(eventType), 1);
+        });
+
+        if (triggerEventObject.type.length < 1) {
+          // Nothing to fire now, all stashed.
+          return;
+        }
+      }
+      //END OF ...
+
+
+      triggerEventObject.type.forEach(function (eventType) {
         if (!events[eventType]) {
           // Non fatal
           self.warn('Event', eventType, 'not registered by emitter or listener, therefore nothing to trigger!');
@@ -907,16 +950,16 @@
         }
 
         // Addition of system properties to data.
-        if(!configObject.data.type) {
-          configObject.data.type = eventType;
+        if (!triggerEventObject.data.type) {
+          triggerEventObject.data.type = eventType;
         }
         // Subtype for some events.
-        if(!configObject.data.subType) {
-          configObject.data.subType = false;
+        if (!triggerEventObject.data.subType) {
+          triggerEventObject.data.subType = false;
         }
         // First fired module gets priority.
-        if(!configObject.data.module) {
-          configObject.data.module = self.name;
+        if (!triggerEventObject.data.module) {
+          triggerEventObject.data.module = self.name;
         }
 
         // Regstered emitters may be zero (e.g. in case of oauth popup)
@@ -960,7 +1003,15 @@
           eventEmitterObject.fired.push(listener.id);
 
           // Extending data object to listener
-          extend(listener.data, configObject.data);
+          // NOTICE: maybe somehow group data of bound events instead of use first fired module data
+          // self.log('extending', listener.data, 'with', triggerEventObject.data);
+          extend('addonly', listener.data, triggerEventObject.data);
+          if (!listener.data.modules || !isArray(listener.data.modules)) {
+            listener.data.modules = [];
+          }
+          listener.data.modules.push(self.name);
+          // self.log('extended', listener.data, 'with', triggerEventObject.data);
+          // self.log('listener1', listener);
 
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
@@ -1002,6 +1053,8 @@
 
           }
 
+          // self.log('listener2', listener);
+
           // If just firing with transparent arguments if developer used arguments in trigger config object or with own data object
           var fireArgs = [];
           if(listener.data.arguments) {
@@ -1014,11 +1067,12 @@
             }
           } else {
             fireArgs.push(listener.data);
+            // self.log('Pushed arguments for firing event', fireArgs);
           }
 
           self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data, 'as arguments',fireArgs);
 
-          listener.handler.apply(configObject.context, fireArgs);
+          listener.handler.apply(triggerEventObject.context, fireArgs);
 
         });
       });
