@@ -67,6 +67,9 @@
       "src/osdk.module.xmpp.12.methods.conference.js",
       "src/osdk.module.xmpp.XX.registration.js"
     ],
+    "oneapi": [
+      "src/osdk.module.oneapi.js"
+    ],
     "cobrowsing": [
       "libs/stompjs/stomp.js",
       "src/osdk.module.cobrowsing.js"
@@ -80,6 +83,7 @@
     "base",
     "sip",
     "xmpp",
+    "oneapi",
     "cobrowsing"
   ],
   "repository": {

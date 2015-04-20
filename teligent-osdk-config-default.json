@@ -5,8 +5,12 @@
       "to": "https://osdp-teligent-test-apigw.virt.teligent.ru"
     },
     {
+      "from": "{SMSAPIServerURI}",
+      "to": "https://apilb.megafonkavkaz.ru/osdp/temp/crpapi/1.0.0/smsmessaging"
+    },
+    {
       "from": "{ephemeralsPath}",
-      "to": "/osdp/sm/common/1.0.2/ephemerals"
+      "to": "/osdp/sm/common/1.0.3/ephemerals"
     },
     {
       "from": "{authorizePath}",
@@ -32,6 +36,10 @@
     {
       "from": "{APIServerURI}",
       "to": "https://osdp-teligent-dev-apigw.virt.teligent.ru"
+    },
+    {
+      "from": "{SMSAPIServerURI}",
+      "to": "https://osdp-teligent-dev-apigw.virt.teligent.ru/smsmessaging"
     },
     {
       "from": "{ephemeralsPath}",

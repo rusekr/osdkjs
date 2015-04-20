@@ -12,6 +12,7 @@
 <p>[Presence API](PresenceAPI.html) allows you to exchange your statuses with other users of openSDP network.
 <p>[Roster API](RosterAPI.html) grants you access to managing of current user's contact list.
 <p>[Cobrowsing API](CobrowsingAPI.html) provides you with ability to easily syncronize events and forms on pages between users.
+<p>[One API](OneAPI.html) helps to send and receive SMS, get location and use payment services.
 ## Tutorials ##
 <p>{@tutorial tutorial1}
 <p>{@tutorial tutorial2}

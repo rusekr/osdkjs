@@ -313,28 +313,6 @@
      </g>
      <g class="com.sun.star.drawing.CustomShape">
       <g id="id31">
-       <g>
-        <defs>
-         <pattern id="pattern3" x="14600" y="6600" width="2701" height="7201" patternUnits="userSpaceOnUse">
-          <g transform="translate(-14600,-6600)">
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="7259" x2="15259" y2="6600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="7970" x2="15970" y2="6600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="8681" x2="16681" y2="6600"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="9392" x2="17300" y2="6692"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="10103" x2="17300" y2="7403"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="10814" x2="17300" y2="8114"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="11525" x2="17300" y2="8825"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="12236" x2="17300" y2="9536"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="12947" x2="17300" y2="10247"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="14600" y1="13658" x2="17300" y2="10958"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15169" y1="13800" x2="17300" y2="11669"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="15880" y1="13800" x2="17300" y2="12380"/>
-           <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="16591" y1="13800" x2="17300" y2="13091"/>
-          </g>
-         </pattern>
-        </defs>
-        <path style="fill:url(#pattern3)" d="M 15950,13800 L 14600,13800 14600,6600 17300,6600 17300,13800 15950,13800 Z"/>
-       </g>
        <path fill="none" stroke="rgb(0,153,255)" d="M 15950,13800 L 14600,13800 14600,6600 17300,6600 17300,13800 15950,13800 Z"/>
       </g>
      </g>
@@ -342,7 +320,7 @@
       <g id="id32">
        <g>
         <defs>
-         <pattern id="pattern4" x="17600" y="6600" width="2701" height="7201" patternUnits="userSpaceOnUse">
+         <pattern id="pattern3" x="17600" y="6600" width="2701" height="7201" patternUnits="userSpaceOnUse">
           <g transform="translate(-17600,-6600)">
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17600" y1="7259" x2="18259" y2="6600"/>
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="17600" y1="7970" x2="18970" y2="6600"/>
@@ -360,7 +338,7 @@
           </g>
          </pattern>
         </defs>
-        <path style="fill:url(#pattern4)" d="M 18950,13800 L 17600,13800 17600,6600 20300,6600 20300,13800 18950,13800 Z"/>
+        <path style="fill:url(#pattern3)" d="M 18950,13800 L 17600,13800 17600,6600 20300,6600 20300,13800 18950,13800 Z"/>
        </g>
        <path fill="none" stroke="rgb(0,153,255)" d="M 18950,13800 L 17600,13800 17600,6600 20300,6600 20300,13800 18950,13800 Z"/>
       </g>
@@ -369,7 +347,7 @@
       <g id="id33">
        <g>
         <defs>
-         <pattern id="pattern5" x="20600" y="6600" width="2701" height="7201" patternUnits="userSpaceOnUse">
+         <pattern id="pattern4" x="20600" y="6600" width="2701" height="7201" patternUnits="userSpaceOnUse">
           <g transform="translate(-20600,-6600)">
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20600" y1="7259" x2="21259" y2="6600"/>
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="20600" y1="7970" x2="21970" y2="6600"/>
@@ -387,7 +365,7 @@
           </g>
          </pattern>
         </defs>
-        <path style="fill:url(#pattern5)" d="M 21950,13800 L 20600,13800 20600,6600 23300,6600 23300,13800 21950,13800 Z"/>
+        <path style="fill:url(#pattern4)" d="M 21950,13800 L 20600,13800 20600,6600 23300,6600 23300,13800 21950,13800 Z"/>
        </g>
        <path fill="none" stroke="rgb(0,153,255)" d="M 21950,13800 L 20600,13800 20600,6600 23300,6600 23300,13800 21950,13800 Z"/>
       </g>
@@ -396,7 +374,7 @@
       <g id="id34">
        <g>
         <defs>
-         <pattern id="pattern6" x="23600" y="6600" width="1901" height="7201" patternUnits="userSpaceOnUse">
+         <pattern id="pattern5" x="23600" y="6600" width="1901" height="7201" patternUnits="userSpaceOnUse">
           <g transform="translate(-23600,-6600)">
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23600" y1="7259" x2="24259" y2="6600"/>
            <line fill="rgb(0,0,0)" stroke="rgb(0,0,0)" x1="23600" y1="7970" x2="24970" y2="6600"/>
@@ -413,7 +391,7 @@
           </g>
          </pattern>
         </defs>
-        <path style="fill:url(#pattern6)" d="M 24550,13800 L 23600,13800 23600,6600 25500,6600 25500,13800 24550,13800 Z"/>
+        <path style="fill:url(#pattern5)" d="M 24550,13800 L 23600,13800 23600,6600 25500,6600 25500,13800 24550,13800 Z"/>
        </g>
        <path fill="none" stroke="rgb(0,153,255)" d="M 24550,13800 L 23600,13800 23600,6600 25500,6600 25500,13800 24550,13800 Z"/>
       </g>
