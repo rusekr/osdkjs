@@ -1009,9 +1009,25 @@
           if (!listener.data.modules || !isArray(listener.data.modules)) {
             listener.data.modules = [];
           }
-          listener.data.modules.push(self.name);
-          // self.log('extended', listener.data, 'with', triggerEventObject.data);
-          // self.log('listener1', listener);
+          if (listener.data.modules.indexOf(self.name) == -1) {
+            listener.data.modules.push(self.name);
+          }
+
+          // If just firing with transparent arguments if developer used arguments in trigger config object or with own data object
+          var fireArgs = [];
+          var listenerData = listener.data;
+          if(listenerData.arguments) {
+            if (isArray(listenerData.arguments)) {
+              fireArgs = listenerData.arguments;
+            } else if (isObject(listenerData.arguments)) {
+              fireArgs = Array.prototype.slice.call(listenerData.arguments, 0);
+            } else {
+              throw new self.Error('Unknown type of arguments to pass.');
+            }
+          } else {
+            fireArgs.push(listenerData);
+            // self.log('Pushed arguments for firing event', fireArgs);
+          }
 
           // If we need to fire event by last emitter to client
           var notFiredModuleExists = false;
@@ -1039,9 +1055,8 @@
 
           // All modules fired already, begin again.
           if (modulesFired == emittersLength) {
-
             // Clear data and emitters fired arrays after firing to last listener.
-            if (events[eventType].listeners.lenght - 1 == listenerIndex) {
+            if (events[eventType].listeners.length - 1 == listenerIndex) {
               listener.data = {};
 
               // Cleaning self emitters
@@ -1050,27 +1065,9 @@
               });
             }
 
-
           }
 
-          // self.log('listener2', listener);
-
-          // If just firing with transparent arguments if developer used arguments in trigger config object or with own data object
-          var fireArgs = [];
-          if(listener.data.arguments) {
-            if (isArray(listener.data.arguments)) {
-              fireArgs = listener.data.arguments;
-            } else if (isObject(listener.data.arguments)) {
-              fireArgs = Array.prototype.slice.call(listener.data.arguments, 0);
-            } else {
-              throw new self.Error('Unknown type of arguments to pass.');
-            }
-          } else {
-            fireArgs.push(listener.data);
-            // self.log('Pushed arguments for firing event', fireArgs);
-          }
-
-          self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data, 'as arguments',fireArgs);
+          self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listenerData, 'as arguments',fireArgs);
 
           listener.handler.apply(triggerEventObject.context, fireArgs);
 
