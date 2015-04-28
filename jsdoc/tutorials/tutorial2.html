@@ -229,7 +229,7 @@
                 <div class="video">
                   <div>
                     <!-- Element for outbound media stream (my camera and / or my microphone) -->
-                    <video id="tagToOutgoingMediaStream" autoplay controls></video>
+                    <video id="outgoingMediaStream" autoplay controls></video>
                   </div>
                 </div>
               </div>
@@ -237,7 +237,7 @@
                 <div class="video">
                   <div>
                     <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
-                    <video id="tagToIncomingMediaStream" autoplay controls></video>
+                    <video id="incomingMediaStream" autoplay controls></video>
                   </div>
                 </div>
               </div>
@@ -318,7 +318,7 @@
                   <div class="video">
                     <div>
                       <!-- Element for outbound media stream (my camera and / or my microphone)) -->
-                      <video id="tagToOutgoingMediaStream" autoplay="autoplay" controls="controls"></video>
+                      <video id="outgoingMediaStream" autoplay="autoplay" controls="controls"></video>
                     </div>
                   </div>
                 </div>
@@ -326,7 +326,7 @@
                   <div class="video">
                     <div>
                       <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
-                      <video id="tagToIncomingMediaStream" autoplay="autoplay" controls="controls"></video>
+                      <video id="incomingMediaStream" autoplay="autoplay" controls="controls"></video>
                     </div>
                   </div>
                 </div>
@@ -598,10 +598,10 @@
           <input type="text" class="form-control" id="contactId" placeholder="Contact ID" />
           ...
           <!-- Element for outbound media stream (my camera and / or my microphone) -->
-          <video id="tagToOutgoingMediaStream" autoplay="autoplay" controls="controls"></video>
+          <video id="outgoingMediaStream" autoplay="autoplay" controls="controls"></video>
           ...
           <!-- Element for the incoming media stream (the camera and / or microphone of the opponent) -->
-          <video id="tagToIncomingMediaStream" autoplay="autoplay" controls="controls"></video>
+          <video id="incomingMediaStream" autoplay="autoplay" controls="controls"></video>
           ...
           <!--  Audio call button -->
           <button type="button" id="btnAudioCall" class="btn btn-block btn-primary" disabled="disabled">
@@ -630,8 +630,8 @@
           <li><code>button#btnConnect</code> - a button for <code>oSDK</code> disconnection;</li>
           <li><code>textarea#logs</code> - a field to display text messages and other information;</li>
           <li><code>input#contactId</code> - a field to enter contact id that will get call;</li>
-          <li><code>video#tagToOutgoingMediaStream</code> - element that is assigned to the outgoing media stream;</li>
-          <li><code>video#tagToIncomingMediaStream</code> - element that is assigned to the incoming media stream;</li>
+          <li><code>video#outgoingMediaStream</code> - element that is assigned to the outgoing media stream;</li>
+          <li><code>video#incomingMediaStream</code> - element that is assigned to the incoming media stream;</li>
           <li><code>button#btnAudioCall</code> - audio call button;</li>
           <li><code>button#btnVideoCall</code> - video call button;</li>
           <li><code>button#btnAnswerCall</code> - answer call button;</li>
@@ -767,7 +767,7 @@
         </div>
         <br />
         <ul>
-          <li>event handler <code>started</code> - displays information in the text box about the beginning of the call and attaches the incoming and outgoing media streams to the corresponding elements: <code>video#tagToOutgoingMediaStream</code> и <code>video#tagToIncomingMediaStream</code>;</li>
+          <li>event handler <code>started</code> - displays information in the text box about the beginning of the call and attaches the incoming and outgoing media streams to the corresponding elements: <code>video#outgoingMediaStream</code> и <code>video#incomingMediaStream</code>;</li>
           <li>event handler <code>ended</code> - displays information in the text box about the completion of the call and detaches from the elements corresponding media streams;</li>
           <li>event handler <code>failed</code> - reports about error and detaches from the elements corresponding media streams, if any streams have been appointed;</li>
         </ul>
