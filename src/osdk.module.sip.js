@@ -967,6 +967,19 @@
       });
     }
 
+    // Combining for jssip 0.6+
+    var iceServers = [];
+    if (stunServers.length) {
+      iceServers.push({
+        urls: stunServers
+      });
+    }
+    if (turnServers.length) {
+      iceServers.push({
+        urls: turnServers
+      });
+    }
+
     var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
     var registrarConfig = {
       'ws_servers': hosts,
@@ -974,8 +987,9 @@
       'connection_autorecovery': false,
       'uri': 'sip:' + registrarUsername,
       'password': authCache.password,
-      'stun_servers': stunServers,
-      'turn_servers': turnServers,
+      'pcConfig': {
+        'iceServers': iceServers
+      },
       'trace_sip': true,
       'register': true,
       'authorization_user': registrarUsername,
