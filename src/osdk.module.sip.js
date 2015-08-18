@@ -975,9 +975,7 @@
       });
     }
     if (turnServers.length) {
-      iceServers.push({
-        urls: turnServers
-      });
+      iceServers = iceServers.concat(turnServers);
     }
 
     var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
