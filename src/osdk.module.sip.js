@@ -30,7 +30,10 @@
     },
     debug: true,
     stun: null,
-    turn: null
+    turn: null,
+    use_preloaded_route: false,
+    hack_via_tcp: true,
+    hack_ip_in_contact: true
   };
 
   // RTC sessions array
@@ -994,8 +997,9 @@
       'trace_sip': true,
       'register': true,
       'authorization_user': registrarUsername,
-      'use_preloaded_route': false
-      //,hack_via_tcp: true
+      'use_preloaded_route': module.config('use_preloaded_route'),
+      'hack_via_tcp': module.config('hack_via_tcp'),
+      'hack_ip_in_contact': module.config('hack_ip_in_contact')
     };
     module.log('SIP registering with config', registrarConfig);
     module.initialize(registrarConfig);
