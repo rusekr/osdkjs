@@ -25,6 +25,8 @@
      */
 
     var configuration = {
+      // MGTS hack
+      mgts: true,
       // Debug level
       debug: 6,
       // Connection
