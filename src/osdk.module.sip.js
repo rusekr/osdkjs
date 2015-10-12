@@ -768,26 +768,27 @@
      * @param {boolean} options.audio Answer with own audio stream.
      * @param {boolean} options.video Answer with own video stream.
      */
-      self.answer = function () {
+      self.answer = function (options) {
 
-        if (!module.utils.isObject(arguments[0])) {
-          arguments[0] = {};
+        if (!module.utils.isObject(options)) {
+          options = {};
         }
 
         // Defaults
-        if (typeof arguments[0].audio == 'undefined') {
-          arguments[0].audio = self.hasAudio?true:false;
+        if (typeof options.audio == 'undefined') {
+          options.audio = self.hasAudio?true:false;
         }
-        if (typeof arguments[0].video == 'undefined') {
-          arguments[0].video = self.hasVideo?true:false;
+        if (typeof options.video == 'undefined') {
+          options.video = self.hasVideo?true:false;
         }
 
         // Conversion to JsSIP object.
-        arguments[0] = callOptionsConverter(arguments[0]);
+        options = callOptionsConverter(options);
+        options = module.utils.extend({}, { pcConfig: module.config('pcConfig') }, options || {});
 
-        module.log('Modified answer arguments to', arguments[0]);
+        module.log('Modified answer arguments to', options);
 
-        return evData.session.answer.apply(evData.session, [].slice.call(arguments, 0));
+        return evData.session.answer.call(evData.session, options);
       };
     }
 
@@ -967,6 +968,21 @@
       });
     }
 
+    // Combining for jssip 0.6+
+    var iceServers = [];
+    if (stunServers.length) {
+      iceServers.push({
+        urls: stunServers
+      });
+    }
+    if (turnServers.length) {
+      iceServers = iceServers.concat(turnServers);
+    }
+
+    module.config('pcConfig', {
+      'iceServers': iceServers
+    });
+
     var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
     var registrarConfig = {
       'ws_servers': hosts,
@@ -974,8 +990,7 @@
       'connection_autorecovery': false,
       'uri': 'sip:' + registrarUsername,
       'password': authCache.password,
-      'stun_servers': stunServers,
-      'turn_servers': turnServers,
+      'pcConfig': module.config('pcConfig'),
       'trace_sip': true,
       'register': true,
       'authorization_user': registrarUsername,
@@ -1091,7 +1106,7 @@
 
     module.log('JsSIP call arguments', arguments, callOptions);
 
-    module.JsSIPUA.call.call(module.JsSIPUA, opponent, callOptions);
+    module.JsSIPUA.call.call(module.JsSIPUA, opponent, module.utils.extend({}, { pcConfig: module.config('pcConfig') }, callOptions || {}));
 
   };
 
