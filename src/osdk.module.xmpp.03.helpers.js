@@ -34,7 +34,7 @@
 
       getId: function(param) {
         // Hack to MGTS
-        function hackToMGTS(id) {
+        function hackToMGTS(param) {
           if (module.config('mgts')) {
             return ((param.substr(0, 1) == '+') ? param.substr(1) : param);
           } else {
