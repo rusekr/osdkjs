@@ -1,11 +1,3 @@
-/*
- * JsSIP v0.6.21
- * the Javascript SIP library
- * Copyright: 2012-2015 José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)
- * Homepage: http://jssip.net
- * License: MIT
- */
-
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.JsSIP = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var pkg = require('../package.json');
 
@@ -69,6 +61,7 @@ var C = {
   NOTIFY:     'NOTIFY',
   OPTIONS:    'OPTIONS',
   REGISTER:   'REGISTER',
+  REFER:      'REFER',
   UPDATE:     'UPDATE',
   SUBSCRIBE:  'SUBSCRIBE',
 
@@ -150,17 +143,17 @@ var C = {
     606: 'Not Acceptable'
   },
 
-  ALLOWED_METHODS: 'INVITE,ACK,CANCEL,BYE,UPDATE,MESSAGE,OPTIONS',
+  ALLOWED_METHODS: 'INVITE,ACK,CANCEL,BYE,UPDATE,MESSAGE,OPTIONS,REFER',
   ACCEPTED_BODY_TYPES: 'application/sdp, application/dtmf-relay',
   MAX_FORWARDS: 69,
-  SESSION_EXPIRES: 90,
+  SESSION_EXPIRES: 600,
   MIN_SESSION_EXPIRES: 60
 };
 
 
 module.exports = C;
 
-},{"../package.json":46}],2:[function(require,module,exports){
+},{"../package.json":48}],2:[function(require,module,exports){
 module.exports = Dialog;
 
 
@@ -375,7 +368,7 @@ Dialog.prototype = {
   }
 };
 
-},{"./Constants":1,"./Dialog/RequestSender":3,"./SIPMessage":16,"./Transactions":18,"debug":29}],3:[function(require,module,exports){
+},{"./Constants":1,"./Dialog/RequestSender":3,"./SIPMessage":18,"./Transactions":20,"debug":31}],3:[function(require,module,exports){
 module.exports = DialogRequestSender;
 
 /**
@@ -455,7 +448,7 @@ DialogRequestSender.prototype = {
   }
 };
 
-},{"../Constants":1,"../RTCSession":11,"../RequestSender":15,"../Transactions":18}],4:[function(require,module,exports){
+},{"../Constants":1,"../RTCSession":11,"../RequestSender":17,"../Transactions":20}],4:[function(require,module,exports){
 module.exports = DigestAuthentication;
 
 
@@ -612,7 +605,7 @@ DigestAuthentication.prototype.updateNcHex = function() {
   this.ncHex = '00000000'.substr(0, 8-hex.length) + hex;
 };
 
-},{"./Utils":22,"debug":29}],5:[function(require,module,exports){
+},{"./Utils":24,"debug":31}],5:[function(require,module,exports){
 /**
  * @namespace Exceptions
  * @memberOf JsSIP
@@ -819,6 +812,7 @@ module.exports = (function(){
         "REGISTERm": parse_REGISTERm,
         "SUBSCRIBEm": parse_SUBSCRIBEm,
         "NOTIFYm": parse_NOTIFYm,
+        "REFERm": parse_REFERm,
         "Method": parse_Method,
         "Status_Line": parse_Status_Line,
         "Status_Code": parse_Status_Code,
@@ -883,6 +877,9 @@ module.exports = (function(){
         "Proxy_Require": parse_Proxy_Require,
         "Record_Route": parse_Record_Route,
         "rec_route": parse_rec_route,
+        "Reason": parse_Reason,
+        "reason_param": parse_reason_param,
+        "reason_cause": parse_reason_cause,
         "Require": parse_Require,
         "Route": parse_Route,
         "route_param": parse_route_param,
@@ -921,7 +918,14 @@ module.exports = (function(){
         "uuid": parse_uuid,
         "hex4": parse_hex4,
         "hex8": parse_hex8,
-        "hex12": parse_hex12
+        "hex12": parse_hex12,
+        "Refer_To": parse_Refer_To,
+        "Replaces": parse_Replaces,
+        "call_id": parse_call_id,
+        "replaces_param": parse_replaces_param,
+        "to_tag": parse_to_tag,
+        "from_tag": parse_from_tag,
+        "early_flag": parse_early_flag
       };
       
       if (startRule !== undefined) {
@@ -8332,6 +8336,21 @@ module.exports = (function(){
         return result0;
       }
       
+      function parse_REFERm() {
+        var result0;
+        
+        if (input.substr(pos, 5) === "REFER") {
+          result0 = "REFER";
+          pos += 5;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"REFER\"");
+          }
+        }
+        return result0;
+      }
+      
       function parse_Method() {
         var result0;
         var pos0;
@@ -8353,7 +8372,10 @@ module.exports = (function(){
                     if (result0 === null) {
                       result0 = parse_NOTIFYm();
                       if (result0 === null) {
-                        result0 = parse_token();
+                        result0 = parse_REFERm();
+                        if (result0 === null) {
+                          result0 = parse_token();
+                        }
                       }
                     }
                   }
@@ -11021,6 +11043,149 @@ module.exports = (function(){
         return result0;
       }
       
+      function parse_Reason() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 3).toLowerCase() === "sip") {
+          result0 = input.substr(pos, 3);
+          pos += 3;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"SIP\"");
+          }
+        }
+        if (result0 === null) {
+          result0 = parse_token();
+        }
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_reason_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_reason_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, protocol) {
+                          data.protocol = protocol.toLowerCase();
+        
+                          if (!data.params) data.params = {};
+        
+                          if (data.params.text && data.params.text[0] === '"') {
+                            var text = data.params.text;
+                            data.text = text.substring(1, text.length-1);
+                            delete data.params.text;
+                          }
+                        })(pos0, result0[0]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_reason_param() {
+        var result0;
+        
+        result0 = parse_reason_cause();
+        if (result0 === null) {
+          result0 = parse_generic_param();
+        }
+        return result0;
+      }
+      
+      function parse_reason_cause() {
+        var result0, result1, result2, result3;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 5).toLowerCase() === "cause") {
+          result0 = input.substr(pos, 5);
+          pos += 5;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"cause\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            result3 = parse_DIGIT();
+            if (result3 !== null) {
+              result2 = [];
+              while (result3 !== null) {
+                result2.push(result3);
+                result3 = parse_DIGIT();
+              }
+            } else {
+              result2 = null;
+            }
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, cause) {
+                          data.cause = parseInt(cause.join(''));
+                        })(pos0, result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       function parse_Require() {
         var result0, result1, result2, result3;
         var pos0, pos1;
@@ -12687,6 +12852,302 @@ module.exports = (function(){
         return result0;
       }
       
+      function parse_Refer_To() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_SIP_URI_noparams();
+        if (result0 === null) {
+          result0 = parse_name_addr();
+        }
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_generic_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_generic_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                        try {
+                          data = new NameAddrHeader(data.uri, data.display_name, data.params);
+                        } catch(e) {
+                          data = -1;
+                        }})(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_Replaces() {
+        var result0, result1, result2, result3;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        result0 = parse_call_id();
+        if (result0 !== null) {
+          result1 = [];
+          pos1 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_replaces_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos1;
+            }
+          } else {
+            result2 = null;
+            pos = pos1;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos1 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_replaces_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos1;
+              }
+            } else {
+              result2 = null;
+              pos = pos1;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos0;
+          }
+        } else {
+          result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_call_id() {
+        var result0, result1, result2;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_word();
+        if (result0 !== null) {
+          pos2 = pos;
+          if (input.charCodeAt(pos) === 64) {
+            result1 = "@";
+            pos++;
+          } else {
+            result1 = null;
+            if (reportFailures === 0) {
+              matchFailed("\"@\"");
+            }
+          }
+          if (result1 !== null) {
+            result2 = parse_word();
+            if (result2 !== null) {
+              result1 = [result1, result2];
+            } else {
+              result1 = null;
+              pos = pos2;
+            }
+          } else {
+            result1 = null;
+            pos = pos2;
+          }
+          result1 = result1 !== null ? result1 : "";
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                          data.call_id = input.substring(pos, offset); })(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_replaces_param() {
+        var result0;
+        
+        result0 = parse_to_tag();
+        if (result0 === null) {
+          result0 = parse_from_tag();
+          if (result0 === null) {
+            result0 = parse_early_flag();
+            if (result0 === null) {
+              result0 = parse_generic_param();
+            }
+          }
+        }
+        return result0;
+      }
+      
+      function parse_to_tag() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 6) === "to-tag") {
+          result0 = "to-tag";
+          pos += 6;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"to-tag\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            result2 = parse_token();
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, to_tag) {
+                            data.to_tag = to_tag; })(pos0, result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_from_tag() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 8) === "from-tag") {
+          result0 = "from-tag";
+          pos += 8;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"from-tag\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            result2 = parse_token();
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, from_tag) {
+                            data.from_tag = from_tag; })(pos0, result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_early_flag() {
+        var result0;
+        var pos0;
+        
+        pos0 = pos;
+        if (input.substr(pos, 10) === "early-only") {
+          result0 = "early-only";
+          pos += 10;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"early-only\"");
+          }
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                            data.early_only = true; })(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       
       function cleanupExpected(expected) {
         expected.sort();
@@ -12826,7 +13287,7 @@ module.exports = (function(){
   return result;
 })();
 
-},{"./NameAddrHeader":9,"./URI":21}],7:[function(require,module,exports){
+},{"./NameAddrHeader":9,"./URI":23}],7:[function(require,module,exports){
 /**
  * Dependencies.
  */
@@ -12873,7 +13334,7 @@ Object.defineProperties(JsSIP, {
   }
 });
 
-},{"../package.json":46,"./Constants":1,"./Exceptions":5,"./Grammar":6,"./NameAddrHeader":9,"./UA":20,"./URI":21,"./Utils":22,"debug":29,"rtcninja":34}],8:[function(require,module,exports){
+},{"../package.json":48,"./Constants":1,"./Exceptions":5,"./Grammar":6,"./NameAddrHeader":9,"./UA":22,"./URI":23,"./Utils":24,"debug":31,"rtcninja":36}],8:[function(require,module,exports){
 module.exports = Message;
 
 
@@ -13092,7 +13553,7 @@ Message.prototype.newMessage = function(originator, request) {
   });
 };
 
-},{"./Constants":1,"./Exceptions":5,"./RequestSender":15,"./SIPMessage":16,"./Transactions":18,"./Utils":22,"events":24,"util":28}],9:[function(require,module,exports){
+},{"./Constants":1,"./Exceptions":5,"./RequestSender":17,"./SIPMessage":18,"./Transactions":20,"./Utils":24,"events":26,"util":30}],9:[function(require,module,exports){
 module.exports = NameAddrHeader;
 
 
@@ -13202,7 +13663,7 @@ NameAddrHeader.parse = function(name_addr_header) {
   }
 };
 
-},{"./Grammar":6,"./URI":21}],10:[function(require,module,exports){
+},{"./Grammar":6,"./URI":23}],10:[function(require,module,exports){
 var Parser = {};
 
 module.exports = Parser;
@@ -13213,7 +13674,6 @@ module.exports = Parser;
  */
 var debugerror = require('debug')('JsSIP:ERROR:Parser');
 debugerror.log = console.warn.bind(console);
-var sdp_transform = require('sdp-transform');
 var Grammar = require('./Grammar');
 var SIPMessage = require('./SIPMessage');
 
@@ -13372,6 +13832,29 @@ function parseHeader(message, data, headerStart, headerEnd) {
         message.session_expires_refresher = parsed.refresher;
       }
       break;
+    case 'refer-to':
+    case 'r':
+      message.setHeader('refer-to', headerValue);
+      parsed = message.parseHeader('refer-to');
+      if(parsed) {
+        message.refer_to = parsed;
+      }
+      break;
+    case 'replaces':
+      message.setHeader('replaces', headerValue);
+      parsed = message.parseHeader('replaces');
+      if(parsed) {
+        message.replaces = parsed;
+      }
+      break;
+    case 'event':
+    case 'o':
+      message.setHeader('event', headerValue);
+      parsed = message.parseHeader('event');
+      if(parsed) {
+        message.event = parsed;
+      }
+      break;
     default:
       // Do not parse this header.
       message.setHeader(headerName, headerValue);
@@ -13462,17 +13945,7 @@ Parser.parseMessage = function(data, ua) {
   return message;
 };
 
-
-/**
- * sdp-transform features.
- */
-Parser.parseSDP = sdp_transform.parse;
-Parser.writeSDP = sdp_transform.write;
-Parser.parseFmtpConfig = sdp_transform.parseFmtpConfig;
-Parser.parsePayloads = sdp_transform.parsePayloads;
-Parser.parseRemoteCandidates = sdp_transform.parseRemoteCandidates;
-
-},{"./Grammar":6,"./SIPMessage":16,"debug":29,"sdp-transform":40}],11:[function(require,module,exports){
+},{"./Grammar":6,"./SIPMessage":18,"debug":31}],11:[function(require,module,exports){
 module.exports = RTCSession;
 
 
@@ -13505,10 +13978,10 @@ var debug = require('debug')('JsSIP:RTCSession');
 var debugerror = require('debug')('JsSIP:ERROR:RTCSession');
 debugerror.log = console.warn.bind(console);
 var rtcninja = require('rtcninja');
+var sdp_transform = require('sdp-transform');
 var JsSIP_C = require('./Constants');
 var Exceptions = require('./Exceptions');
 var Transactions = require('./Transactions');
-var Parser = require('./Parser');
 var Utils = require('./Utils');
 var Timers = require('./Timers');
 var SIPMessage = require('./SIPMessage');
@@ -13516,6 +13989,14 @@ var Dialog = require('./Dialog');
 var RequestSender = require('./RequestSender');
 var RTCSession_Request = require('./RTCSession/Request');
 var RTCSession_DTMF = require('./RTCSession/DTMF');
+var RTCSession_ReferNotifier = require('./RTCSession/ReferNotifier');
+var RTCSession_ReferSubscriber = require('./RTCSession/ReferSubscriber');
+
+
+/**
+ * Local variables.
+ */
+var holdMediaTypes = ['audio', 'video'];
 
 
 function RTCSession(ua) {
@@ -13669,7 +14150,7 @@ RTCSession.prototype.isOnHold = function() {
 
 
 
-RTCSession.prototype.connect = function(target, options) {
+RTCSession.prototype.connect = function(target, options, initCallback) {
   debug('connect()');
 
   options = options || {};
@@ -13766,13 +14247,23 @@ RTCSession.prototype.connect = function(target, options) {
   // Save the session into the ua sessions collection.
   this.ua.sessions[this.id] = this;
 
-  newRTCSession.call(this, 'local', this.request);
+  // Set internal properties
+  this.direction = 'outgoing';
+  this.local_identity = this.request.from;
+  this.remote_identity = this.request.to;
+
+  // User explicitly provided a newRTCSession callback for this session
+  if (initCallback) {
+    initCallback(this);
+  } else {
+    newRTCSession.call(this, 'local', this.request);
+  }
 
   sendInitialRequest.call(this, mediaConstraints, rtcOfferConstraints, mediaStream);
 };
 
 
-RTCSession.prototype.init_incoming = function(request) {
+RTCSession.prototype.init_incoming = function(request, initCallback) {
   debug('init_incoming()');
 
   var expires,
@@ -13818,20 +14309,20 @@ RTCSession.prototype.init_incoming = function(request) {
     this.late_sdp = true;
   }
 
-  self.status = C.STATUS_WAITING_FOR_ANSWER;
+  this.status = C.STATUS_WAITING_FOR_ANSWER;
 
   // Set userNoAnswerTimer
-  self.timers.userNoAnswerTimer = setTimeout(function() {
+  this.timers.userNoAnswerTimer = setTimeout(function() {
       request.reply(408);
       failed.call(self, 'local',null, JsSIP_C.causes.NO_ANSWER);
-    }, self.ua.configuration.no_answer_timeout
+    }, this.ua.configuration.no_answer_timeout
   );
 
   /* Set expiresTimer
    * RFC3261 13.3.1
    */
   if (expires) {
-    self.timers.expiresTimer = setTimeout(function() {
+    this.timers.expiresTimer = setTimeout(function() {
         if(self.status === C.STATUS_WAITING_FOR_ANSWER) {
           request.reply(487);
           failed.call(self, 'system', null, JsSIP_C.causes.EXPIRES);
@@ -13840,8 +14331,24 @@ RTCSession.prototype.init_incoming = function(request) {
     );
   }
 
+  // Set internal properties
+  this.direction = 'incoming';
+  this.local_identity = request.to;
+  this.remote_identity = request.from;
+
+  // A init callback was specifically defined
+  if (initCallback) {
+    initCallback(this);
+
   // Fire 'newRTCSession' event.
-  newRTCSession.call(self, 'remote', request);
+  } else {
+    newRTCSession.call(this, 'remote', request);
+  }
+
+  // The user may have rejected the call in the 'newRTCSession' event.
+  if (this.status === C.STATUS_TERMINATED) {
+    return;
+  }
 
   // Reply 180.
   request.reply(180, null, ['Contact: ' + self.contact]);
@@ -13912,7 +14419,7 @@ RTCSession.prototype.answer = function(options) {
   extraHeaders.unshift('Contact: ' + self.contact);
 
   // Determine incoming media from incoming SDP offer (if any).
-  sdp = Parser.parseSDP(request.body || '');
+  sdp = request.parseSDP();
 
   // Make sure sdp.media is an array, not the case if there is only one media
   if (! Array.isArray(sdp.media)) {
@@ -13979,15 +14486,20 @@ RTCSession.prototype.answer = function(options) {
   // TODO: This may throw an error, should react.
   createRTCConnection.call(this, pcConfig, rtcConstraints);
 
+  // If a local MediaStream is given use it.
   if (mediaStream) {
     userMediaSucceeded(mediaStream);
-  } else {
+  // If at least audio or video is requested prompt getUserMedia.
+  } else if (mediaConstraints.audio || mediaConstraints.video) {
     self.localMediaStreamLocallyGenerated = true;
     rtcninja.getUserMedia(
       mediaConstraints,
       userMediaSucceeded,
       userMediaFailed
     );
+  // Otherwise don't prompt getUserMedia.
+  } else {
+    userMediaSucceeded(null);
   }
 
   // User media succeeded
@@ -13995,7 +14507,9 @@ RTCSession.prototype.answer = function(options) {
     if (self.status === C.STATUS_TERMINATED) { return; }
 
     self.localMediaStream = stream;
-    self.connection.addStream(stream);
+    if (stream) {
+      self.connection.addStream(stream);
+    }
 
     if (! self.late_sdp) {
       self.connection.setRemoteDescription(
@@ -14031,14 +14545,14 @@ RTCSession.prototype.answer = function(options) {
     }
   }
 
-  function rtcSucceeded(sdp) {
+  function rtcSucceeded(desc) {
     if (self.status === C.STATUS_TERMINATED) { return; }
 
     // run for reply success callback
     function replySucceeded() {
       self.status = C.STATUS_WAITING_FOR_ACK;
 
-      setInvite2xxTimer.call(self, request, sdp);
+      setInvite2xxTimer.call(self, request, desc);
       setACKTimer.call(self);
       accepted.call(self, 'local');
     }
@@ -14051,7 +14565,7 @@ RTCSession.prototype.answer = function(options) {
     handleSessionTimersInIncomingRequest.call(self, request, extraHeaders);
 
     request.reply(200, null, extraHeaders,
-      sdp,
+      desc,
       replySucceeded,
       replyFailed
     );
@@ -14581,6 +15095,31 @@ RTCSession.prototype.renegotiate = function(options, done) {
   return true;
 };
 
+/**
+ * Refer
+ */
+RTCSession.prototype.refer = function(target, options) {
+  debug('refer()');
+
+  var originalTarget = target;
+
+  if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
+    return false;
+  }
+
+  if (this.referSubscriber) {
+    return false;
+  }
+
+  // Check target validity
+  target = this.ua.normalizeTarget(target);
+  if (!target) {
+    throw new TypeError('Invalid target: '+ originalTarget);
+  }
+
+  this.referSubscriber = new RTCSession_ReferSubscriber(this);
+  this.referSubscriber.sendRefer(target, options);
+};
 
 /**
  * In dialog Request Reception
@@ -14659,7 +15198,11 @@ RTCSession.prototype.receiveRequest = function(request) {
         break;
       case JsSIP_C.INVITE:
         if(this.status === C.STATUS_CONFIRMED) {
-          receiveReinvite.call(this, request);
+          if (request.hasHeader('replaces')) {
+            receiveReplaces.call(this, request);
+          } else {
+            receiveReinvite.call(this, request);
+          }
         }
         else {
           request.reply(403, 'Wrong Status');
@@ -14682,6 +15225,22 @@ RTCSession.prototype.receiveRequest = function(request) {
       case JsSIP_C.UPDATE:
         if(this.status === C.STATUS_CONFIRMED) {
           receiveUpdate.call(this, request);
+        }
+        else {
+          request.reply(403, 'Wrong Status');
+        }
+        break;
+      case JsSIP_C.REFER:
+        if(this.status === C.STATUS_CONFIRMED) {
+          receiveRefer.call(this, request);
+        }
+        else {
+          request.reply(403, 'Wrong Status');
+        }
+        break;
+      case JsSIP_C.NOTIFY:
+        if(this.status === C.STATUS_CONFIRMED) {
+          receiveNotify.call(this, request);
         }
         else {
           request.reply(403, 'Wrong Status');
@@ -14926,6 +15485,9 @@ function createDialog(message, type, early) {
 
   // Confirmed Dialog
   else {
+    this.from_tag = message.from_tag;
+    this.to_tag = message.to_tag;
+
     // In case the dialog is in _early_ state, update it
     if (early_dialog) {
       early_dialog.update(message, type);
@@ -14956,13 +15518,43 @@ function receiveReinvite(request) {
   debug('receiveReinvite()');
 
   var
-    sdp, idx, direction,
+    sdp, idx, direction, m,
     self = this,
     contentType = request.getHeader('Content-Type'),
-    hold = false;
+    hold = false,
+    rejected = false,
+    data = {
+      request: request,
+      callback: undefined,
+      reject: reject.bind(this)
+    };
+
+  function reject(options) {
+    options = options || {};
+    rejected = true;
+
+    var
+      status_code = options.status_code || 403,
+      reason_phrase = options.reason_phrase || '',
+      extraHeaders = options.extraHeaders && options.extraHeaders.slice() || [];
+
+    if (this.status !== C.STATUS_CONFIRMED) {
+      return false;
+    }
+
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    request.reply(status_code, reason_phrase, extraHeaders);
+  }
 
   // Emit 'reinvite'.
-  this.emit('reinvite', {request: request});
+  this.emit('reinvite', data);
+
+  if (rejected) {
+    return;
+  }
 
   if (request.body) {
     this.late_sdp = false;
@@ -14972,10 +15564,16 @@ function receiveReinvite(request) {
       return;
     }
 
-    sdp = Parser.parseSDP(request.body);
+    sdp = request.parseSDP();
 
     for (idx=0; idx < sdp.media.length; idx++) {
-      direction = sdp.media[idx].direction || sdp.direction || 'sendrecv';
+      m = sdp.media[idx];
+
+      if (holdMediaTypes.indexOf(m.type) === -1) {
+        continue;
+      }
+
+      direction = m.direction || sdp.direction || 'sendrecv';
 
       if (direction === 'sendonly' || direction === 'inactive') {
         hold = true;
@@ -15020,6 +15618,11 @@ function receiveReinvite(request) {
             setACKTimer.call(self);
           }
         );
+
+        // If callback is given execute it.
+        if (typeof data.callback === 'function') {
+          data.callback();
+        }
       },
       // onFailure
       function() {
@@ -15052,13 +15655,43 @@ function receiveUpdate(request) {
   debug('receiveUpdate()');
 
   var
-    sdp, idx, direction,
+    sdp, idx, direction, m,
     self = this,
     contentType = request.getHeader('Content-Type'),
-    hold = false;
+    rejected = false,
+    hold = false,
+    data = {
+      request: request,
+      callback: undefined,
+      reject: reject.bind(this)
+    };
+
+  function reject(options) {
+    options = options || {};
+    rejected = true;
+
+    var
+      status_code = options.status_code || 403,
+      reason_phrase = options.reason_phrase || '',
+      extraHeaders = options.extraHeaders && options.extraHeaders.slice() || [];
+
+    if (this.status !== C.STATUS_CONFIRMED) {
+      return false;
+    }
+
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    request.reply(status_code, reason_phrase, extraHeaders);
+  }
 
   // Emit 'update'.
-  this.emit('update', {request: request});
+  this.emit('update', data);
+
+  if (rejected) {
+    return;
+  }
 
   if (! request.body) {
     var extraHeaders = [];
@@ -15073,10 +15706,16 @@ function receiveUpdate(request) {
     return;
   }
 
-  sdp = Parser.parseSDP(request.body);
+  sdp = request.parseSDP();
 
   for (idx=0; idx < sdp.media.length; idx++) {
-    direction = sdp.media[idx].direction || sdp.direction || 'sendrecv';
+    m = sdp.media[idx];
+
+    if (holdMediaTypes.indexOf(m.type) === -1) {
+      continue;
+    }
+
+    direction = m.direction || sdp.direction || 'sendrecv';
 
     if (direction === 'sendonly' || direction === 'inactive') {
       hold = true;
@@ -15106,6 +15745,11 @@ function receiveUpdate(request) {
           var extraHeaders = ['Contact: ' + self.contact];
           handleSessionTimersInIncomingRequest.call(self, request, extraHeaders);
           request.reply(200, null, extraHeaders, sdp);
+
+          // If callback is given execute it.
+          if (typeof data.callback === 'function') {
+            data.callback();
+          }
         },
         // failure
         function() {
@@ -15123,6 +15767,138 @@ function receiveUpdate(request) {
 }
 
 /**
+ * In dialog Refer Reception
+ */
+function receiveRefer(request) {
+  debug('receiveRefer()');
+
+  var notifier,
+      self = this;
+
+  function accept(initCallback, options) {
+    var session, replaces;
+
+    options = options || {};
+    initCallback = (typeof initCallback === 'function')? initCallback : null;
+
+    if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
+      return false;
+    }
+
+    session = new RTCSession(this.ua);
+
+    session.on('progress', function(e) {
+      notifier.notify(e.response.status_code, e.response.reason_phrase);
+    });
+
+    session.on('accepted', function(e) {
+      notifier.notify(e.response.status_code, e.response.reason_phrase);
+    });
+
+    session.on('failed', function(e) {
+      if (e.message) {
+        notifier.notify(e.message.status_code, e.message.reason_phrase);
+      } else {
+        notifier.notify(487, e.cause);
+      }
+    });
+
+    // Consider the Replaces header present in the Refer-To URI
+    if (request.refer_to.uri.hasHeader('replaces')) {
+      replaces = decodeURIComponent(request.refer_to.uri.getHeader('replaces'));
+      options.extraHeaders = options.extraHeaders || [];
+      options.extraHeaders.push('Replaces: '+ replaces);
+    }
+
+    session.connect(request.refer_to.uri.toAor(), options, initCallback);
+  }
+
+  function reject() {
+    notifier.notify(603);
+  }
+
+  if (typeof request.refer_to === undefined) {
+    debug('no Refer-To header field present in REFER');
+    request.reply(400);
+    return;
+  }
+
+  if (request.refer_to.uri.scheme !== JsSIP_C.SIP) {
+    debug('Refer-To header field points to a non-SIP URI scheme');
+    request.reply(416);
+    return;
+  }
+
+  // reply before the transaction timer expires
+  request.reply(202);
+
+  notifier = new RTCSession_ReferNotifier(this, request.cseq);
+
+  // Emit 'refer'.
+  this.emit('refer', {
+    request: request,
+    accept: function(initCallback, options) { accept.call(self, initCallback, options); },
+    reject: function() { reject.call(self); }
+  });
+}
+
+/**
+ * In dialog Notify Reception
+ */
+function receiveNotify(request) {
+  debug('receiveNotify()');
+
+  if (typeof request.event === undefined) {
+    request.reply(400);
+  } else if (request.event.event !== 'refer') {
+    request.reply(489);
+  } else if (!this.referSubscriber) {
+    request.reply(481, 'Subscription does not exist');
+  } else {
+    this.referSubscriber.receiveNotify(request);
+    request.reply(200);
+  }
+}
+
+/**
+ * INVITE with Replaces Reception
+ */
+function receiveReplaces(request) {
+  debug('receiveReplaces()');
+
+  var self = this;
+
+  function accept(initCallback) {
+    var session;
+
+    if (this.status !== C.STATUS_WAITING_FOR_ACK && this.status !== C.STATUS_CONFIRMED) {
+      return false;
+    }
+
+    session = new RTCSession(this.ua);
+
+    // terminate the current session when the new one is confirmed
+    session.on('confirmed', function() {
+      self.terminate();
+    });
+
+    session.init_incoming(request, initCallback);
+  }
+
+  function reject() {
+    debug('Replaced INVITE rejected by the user');
+    request.reply(486);
+  }
+
+  // Emit 'replace'.
+  this.emit('replaces', {
+    request: request,
+    accept: function(initCallback) { accept.call(self, initCallback); },
+    reject: function() { reject.call(self); }
+  });
+}
+
+/**
  * Initial Request Sender
  */
 function sendInitialRequest(mediaConstraints, rtcOfferConstraints, mediaStream) {
@@ -15135,7 +15911,10 @@ function sendInitialRequest(mediaConstraints, rtcOfferConstraints, mediaStream) 
 
   // If a local MediaStream is given use it.
   if (mediaStream) {
-    userMediaSucceeded(mediaStream);
+    // Wait a bit so the app can set events such as 'peerconnection' and 'connecting'.
+    setTimeout(function() {
+      userMediaSucceeded(mediaStream);
+    });
   // If at least audio or video is requested prompt getUserMedia.
   } else if (mediaConstraints.audio || mediaConstraints.video) {
     this.localMediaStreamLocallyGenerated = true;
@@ -15144,9 +15923,8 @@ function sendInitialRequest(mediaConstraints, rtcOfferConstraints, mediaStream) 
       userMediaSucceeded,
       userMediaFailed
     );
-  }
   // Otherwise don't prompt getUserMedia.
-  else {
+  } else {
     userMediaSucceeded(null);
   }
 
@@ -15158,6 +15936,13 @@ function sendInitialRequest(mediaConstraints, rtcOfferConstraints, mediaStream) 
     if (stream) {
       self.connection.addStream(stream);
     }
+
+    // Notify the app with the RTCPeerConnection so it can do stuff on it
+    // before generating the offer.
+    self.emit('peerconnection', {
+      peerconnection: self.connection
+    });
+
     connecting.call(self, self.request);
     createLocalDescription.call(self, 'offer', rtcSucceeded, rtcFailed, rtcOfferConstraints);
   }
@@ -15169,11 +15954,18 @@ function sendInitialRequest(mediaConstraints, rtcOfferConstraints, mediaStream) 
     failed.call(self, 'local', null, JsSIP_C.causes.USER_DENIED_MEDIA_ACCESS);
   }
 
-  function rtcSucceeded(sdp) {
+  function rtcSucceeded(desc) {
     if (self.isCanceled || self.status === C.STATUS_TERMINATED) { return; }
 
-    self.request.body = sdp;
+    self.request.body = desc;
     self.status = C.STATUS_INVITE_SENT;
+
+    // Emit 'sending' so the app can mangle the body before the request
+    // is sent.
+    self.emit('sending', {
+      request: self.request
+    });
+
     request_sender.send();
   }
 
@@ -15285,9 +16077,7 @@ function receiveInviteResponse(response) {
         // success
         null,
         // failure
-        function() {
-          self.earlyDialogs[response.call_id + response.from_tag + response.to_tag].terminate();
-        }
+        null
       );
       break;
 
@@ -15309,12 +16099,12 @@ function receiveInviteResponse(response) {
         new rtcninja.RTCSessionDescription({type:'answer', sdp:response.body}),
         // success
         function() {
+          // Handle Session Timers.
+          handleSessionTimersInIncomingResponse.call(self, response);
+
           accepted.call(self, 'remote', response);
           sendRequest.call(self, JsSIP_C.ACK);
           confirmed.call(self, 'local', null);
-
-          // Handle Session Timers.
-          handleSessionTimersInIncomingResponse.call(self, response);
         },
         // failure
         function() {
@@ -15608,7 +16398,7 @@ function mangleOffer(sdp) {
     return sdp;
   }
 
-  sdp = Parser.parseSDP(sdp);
+  sdp = sdp_transform.parse(sdp);
 
   // Local hold.
   if (this.localHold && ! this.remoteHold) {
@@ -15616,6 +16406,9 @@ function mangleOffer(sdp) {
     length = sdp.media.length;
     for (idx=0; idx<length; idx++) {
       m = sdp.media[idx];
+      if (holdMediaTypes.indexOf(m.type) === -1) {
+        continue;
+      }
       if (!m.direction) {
         m.direction = 'sendonly';
       } else if (m.direction === 'sendrecv') {
@@ -15631,6 +16424,9 @@ function mangleOffer(sdp) {
     length = sdp.media.length;
     for (idx=0; idx<length; idx++) {
       m = sdp.media[idx];
+      if (holdMediaTypes.indexOf(m.type) === -1) {
+        continue;
+      }
       m.direction = 'inactive';
     }
   }
@@ -15640,6 +16436,9 @@ function mangleOffer(sdp) {
     length = sdp.media.length;
     for (idx=0; idx<length; idx++) {
       m = sdp.media[idx];
+      if (holdMediaTypes.indexOf(m.type) === -1) {
+        continue;
+      }
       if (!m.direction) {
         m.direction = 'recvonly';
       } else if (m.direction === 'sendrecv') {
@@ -15650,7 +16449,7 @@ function mangleOffer(sdp) {
     }
   }
 
-  return Parser.writeSDP(sdp);
+  return sdp_transform.write(sdp);
 }
 
 function setLocalMediaStatus() {
@@ -15799,16 +16598,6 @@ function toogleMuteVideo(mute) {
 function newRTCSession(originator, request) {
   debug('newRTCSession');
 
-  if (originator === 'remote') {
-    this.direction = 'incoming';
-    this.local_identity = request.to;
-    this.remote_identity = request.from;
-  } else if (originator === 'local'){
-    this.direction = 'outgoing';
-    this.local_identity = request.from;
-    this.remote_identity = request.to;
-  }
-
   this.ua.newRTCSession({
     originator: originator,
     session: this,
@@ -15921,7 +16710,7 @@ function onunmute(options) {
   });
 }
 
-},{"./Constants":1,"./Dialog":2,"./Exceptions":5,"./Parser":10,"./RTCSession/DTMF":12,"./RTCSession/Request":13,"./RequestSender":15,"./SIPMessage":16,"./Timers":17,"./Transactions":18,"./Utils":22,"debug":29,"events":24,"rtcninja":34,"util":28}],12:[function(require,module,exports){
+},{"./Constants":1,"./Dialog":2,"./Exceptions":5,"./RTCSession/DTMF":12,"./RTCSession/ReferNotifier":13,"./RTCSession/ReferSubscriber":14,"./RTCSession/Request":15,"./RequestSender":17,"./SIPMessage":18,"./Timers":19,"./Transactions":20,"./Utils":24,"debug":31,"events":26,"rtcninja":36,"sdp-transform":42,"util":30}],12:[function(require,module,exports){
 module.exports = DTMF;
 
 
@@ -16085,7 +16874,231 @@ DTMF.prototype.init_incoming = function(request) {
   }
 };
 
-},{"../Constants":1,"../Exceptions":5,"../RTCSession":11,"debug":29}],13:[function(require,module,exports){
+},{"../Constants":1,"../Exceptions":5,"../RTCSession":11,"debug":31}],13:[function(require,module,exports){
+module.exports = ReferNotifier;
+
+
+var C = {
+  event_type: 'refer',
+  body_type: 'message/sipfrag;version=2.0',
+  expires: 300
+};
+
+/**
+ * Dependencies.
+ */
+var debug = require('debug')('JsSIP:RTCSession:ReferNotifier');
+var JsSIP_C = require('../Constants');
+var RTCSession_Request = require('./Request');
+
+
+function ReferNotifier(session, id, expires) {
+  this.session = session;
+  this.id = id;
+  this.expires = expires || C.expires;
+  this.active = true;
+
+  // The creation of a Notifier results in an immediate NOTIFY
+  this.notify(100);
+}
+
+ReferNotifier.prototype.notify = function(code, reason) {
+  debug('notify()');
+
+  var state,
+      self = this;
+
+  if (this.active === false) {
+    return;
+  }
+
+  reason = reason || JsSIP_C.REASON_PHRASE[code] || '';
+
+  if (code >= 200) {
+    state = 'terminated;reason=noresource';
+  } else {
+    state = 'active;expires='+ this.expires;
+  }
+
+  // put this in a try/catch block
+  var request = new RTCSession_Request(this.session, JsSIP_C.NOTIFY);
+  request.send({
+    extraHeaders: [
+      'Event: '+ C.event_type +';id='+ self.id,
+      'Subscription-State: '+ state,
+      'Content-Type: '+ C.body_type
+    ],
+    body: 'SIP/2.0 ' + code + ' ' + reason,
+    eventHandlers: {
+      // if a negative response is received, subscription is canceled
+      onErrorResponse: function() { self.active = false; }
+    }
+  });
+};
+
+},{"../Constants":1,"./Request":15,"debug":31}],14:[function(require,module,exports){
+module.exports = ReferSubscriber;
+
+
+var C = {
+  expires: 120
+};
+
+/**
+ * Dependencies.
+ */
+var util = require('util');
+var events = require('events');
+var debug = require('debug')('JsSIP:RTCSession:ReferSubscriber');
+var JsSIP_C = require('../Constants');
+var Grammar = require('../Grammar');
+var RTCSession_Request = require('./Request');
+
+
+function ReferSubscriber(session) {
+  this.session = session;
+
+  this.timer = null;
+
+  events.EventEmitter.call(this);
+}
+
+util.inherits(ReferSubscriber, events.EventEmitter);
+
+ReferSubscriber.prototype.sendRefer = function(target, options) {
+  debug('sendRefer()');
+
+  var extraHeaders, eventHandlers, referTo,
+      replaces = null,
+      self = this;
+
+  // Get REFER options
+  options = options || {};
+  extraHeaders = options.extraHeaders ? options.extraHeaders.slice() : [];
+  eventHandlers = options.eventHandlers || {};
+
+  // Set event handlers
+  for (var event in eventHandlers) {
+    this.on(event, eventHandlers[event]);
+  }
+
+  // Replaces URI header field
+  if (options.replaces) {
+    replaces = options.replaces.request.call_id;
+    replaces += ';to-tag='+ options.replaces.to_tag;
+    replaces += ';from-tag='+ options.replaces.from_tag;
+
+    replaces = encodeURIComponent(replaces);
+  }
+
+  // Refer-To header field
+  referTo = 'Refer-To: <'+ target + (replaces?'?Replaces='+ replaces:'') +'>';
+
+  extraHeaders.push(referTo);
+
+  var request = new RTCSession_Request(this.session, JsSIP_C.REFER);
+
+  this.timer = setTimeout(function() {
+      removeSubscriber.call(self);
+    }, C.expires * 1000
+  );
+
+  request.send({
+    extraHeaders: extraHeaders,
+    eventHandlers: {
+      onSuccessResponse: function(response) {
+        self.emit('requestSucceeded', {
+          response: response
+        });
+      },
+      onErrorResponse: function(response) {
+        self.emit('requestFailed', {
+          response: response,
+          cause: JsSIP_C.causes.REJECTED
+        });
+      },
+      onTransportError: function() {
+        removeSubscriber.call(self);
+        self.emit('requestFailed', {
+          response: null,
+          cause: JsSIP_C.causes.CONNECTION_ERROR
+        });
+      },
+      onRequestTimeout: function() {
+        removeSubscriber.call(self);
+        self.emit('requestFailed', {
+          response: null,
+          cause: JsSIP_C.causes.REQUEST_TIMEOUT
+        });
+      },
+      onDialogError: function() {
+        removeSubscriber.call(self);
+        self.emit('requestFailed', {
+          response: null,
+          cause: JsSIP_C.causes.DIALOG_ERROR
+        });
+      }
+    }
+  });
+};
+
+ReferSubscriber.prototype.receiveNotify = function(request) {
+  debug('receiveNotify()');
+
+  var status_line;
+
+  if (!request.body) {
+    return;
+  }
+
+  status_line = Grammar.parse(request.body, 'Status_Line');
+
+  if(status_line === -1) {
+    debug('receiveNotify() | error parsing NOTIFY body: "' + request.body + '"');
+    return;
+  }
+
+  switch(true) {
+    case /^100$/.test(status_line.status_code):
+      this.emit('trying', {
+        request: request,
+        satus_line: status_line
+      });
+      break;
+
+    case /^1[0-9]{2}$/.test(status_line.status_code):
+      this.emit('progress', {
+        request: request,
+        satus_line: status_line
+      });
+      break;
+
+    case /^2[0-9]{2}$/.test(status_line.status_code):
+      removeSubscriber.call(this);
+      this.emit('accepted', {
+        request: request,
+        satus_line: status_line
+      });
+      break;
+
+    default:
+      removeSubscriber.call(this);
+      this.emit('failed', {
+        request: request,
+        satus_line: status_line
+      });
+      break;
+  }
+};
+
+// remove refer subscriber from the session
+function removeSubscriber() {
+  console.log('removeSubscriber()');
+  clearTimeout(this.timer);
+  this.session.referSubscriber = null;
+}
+
+},{"../Constants":1,"../Grammar":6,"./Request":15,"debug":31,"events":26,"util":30}],15:[function(require,module,exports){
 module.exports = Request;
 
 /**
@@ -16173,7 +17186,7 @@ Request.prototype.onDialogError = function() {
   if (this.eventHandlers.onDialogError) { this.eventHandlers.onDialogError(); }
 };
 
-},{"../Constants":1,"../Exceptions":5,"../RTCSession":11,"debug":29}],14:[function(require,module,exports){
+},{"../Constants":1,"../Exceptions":5,"../RTCSession":11,"debug":31}],16:[function(require,module,exports){
 module.exports = Registrator;
 
 
@@ -16481,7 +17494,7 @@ Registrator.prototype = {
 };
 
 
-},{"./Constants":1,"./RequestSender":15,"./SIPMessage":16,"./Utils":22,"debug":29}],15:[function(require,module,exports){
+},{"./Constants":1,"./RequestSender":17,"./SIPMessage":18,"./Utils":24,"debug":31}],17:[function(require,module,exports){
 module.exports = RequestSender;
 
 
@@ -16612,7 +17625,7 @@ RequestSender.prototype = {
   }
 };
 
-},{"./Constants":1,"./DigestAuthentication":4,"./Transactions":18,"./UA":20,"debug":29}],16:[function(require,module,exports){
+},{"./Constants":1,"./DigestAuthentication":4,"./Transactions":20,"./UA":22,"debug":31}],18:[function(require,module,exports){
 module.exports = {
   OutgoingRequest: OutgoingRequest,
   IncomingRequest: IncomingRequest,
@@ -16624,6 +17637,7 @@ module.exports = {
  * Dependencies.
  */
 var debug = require('debug')('JsSIP:SIPMessage');
+var sdp_transform = require('sdp-transform');
 var JsSIP_C = require('./Constants');
 var Utils = require('./Utils');
 var NameAddrHeader = require('./NameAddrHeader');
@@ -16715,6 +17729,16 @@ OutgoingRequest.prototype = {
    * -param {String | Array} value header value
    */
   setHeader: function(name, value) {
+    var regexp, idx;
+
+    // Remove the header from extraHeaders if present.
+    regexp = new RegExp('^\\s*'+ name +'\\s*:','i');
+    for (idx=0; idx<this.extraHeaders.length; idx++) {
+      if (regexp.test(this.extraHeaders[idx])) {
+        this.extraHeaders.splice(idx, 1);
+      }
+    }
+
     this.headers[Utils.headerize(name)] = (Array.isArray(value)) ? value : [value];
   },
 
@@ -16797,6 +17821,22 @@ OutgoingRequest.prototype = {
     return false;
   },
 
+  /**
+   * Parse the current body as a SDP and store the resulting object
+   * into this.sdp.
+   * -param {Boolean} force: Parse even if this.sdp already exists.
+   *
+   * Returns this.sdp.
+   */
+  parseSDP: function(force) {
+    if (!force && this.sdp) {
+      return this.sdp;
+    } else {
+      this.sdp = sdp_transform.parse(this.body || '');
+      return this.sdp;
+    }
+  },
+
   toString: function() {
     var msg = '', header, length, idx,
       supported = [];
@@ -16827,7 +17867,7 @@ OutgoingRequest.prototype = {
         if (this.ua.contact.pub_gruu || this.ua.contact.temp_gruu) {
           supported.push('gruu');
         }
-        supported.push('ice');
+        supported.push('ice','replaces');
         break;
       case JsSIP_C.UPDATE:
         if (this.ua.configuration.session_timers) {
@@ -16870,6 +17910,7 @@ function IncomingMessage(){
   this.to = null;
   this.to_tag = null;
   this.body = null;
+  this.sdp = null;
 }
 
 IncomingMessage.prototype = {
@@ -16995,6 +18036,22 @@ IncomingMessage.prototype = {
     this.headers[Utils.headerize(name)] = [header];
   },
 
+  /**
+   * Parse the current body as a SDP and store the resulting object
+   * into this.sdp.
+   * -param {Boolean} force: Parse even if this.sdp already exists.
+   *
+   * Returns this.sdp.
+   */
+  parseSDP: function(force) {
+    if (!force && this.sdp) {
+      return this.sdp;
+    } else {
+      this.sdp = sdp_transform.parse(this.body || '');
+      return this.sdp;
+    }
+  },
+
   toString: function() {
     return this.data;
   }
@@ -17083,7 +18140,7 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
       if (this.ua.contact.pub_gruu || this.ua.contact.temp_gruu) {
         supported.push('gruu');
       }
-      supported.push('ice');
+      supported.push('ice','replaces');
       break;
     case JsSIP_C.UPDATE:
       if (this.ua.configuration.session_timers) {
@@ -17092,6 +18149,7 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
       if (body) {
         supported.push('ice');
       }
+      supported.push('replaces');
   }
 
   supported.push('outbound');
@@ -17175,7 +18233,7 @@ function IncomingResponse() {
 
 IncomingResponse.prototype = new IncomingMessage();
 
-},{"./Constants":1,"./Grammar":6,"./NameAddrHeader":9,"./Utils":22,"debug":29}],17:[function(require,module,exports){
+},{"./Constants":1,"./Grammar":6,"./NameAddrHeader":9,"./Utils":24,"debug":31,"sdp-transform":42}],19:[function(require,module,exports){
 var T1 = 500,
   T2 = 4000,
   T4 = 5000;
@@ -17200,7 +18258,7 @@ var Timers = {
 
 module.exports = Timers;
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 module.exports = {
   C: null,
   NonInviteClientTransaction: NonInviteClientTransaction,
@@ -17411,12 +18469,12 @@ InviteClientTransaction.prototype.send = function() {
 };
 
 InviteClientTransaction.prototype.onTransportError = function() {
-  debugict('transport error occurred, deleting transaction ' + this.id);
   clearTimeout(this.B);
   clearTimeout(this.D);
   clearTimeout(this.M);
 
   if (this.state !== C.STATUS_ACCEPTED) {
+    debugict('transport error occurred, deleting transaction ' + this.id);
     this.request_sender.onTransportError();
   }
 
@@ -17722,7 +18780,6 @@ InviteServerTransaction.prototype.timer_H = function() {
 
 InviteServerTransaction.prototype.timer_I = function() {
   this.stateChanged(C.STATUS_TERMINATED);
-  this.ua.destroyTransaction(this);
 };
 
 // RFC 6026 7.1
@@ -17924,7 +18981,7 @@ function checkTransaction(ua, request) {
   }
 }
 
-},{"./Constants":1,"./Timers":17,"debug":29,"events":24,"util":28}],19:[function(require,module,exports){
+},{"./Constants":1,"./Timers":19,"debug":31,"events":26,"util":30}],21:[function(require,module,exports){
 module.exports = Transport;
 
 
@@ -17946,6 +19003,8 @@ Transport.C = C;
  * Dependencies.
  */
 var debug = require('debug')('JsSIP:Transport');
+var debugerror = require('debug')('JsSIP:ERROR:Transport');
+debugerror.log = console.warn.bind(console);
 var JsSIP_C = require('./Constants');
 var Parser = require('./Parser');
 var UA = require('./UA');
@@ -17998,7 +19057,15 @@ Transport.prototype = {
       (this.reconnection_attempts === 0)?1:this.reconnection_attempts);
 
     try {
-      this.ws = new W3CWebSocket(this.server.ws_uri, 'sip', this.node_websocket_options.origin, this.node_websocket_options.headers, this.node_websocket_options.requestOptions, this.node_websocket_options.clientConfig);
+      // Hack in case W3CWebSocket is not the class exported by Node-WebSocket
+      // (may just happen if the above `var W3CWebSocket` line is overriden by
+      // `var W3CWebSocket = global.W3CWebSocket`).
+      if (W3CWebSocket.length > 3) {
+        this.ws = new W3CWebSocket(this.server.ws_uri, 'sip', this.node_websocket_options.origin, this.node_websocket_options.headers, this.node_websocket_options.requestOptions, this.node_websocket_options.clientConfig);
+      } else {
+        this.ws = new W3CWebSocket(this.server.ws_uri, 'sip');
+      }
+
       this.ws.binaryType = 'arraybuffer';
 
       this.ws.onopen = function() {
@@ -18017,7 +19084,7 @@ Transport.prototype = {
         transport.onError(e);
       };
     } catch(e) {
-      debug('error connecting to WebSocket ' + this.server.ws_uri + ': ' + e);
+      debugerror('error connecting to WebSocket ' + this.server.ws_uri + ': ' + e);
       this.lastTransportError.code = null;
       this.lastTransportError.reason = e.message;
       this.ua.onTransportError(this);
@@ -18057,11 +19124,11 @@ Transport.prototype = {
     var message = msg.toString();
 
     if(this.ws && this.ws.readyState === this.ws.OPEN) {
-      debug('sending WebSocket message:\n\n' + message + '\n');
+      debug('sending WebSocket message:\n%s\n', message);
       this.ws.send(message);
       return true;
     } else {
-      debug('unable to send message, WebSocket is not open');
+      debugerror('unable to send message, WebSocket is not open');
       return false;
     }
   },
@@ -18094,20 +19161,15 @@ Transport.prototype = {
     debug('WebSocket disconnected (code: ' + e.code + (e.reason? '| reason: ' + e.reason : '') +')');
 
     if(e.wasClean === false) {
-      debug('WebSocket abrupt disconnection');
+      debugerror('WebSocket abrupt disconnection');
     }
     // Transport was connected
-    if(connected_before === true) {
+    if (connected_before === true) {
       this.ua.onTransportClosed(this);
+
       // Check whether the user requested to close.
       if(!this.closed) {
         this.reConnect();
-      } else {
-        this.ua.emit('disconnected', this.ua, {
-          transport: this,
-          code: this.lastTransportError.code,
-          reason: this.lastTransportError.reason
-        });
       }
     } else {
       // This is the first connection attempt
@@ -18131,16 +19193,16 @@ Transport.prototype = {
       try {
         data = String.fromCharCode.apply(null, new Uint8Array(data));
       } catch(evt) {
-        debug('received WebSocket binary message failed to be converted into string, message discarded');
+        debugerror('received WebSocket binary message failed to be converted into string, message discarded');
         return;
       }
 
-      debug('received WebSocket binary message:\n\n' + data + '\n');
+      debug('received WebSocket binary message:\n%s\n', data);
     }
 
     // WebSocket text message.
     else {
-      debug('received WebSocket text message:\n\n' + data + '\n');
+      debug('received WebSocket text message:\n%s\n', data);
     }
 
     message = Parser.parseMessage(data, this.ua);
@@ -18187,7 +19249,7 @@ Transport.prototype = {
   },
 
   onError: function(e) {
-    debug('WebSocket connection error: %o', e);
+    debugerror('WebSocket connection error: %o', e);
   },
 
   /**
@@ -18199,7 +19261,7 @@ Transport.prototype = {
     this.reconnection_attempts += 1;
 
     if(this.reconnection_attempts > this.ua.configuration.ws_server_max_reconnection || !this.ua.configuration.connection_autorecovery) {
-      debug('maximum reconnection attempts for WebSocket ' + this.server.ws_uri);
+      debugerror('maximum reconnection attempts for WebSocket ' + this.server.ws_uri);
       this.ua.onTransportError(this);
     } else {
       debug('trying to reconnect to WebSocket ' + this.server.ws_uri + ' (reconnection attempt ' + this.reconnection_attempts + ')');
@@ -18212,7 +19274,7 @@ Transport.prototype = {
   }
 };
 
-},{"./Constants":1,"./Parser":10,"./SIPMessage":16,"./UA":20,"./sanityCheck":23,"debug":29,"websocket":43}],20:[function(require,module,exports){
+},{"./Constants":1,"./Parser":10,"./SIPMessage":18,"./UA":22,"./sanityCheck":25,"debug":31,"websocket":45}],22:[function(require,module,exports){
 module.exports = UA;
 
 
@@ -18373,16 +19435,25 @@ util.inherits(UA, events.EventEmitter);
 UA.prototype.start = function() {
   debug('start()');
 
-  var server;
+  var server,
+      self = this;
+
+  function connect() {
+    debug('restarting UA');
+    self.status = C.STATUS_READY;
+    self.transport.connect();
+  }
 
   if (this.status === C.STATUS_INIT) {
     server = this.getNextWsServer();
     this.transport = new Transport(this, server);
     this.transport.connect();
   } else if(this.status === C.STATUS_USER_CLOSED) {
-    debug('restarting UA');
-    this.status = C.STATUS_READY;
-    this.transport.connect();
+    if (!this.isConnected()) {
+      connect();
+    } else {
+      this.once('disconnected', connect);
+    }
   } else if (this.status === C.STATUS_READY) {
     debug('UA is in READY status, not restarted');
   } else {
@@ -18605,7 +19676,11 @@ UA.prototype.onTransportClosed = function(transport) {
     }
   }
 
-  this.emit('disconnected');
+  this.emit('disconnected', {
+    transport: transport,
+    code: transport.lastTransportError.code,
+    reason: transport.lastTransportError.reason
+  });
 };
 
 /**
@@ -18671,13 +19746,13 @@ UA.prototype.onTransportConnected = function(transport) {
   this.status = C.STATUS_READY;
   this.error = null;
 
-  this.emit('connected', {
-    transport: transport
-  });
-
   if(this.dynConfiguration.register) {
     this._registrator.register();
   }
+
+  this.emit('connected', {
+    transport: transport
+  });
 };
 
 
@@ -18767,7 +19842,7 @@ UA.prototype.registrationFailed = function(data) {
  * Request reception
  */
 UA.prototype.receiveRequest = function(request) {
-  var dialog, session, message,
+  var dialog, session, message, replaces,
   method = request.method;
 
   // Check that request URI points to us
@@ -18824,8 +19899,23 @@ UA.prototype.receiveRequest = function(request) {
     switch(method) {
       case JsSIP_C.INVITE:
         if (rtcninja.hasWebRTC()) {
-          session = new RTCSession(this);
-          session.init_incoming(request);
+          if (request.hasHeader('replaces')) {
+            replaces = request.replaces;
+            dialog = this.findDialog(replaces.call_id, replaces.from_tag, replaces.to_tag);
+            if (dialog) {
+              session = dialog.owner;
+              if (!session.isEnded()) {
+                session.receiveRequest(request);
+              } else {
+                request.reply(603);
+              }
+            } else {
+              request.reply(481);
+            }
+          } else {
+            session = new RTCSession(this);
+            session.init_incoming(request);
+          }
         } else {
           debug('INVITE received but WebRTC is not supported');
           request.reply(488);
@@ -18856,7 +19946,7 @@ UA.prototype.receiveRequest = function(request) {
   }
   // In-dialog request
   else {
-    dialog = this.findDialog(request);
+    dialog = this.findDialog(request.call_id, request.from_tag, request.to_tag);
 
     if(dialog) {
       dialog.receiveRequest(request);
@@ -18908,15 +19998,15 @@ UA.prototype.findSession = function(request) {
 /**
  * Get the dialog to which the request belongs to, if any.
  */
-UA.prototype.findDialog = function(request) {
+UA.prototype.findDialog = function(call_id, from_tag, to_tag) {
   var
-  id = request.call_id + request.from_tag + request.to_tag,
+  id = call_id + from_tag + to_tag,
   dialog = this.dialogs[id];
 
   if(dialog) {
     return dialog;
   } else {
-    id = request.call_id + request.to_tag + request.from_tag;
+    id = call_id + to_tag + from_tag;
     dialog = this.dialogs[id];
     if(dialog) {
       return dialog;
@@ -19109,10 +20199,13 @@ UA.prototype.loadConfig = function(configuration) {
     settings.authorization_user = settings.uri.user;
   }
 
-  // If no 'registrar_server' is set use the 'uri' value without user portion.
+  // If no 'registrar_server' is set use the 'uri' value without user portion and
+  // without URI params/headers.
   if (!settings.registrar_server) {
     registrar_server = settings.uri.clone();
     registrar_server.user = null;
+    registrar_server.clearParams();
+    registrar_server.clearHeaders();
     settings.registrar_server = registrar_server;
   }
 
@@ -19462,7 +20555,7 @@ UA.configuration_check = {
   }
 };
 
-},{"./Constants":1,"./Exceptions":5,"./Grammar":6,"./Message":8,"./RTCSession":11,"./Registrator":14,"./Transactions":18,"./Transport":19,"./URI":21,"./Utils":22,"debug":29,"events":24,"rtcninja":34,"util":28}],21:[function(require,module,exports){
+},{"./Constants":1,"./Exceptions":5,"./Grammar":6,"./Message":8,"./RTCSession":11,"./Registrator":16,"./Transactions":20,"./Transport":21,"./URI":23,"./Utils":24,"debug":31,"events":26,"rtcninja":36,"util":30}],23:[function(require,module,exports){
 module.exports = URI;
 
 
@@ -19631,7 +20724,7 @@ URI.prototype = {
     }
 
     for(header in this.headers) {
-      for(idx in this.headers[header]) {
+      for(idx = 0; idx < this.headers[header].length; idx++) {
         headers.push(header + '=' + this.headers[header][idx]);
       }
     }
@@ -19674,7 +20767,7 @@ URI.parse = function(uri) {
   }
 };
 
-},{"./Constants":1,"./Grammar":6,"./Utils":22}],22:[function(require,module,exports){
+},{"./Constants":1,"./Grammar":6,"./Utils":24}],24:[function(require,module,exports){
 var Utils = {};
 
 module.exports = Utils;
@@ -20071,7 +21164,7 @@ Utils.calculateMD5 = function(string) {
   return temp.toLowerCase();
 };
 
-},{"./Constants":1,"./Grammar":6,"./URI":21}],23:[function(require,module,exports){
+},{"./Constants":1,"./Grammar":6,"./URI":23}],25:[function(require,module,exports){
 module.exports = sanityCheck;
 
 
@@ -20298,7 +21391,7 @@ function reply(status_code) {
   transport.send(response);
 }
 
-},{"./Constants":1,"./SIPMessage":16,"./Utils":22,"debug":29}],24:[function(require,module,exports){
+},{"./Constants":1,"./SIPMessage":18,"./Utils":24,"debug":31}],26:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20601,7 +21694,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -20626,38 +21719,72 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
 var queue = [];
 var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
 
 function drainQueue() {
     if (draining) {
         return;
     }
+    var timeout = setTimeout(cleanUpNextTick);
     draining = true;
-    var currentQueue;
+
     var len = queue.length;
     while(len) {
         currentQueue = queue;
         queue = [];
-        var i = -1;
-        while (++i < len) {
-            currentQueue[i]();
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
         }
+        queueIndex = -1;
         len = queue.length;
     }
+    currentQueue = null;
     draining = false;
+    clearTimeout(timeout);
 }
+
 process.nextTick = function (fun) {
-    queue.push(fun);
-    if (!draining) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
         setTimeout(drainQueue, 0);
     }
 };
 
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
 process.title = 'browser';
 process.browser = true;
 process.env = {};
@@ -20679,21 +21806,20 @@ process.binding = function (name) {
     throw new Error('process.binding is not supported');
 };
 
-// TODO(shtylman)
 process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 process.umask = function() { return 0; };
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -21283,7 +22409,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":27,"_process":26,"inherits":25}],29:[function(require,module,exports){
+},{"./support/isBuffer":29,"_process":28,"inherits":27}],31:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -21297,17 +22423,10 @@ exports.formatArgs = formatArgs;
 exports.save = save;
 exports.load = load;
 exports.useColors = useColors;
-
-/**
- * Use chrome.storage.local if we are in an app
- */
-
-var storage;
-
-if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined')
-  storage = chrome.storage.local;
-else
-  storage = localstorage();
+exports.storage = 'undefined' != typeof chrome
+               && 'undefined' != typeof chrome.storage
+                  ? chrome.storage.local
+                  : localstorage();
 
 /**
  * Colors.
@@ -21415,9 +22534,9 @@ function log() {
 function save(namespaces) {
   try {
     if (null == namespaces) {
-      storage.removeItem('debug');
+      exports.storage.removeItem('debug');
     } else {
-      storage.debug = namespaces;
+      exports.storage.debug = namespaces;
     }
   } catch(e) {}
 }
@@ -21432,7 +22551,7 @@ function save(namespaces) {
 function load() {
   var r;
   try {
-    r = storage.debug;
+    r = exports.storage.debug;
   } catch(e) {}
   return r;
 }
@@ -21460,7 +22579,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":30}],30:[function(require,module,exports){
+},{"./debug":32}],32:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -21659,7 +22778,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":31}],31:[function(require,module,exports){
+},{"ms":33}],33:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -21700,6 +22819,8 @@ module.exports = function(val, options){
  */
 
 function parse(str) {
+  str = '' + str;
+  if (str.length > 10000) return;
   var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(str);
   if (!match) return;
   var n = parseFloat(match[1]);
@@ -21784,39 +22905,44 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (global){
-/**
- * Expose the Adapter function/object.
- */
+'use strict';
+
+// Expose the Adapter function/object.
 module.exports = Adapter;
 
 
-/**
- * Dependencies.
- */
-var browser = require('bowser').browser;
-var debug = require('debug')('rtcninja:Adapter');
-var debugerror = require('debug')('rtcninja:ERROR:Adapter');
+// Dependencies
+
+var browser = require('bowser'),
+	debug = require('debug')('rtcninja:Adapter'),
+	debugerror = require('debug')('rtcninja:ERROR:Adapter'),
+
+	// Internal vars
+	getUserMedia = null,
+	RTCPeerConnection = null,
+	RTCSessionDescription = null,
+	RTCIceCandidate = null,
+	MediaStreamTrack = null,
+	getMediaDevices = null,
+	attachMediaStream = null,
+	canRenegotiate = false,
+	oldSpecRTCOfferOptions = false,
+	browserVersion = Number(browser.version) || 0,
+	isDesktop = !!(!browser.mobile && !browser.tablet),
+	hasWebRTC = false,
+	virtGlobal, virtNavigator;
+
 debugerror.log = console.warn.bind(console);
 
+// Dirty trick to get this library working in a Node-webkit env with browserified libs
+virtGlobal = global.window || global;
+// Don't fail in Node
+virtNavigator = virtGlobal.navigator || {};
 
-/**
- * Local variables.
- */
-var getUserMedia = null;
-var RTCPeerConnection = null;
-var RTCSessionDescription = null;
-var RTCIceCandidate = null;
-var MediaStreamTrack = null;
-var attachMediaStream = null;
-var canRenegotiate = false;
-var oldSpecRTCOfferOptions = false;
-var browserVersion = Number(browser.version) || 0;
-var isDesktop = !!(! browser.mobile || ! browser.tablet);
-var hasWebRTC = false;
-var _navigator = global.navigator || {};  // Don't fail in Node.
 
+// Constructor.
 
 function Adapter(options) {
 	// Chrome desktop, Chrome Android, Opera desktop, Opera Android, Android native browser
@@ -21826,73 +22952,82 @@ function Adapter(options) {
 		(browser.android && browser.chrome && browserVersion >= 39) ||
 		(isDesktop && browser.opera && browserVersion >= 27) ||
 		(browser.android && browser.opera && browserVersion >= 24) ||
-		(browser.android && browser.webkit && ! browser.chrome && browserVersion >= 37) ||
-		(_navigator.webkitGetUserMedia && global.webkitRTCPeerConnection)
+		(browser.android && browser.webkit && !browser.chrome && browserVersion >= 37) ||
+		(virtNavigator.webkitGetUserMedia && virtGlobal.webkitRTCPeerConnection)
 	) {
 		hasWebRTC = true;
-		getUserMedia = _navigator.webkitGetUserMedia.bind(_navigator);
-		RTCPeerConnection = global.webkitRTCPeerConnection;
-		RTCSessionDescription = global.RTCSessionDescription;
-		RTCIceCandidate = global.RTCIceCandidate;
-		MediaStreamTrack = global.MediaStreamTrack;
-		attachMediaStream = function(element, stream) {
+		getUserMedia = virtNavigator.webkitGetUserMedia.bind(virtNavigator);
+		RTCPeerConnection = virtGlobal.webkitRTCPeerConnection;
+		RTCSessionDescription = virtGlobal.RTCSessionDescription;
+		RTCIceCandidate = virtGlobal.RTCIceCandidate;
+		MediaStreamTrack = virtGlobal.MediaStreamTrack;
+		if (MediaStreamTrack && MediaStreamTrack.getSources) {
+			getMediaDevices = MediaStreamTrack.getSources.bind(MediaStreamTrack);
+		} else if (virtNavigator.getMediaDevices) {
+			getMediaDevices = virtNavigator.getMediaDevices.bind(virtNavigator);
+		}
+		attachMediaStream = function (element, stream) {
 			element.src = URL.createObjectURL(stream);
 			return element;
 		};
 		canRenegotiate = true;
 		oldSpecRTCOfferOptions = false;
-	}
-
 	// Firefox desktop, Firefox Android.
-	else if (
+	} else if (
 		(isDesktop && browser.firefox && browserVersion >= 22) ||
 		(browser.android && browser.firefox && browserVersion >= 33) ||
-		(_navigator.mozGetUserMedia && global.mozRTCPeerConnection)
+		(virtNavigator.mozGetUserMedia && virtGlobal.mozRTCPeerConnection)
 	) {
 		hasWebRTC = true;
-		getUserMedia = _navigator.mozGetUserMedia.bind(_navigator);
-		RTCPeerConnection = global.mozRTCPeerConnection;
-		RTCSessionDescription = global.mozRTCSessionDescription;
-		RTCIceCandidate = global.mozRTCIceCandidate;
-		MediaStreamTrack = global.MediaStreamTrack;
-		attachMediaStream = function(element, stream) {
+		getUserMedia = virtNavigator.mozGetUserMedia.bind(virtNavigator);
+		RTCPeerConnection = virtGlobal.mozRTCPeerConnection;
+		RTCSessionDescription = virtGlobal.mozRTCSessionDescription;
+		RTCIceCandidate = virtGlobal.mozRTCIceCandidate;
+		MediaStreamTrack = virtGlobal.MediaStreamTrack;
+		attachMediaStream = function (element, stream) {
 			element.src = URL.createObjectURL(stream);
 			return element;
 		};
 		canRenegotiate = false;
 		oldSpecRTCOfferOptions = false;
-	}
-
-	// WebRTC plugin required. For example IE or Safari with the Temasys plugin.
-	else if (
+		// WebRTC plugin required. For example IE or Safari with the Temasys plugin.
+	} else if (
 		options.plugin &&
 		typeof options.plugin.isRequired === 'function' &&
 		options.plugin.isRequired() &&
 		typeof options.plugin.isInstalled === 'function' &&
 		options.plugin.isInstalled()
 	) {
-		var pluginInterface = options.plugin.interface;
+		var pluginiface = options.plugin.interface;
 
 		hasWebRTC = true;
-		getUserMedia = pluginInterface.getUserMedia;
-		RTCPeerConnection = pluginInterface.RTCPeerConnection;
-		RTCSessionDescription = pluginInterface.RTCSessionDescription;
-		RTCIceCandidate = pluginInterface.RTCIceCandidate;
-		MediaStreamTrack = pluginInterface.MediaStreamTrack;
-		attachMediaStream = pluginInterface.attachMediaStream;
-		canRenegotiate = pluginInterface.canRenegotiate;
+		getUserMedia = pluginiface.getUserMedia;
+		RTCPeerConnection = pluginiface.RTCPeerConnection;
+		RTCSessionDescription = pluginiface.RTCSessionDescription;
+		RTCIceCandidate = pluginiface.RTCIceCandidate;
+		MediaStreamTrack = pluginiface.MediaStreamTrack;
+		if (MediaStreamTrack && MediaStreamTrack.getSources) {
+			getMediaDevices = MediaStreamTrack.getSources.bind(MediaStreamTrack);
+		} else if (virtNavigator.getMediaDevices) {
+			getMediaDevices = virtNavigator.getMediaDevices.bind(virtNavigator);
+		}
+		attachMediaStream = pluginiface.attachMediaStream;
+		canRenegotiate = pluginiface.canRenegotiate;
 		oldSpecRTCOfferOptions = true;  // TODO: Update when fixed in the plugin.
-	}
-
 	// Best effort (may be adater.js is loaded).
-	else if (_navigator.getUserMedia && global.RTCPeerConnection) {
+	} else if (virtNavigator.getUserMedia && virtGlobal.RTCPeerConnection) {
 		hasWebRTC = true;
-		getUserMedia = _navigator.getUserMedia.bind(_navigator);
-		RTCPeerConnection = global.RTCPeerConnection;
-		RTCSessionDescription = global.RTCSessionDescription;
-		RTCIceCandidate = global.RTCIceCandidate;
-		MediaStreamTrack = global.MediaStreamTrack;
-		attachMediaStream = global.attachMediaStream || function(element, stream) {
+		getUserMedia = virtNavigator.getUserMedia.bind(virtNavigator);
+		RTCPeerConnection = virtGlobal.RTCPeerConnection;
+		RTCSessionDescription = virtGlobal.RTCSessionDescription;
+		RTCIceCandidate = virtGlobal.RTCIceCandidate;
+		MediaStreamTrack = virtGlobal.MediaStreamTrack;
+		if (MediaStreamTrack && MediaStreamTrack.getSources) {
+			getMediaDevices = MediaStreamTrack.getSources.bind(MediaStreamTrack);
+		} else if (virtNavigator.getMediaDevices) {
+			getMediaDevices = virtNavigator.getMediaDevices.bind(virtNavigator);
+		}
+		attachMediaStream = virtGlobal.attachMediaStream || function (element, stream) {
 			element.src = URL.createObjectURL(stream);
 			return element;
 		};
@@ -21902,46 +23037,55 @@ function Adapter(options) {
 
 
 	function throwNonSupported(item) {
-		return function() {
-			throw new Error('rtcninja: WebRTC not supported, missing ' +item+ ' [browser: ' +browser.name+ ' ' +browser.version + ']');
+		return function () {
+			throw new Error('rtcninja: WebRTC not supported, missing ' + item +
+			' [browser: ' + browser.name + ' ' + browser.version + ']');
 		};
 	}
 
+
+	// Public API.
+
 	// Expose a WebRTC checker.
-	Adapter.hasWebRTC = function() {
+	Adapter.hasWebRTC = function () {
 		return hasWebRTC;
 	};
 
 	// Expose getUserMedia.
 	if (getUserMedia) {
-		Adapter.getUserMedia = function(constraints, successCallback, errorCallback) {
-			debug('getUserMedia() | constraints:', constraints);
+		Adapter.getUserMedia = function (constraints, successCallback, errorCallback) {
+			debug('getUserMedia() | constraints: %o', constraints);
 
 			try {
 				getUserMedia(constraints,
-					function(stream) {
+					function (stream) {
 						debug('getUserMedia() | success');
-						if (successCallback) { successCallback(stream); }
+						if (successCallback) {
+							successCallback(stream);
+						}
 					},
-					function(error) {
+					function (error) {
 						debug('getUserMedia() | error:', error);
-						if (errorCallback) { errorCallback(error); }
+						if (errorCallback) {
+							errorCallback(error);
+						}
 					}
 				);
 			}
-			catch(error) {
+			catch (error) {
 				debugerror('getUserMedia() | error:', error);
-				if (errorCallback) { errorCallback(error); }
+				if (errorCallback) {
+					errorCallback(error);
+				}
 			}
 		};
-	}
-	else {
-		Adapter.getUserMedia = function(constraints, successCallback, errorCallback) {
+	} else {
+		Adapter.getUserMedia = function (constraints, successCallback, errorCallback) {
 			debugerror('getUserMedia() | WebRTC not supported');
 			if (errorCallback) {
-				errorCallback(new Error('rtcninja: WebRTC not supported, missing getUserMedia [browser: ' +browser.name+ ' ' +browser.version + ']'));
-			}
-			else {
+				errorCallback(new Error('rtcninja: WebRTC not supported, missing ' +
+				'getUserMedia [browser: ' + browser.name + ' ' + browser.version + ']'));
+			} else {
 				throwNonSupported('getUserMedia');
 			}
 		};
@@ -21959,6 +23103,9 @@ function Adapter(options) {
 	// Expose MediaStreamTrack.
 	Adapter.MediaStreamTrack = MediaStreamTrack || throwNonSupported('MediaStreamTrack');
 
+	// Expose getMediaDevices.
+	Adapter.getMediaDevices = getMediaDevices;
+
 	// Expose MediaStreamTrack.
 	Adapter.attachMediaStream = attachMediaStream || throwNonSupported('attachMediaStream');
 
@@ -21966,8 +23113,10 @@ function Adapter(options) {
 	Adapter.canRenegotiate = canRenegotiate;
 
 	// Expose closeMediaStream.
-	Adapter.closeMediaStream = function(stream) {
-		if (! stream) { return; }
+	Adapter.closeMediaStream = function (stream) {
+		if (!stream) {
+			return;
+		}
 
 		// Latest spec states that MediaStream has no stop() method and instead must
 		// call stop() on every MediaStreamTrack.
@@ -21978,25 +23127,22 @@ function Adapter(options) {
 
 			if (stream.getTracks) {
 				tracks = stream.getTracks();
-				for (i=0, len=tracks.length; i<len; i++) {
+				for (i = 0, len = tracks.length; i < len; i += 1) {
 					tracks[i].stop();
 				}
-			}
-			else {
+			} else {
 				tracks = stream.getAudioTracks();
-				for (i=0, len=tracks.length; i<len; i++) {
+				for (i = 0, len = tracks.length; i < len; i += 1) {
 					tracks[i].stop();
 				}
 
 				tracks = stream.getVideoTracks();
-				for (i=0, len=tracks.length; i<len; i++) {
+				for (i = 0, len = tracks.length; i < len; i += 1) {
 					tracks[i].stop();
 				}
 			}
-		}
-
 		// Deprecated by the spec, but still in use.
-		else if (typeof stream.stop === 'function') {
+		} else if (typeof stream.stop === 'function') {
 			debug('closeMediaStream() | calling stop() on the MediaStream');
 
 			stream.stop();
@@ -22004,40 +23150,41 @@ function Adapter(options) {
 	};
 
 	// Expose fixPeerConnectionConfig.
-	Adapter.fixPeerConnectionConfig = function(pcConfig) {
-		if (! Array.isArray(pcConfig.iceServers)) {
+	Adapter.fixPeerConnectionConfig = function (pcConfig) {
+		var i, len, iceServer, hasUrls, hasUrl;
+
+		if (!Array.isArray(pcConfig.iceServers)) {
 			pcConfig.iceServers = [];
 		}
 
-		for (var i=0, len=pcConfig.iceServers.length; i < len; i++) {
-			var iceServer = pcConfig.iceServers[i];
-			var hasUrls = iceServer.hasOwnProperty('urls');
-			var hasUrl = iceServer.hasOwnProperty('url');
+		for (i = 0, len = pcConfig.iceServers.length; i < len; i += 1) {
+			iceServer = pcConfig.iceServers[i];
+			hasUrls = iceServer.hasOwnProperty('urls');
+			hasUrl = iceServer.hasOwnProperty('url');
 
-			if (typeof iceServer !== 'object') { continue; }
+			if (typeof iceServer === 'object') {
+				// Has .urls but not .url, so add .url with a single string value.
+				if (hasUrls && !hasUrl) {
+					iceServer.url = (Array.isArray(iceServer.urls) ? iceServer.urls[0] : iceServer.urls);
+				// Has .url but not .urls, so add .urls with same value.
+				} else if (!hasUrls && hasUrl) {
+					iceServer.urls = (Array.isArray(iceServer.url) ? iceServer.url.slice() : iceServer.url);
+				}
 
-			// Has .urls but not .url, so add .url with a single string value.
-			if (hasUrls && ! hasUrl) {
-				iceServer.url = (Array.isArray(iceServer.urls) ? iceServer.urls[0] : iceServer.urls);
-			}
-			// Has .url but not .urls, so add .urls with same value.
-			else if (! hasUrls && hasUrl) {
-				iceServer.urls = (Array.isArray(iceServer.url) ? iceServer.url.slice() : iceServer.url);
-			}
-
-			// Ensure .url is a single string.
-			if (hasUrl && Array.isArray(iceServer.url)) {
-				iceServer.url = iceServer.url[0];
+				// Ensure .url is a single string.
+				if (hasUrl && Array.isArray(iceServer.url)) {
+					iceServer.url = iceServer.url[0];
+				}
 			}
 		}
 	};
 
 	// Expose fixRTCOfferOptions.
-	Adapter.fixRTCOfferOptions = function(options) {
+	Adapter.fixRTCOfferOptions = function (options) {
 		options = options || {};
 
 		// New spec.
-		if (! oldSpecRTCOfferOptions) {
+		if (!oldSpecRTCOfferOptions) {
 			if (options.mandatory && options.mandatory.OfferToReceiveAudio) {
 				options.offerToReceiveAudio = 1;
 			}
@@ -22045,9 +23192,8 @@ function Adapter(options) {
 				options.offerToReceiveVideo = 1;
 			}
 			delete options.mandatory;
-		}
 		// Old spec.
-		else {
+		} else {
 			if (options.offerToReceiveAudio) {
 				options.mandatory = options.mandatory || {};
 				options.mandatory.OfferToReceiveAudio = true;
@@ -22063,45 +23209,41 @@ function Adapter(options) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"bowser":36,"debug":29}],33:[function(require,module,exports){
-/**
- * Expose the RTCPeerConnection class.
- */
+},{"bowser":38,"debug":31}],35:[function(require,module,exports){
+'use strict';
+
+// Expose the RTCPeerConnection class.
 module.exports = RTCPeerConnection;
 
 
-/**
- * Dependencies.
- */
-var merge = require('merge');
-var debug = require('debug')('rtcninja:RTCPeerConnection');
-var debugerror = require('debug')('rtcninja:ERROR:RTCPeerConnection');
+// Dependencies.
+
+var merge = require('merge'),
+	debug = require('debug')('rtcninja:RTCPeerConnection'),
+	debugerror = require('debug')('rtcninja:ERROR:RTCPeerConnection'),
+	Adapter = require('./Adapter'),
+
+	// Internal constants.
+	C = {
+		REGEXP_NORMALIZED_CANDIDATE: new RegExp(/^candidate:/i),
+		REGEXP_FIX_CANDIDATE: new RegExp(/(^a=|\r|\n)/gi),
+		REGEXP_RELAY_CANDIDATE: new RegExp(/ relay /i),
+		REGEXP_SDP_CANDIDATES: new RegExp(/^a=candidate:.*\r\n/igm),
+		REGEXP_SDP_NON_RELAY_CANDIDATES: new RegExp(/^a=candidate:(.(?!relay ))*\r\n/igm)
+	},
+
+	// Internal variables.
+	VAR = {
+		normalizeCandidate: null
+	};
+
 debugerror.log = console.warn.bind(console);
-var Adapter = require('./Adapter');
 
 
-/**
- * Internal constants.
- */
-var C = {
-	REGEXP_NORMALIZED_CANDIDATE: new RegExp(/^candidate:/i),
-	REGEXP_FIX_CANDIDATE: new RegExp(/(^a=|\r|\n)/gi),
-	REGEXP_RELAY_CANDIDATE: new RegExp(/ relay /i),
-	REGEXP_SDP_CANDIDATES: new RegExp(/^a=candidate:.*\r\n/igm),
-	REGEXP_SDP_NON_RELAY_CANDIDATES: new RegExp(/^a=candidate:(.(?! relay ))*\r\n/igm)
-};
-
-
-/**
- * Internal variables.
- */
-var VAR = {
-	normalizeCandidate: null
-};
-
+// Constructor
 
 function RTCPeerConnection(pcConfig, pcConstraints) {
-	debug('new | pcConfig:', pcConfig);
+	debug('new | pcConfig: %o', pcConfig);
 
 	// Set this.pcConfig and this.options.
 	setConfigurationAndOptions.call(this, pcConfig);
@@ -22110,12 +23252,12 @@ function RTCPeerConnection(pcConfig, pcConstraints) {
 	this.pcConstraints = pcConstraints;
 
 	// Own version of the localDescription.
-	this._localDescription = null;
+	this.ourLocalDescription = null;
 
 	// Latest values of PC attributes to avoid events with same value.
-	this._signalingState = null;
-	this._iceConnectionState = null;
-	this._iceGatheringState = null;
+	this.ourSignalingState = null;
+	this.ourIceConnectionState = null;
+	this.ourIceGatheringState = null;
 
 	// Timer for options.gatheringTimeout.
 	this.timerGatheringTimeout = null;
@@ -22137,12 +23279,9 @@ function RTCPeerConnection(pcConfig, pcConstraints) {
 }
 
 
-/**
- * Public API.
- */
+// Public API.
 
-
-RTCPeerConnection.prototype.createOffer = function(successCallback, failureCallback, options) {
+RTCPeerConnection.prototype.createOffer = function (successCallback, failureCallback, options) {
 	debug('createOffer()');
 
 	var self = this;
@@ -22150,43 +23289,59 @@ RTCPeerConnection.prototype.createOffer = function(successCallback, failureCallb
 	Adapter.fixRTCOfferOptions(options);
 
 	this.pc.createOffer(
-		function(offer) {
-			if (isClosed.call(self)) { return; }
+		function (offer) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debug('createOffer() | success');
-			if (successCallback) { successCallback(offer); }
+			if (successCallback) {
+				successCallback(offer);
+			}
 		},
-		function(error) {
-			if (isClosed.call(self)) { return; }
+		function (error) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debugerror('createOffer() | error:', error);
-			if (failureCallback) { failureCallback(error); }
+			if (failureCallback) {
+				failureCallback(error);
+			}
 		},
 		options
 	);
 };
 
 
-RTCPeerConnection.prototype.createAnswer = function(successCallback, failureCallback, options) {
+RTCPeerConnection.prototype.createAnswer = function (successCallback, failureCallback, options) {
 	debug('createAnswer()');
 
 	var self = this;
 
 	this.pc.createAnswer(
-		function(answer) {
-			if (isClosed.call(self)) { return; }
+		function (answer) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debug('createAnswer() | success');
-			if (successCallback) { successCallback(answer); }
+			if (successCallback) {
+				successCallback(answer);
+			}
 		},
-		function(error) {
-			if (isClosed.call(self)) { return; }
+		function (error) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debugerror('createAnswer() | error:', error);
-			if (failureCallback) { failureCallback(error); }
+			if (failureCallback) {
+				failureCallback(error);
+			}
 		},
 		options
 	);
 };
 
 
-RTCPeerConnection.prototype.setLocalDescription = function(description, successCallback, failureCallback) {
+RTCPeerConnection.prototype.setLocalDescription = function (description, successCallback, failureCallback) {
 	debug('setLocalDescription()');
 
 	var self = this;
@@ -22194,8 +23349,10 @@ RTCPeerConnection.prototype.setLocalDescription = function(description, successC
 	this.pc.setLocalDescription(
 		description,
 		// success.
-		function() {
-			if (isClosed.call(self)) { return; }
+		function () {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debug('setLocalDescription() | success');
 
 			// Clear gathering timers.
@@ -22205,13 +23362,19 @@ RTCPeerConnection.prototype.setLocalDescription = function(description, successC
 			delete self.timerGatheringTimeoutAfterRelay;
 
 			runTimerGatheringTimeout();
-			if (successCallback) { successCallback(); }
+			if (successCallback) {
+				successCallback();
+			}
 		},
 		// failure
-		function(error) {
-			if (isClosed.call(self)) { return; }
+		function (error) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debugerror('setLocalDescription() | error:', error);
-			if (failureCallback) { failureCallback(error); }
+			if (failureCallback) {
+				failureCallback(error);
+			}
 		}
 	);
 
@@ -22220,15 +23383,22 @@ RTCPeerConnection.prototype.setLocalDescription = function(description, successC
 
 	// Handle gatheringTimeout.
 	function runTimerGatheringTimeout() {
-		if (typeof self.options.gatheringTimeout !== 'number') { return; }
+		if (typeof self.options.gatheringTimeout !== 'number') {
+			return;
+		}
 		// If setLocalDescription was already called, it may happen that
 		// ICE gathering is not needed, so don't run this timer.
-		if (self.pc.iceGatheringState === 'complete') { return; }
+		if (self.pc.iceGatheringState === 'complete') {
+			return;
+		}
 
-		debug('setLocalDescription() | ending gathering in %d ms (gatheringTimeout option)', self.options.gatheringTimeout);
+		debug('setLocalDescription() | ending gathering in %d ms (gatheringTimeout option)',
+			self.options.gatheringTimeout);
 
-		self.timerGatheringTimeout = setTimeout(function() {
-			if (isClosed.call(self)) { return; }
+		self.timerGatheringTimeout = setTimeout(function () {
+			if (isClosed.call(self)) {
+				return;
+			}
 
 			debug('forced end of candidates after gatheringTimeout timeout');
 
@@ -22239,36 +23409,46 @@ RTCPeerConnection.prototype.setLocalDescription = function(description, successC
 
 			// Ignore new candidates.
 			self.ignoreIceGathering = true;
-			if (self.onicecandidate) { self.onicecandidate({candidate: null}, null); }
+			if (self.onicecandidate) {
+				self.onicecandidate({ candidate: null }, null);
+			}
 
 		}, self.options.gatheringTimeout);
 	}
 };
 
 
-RTCPeerConnection.prototype.setRemoteDescription = function(description, successCallback, failureCallback) {
+RTCPeerConnection.prototype.setRemoteDescription = function (description, successCallback, failureCallback) {
 	debug('setRemoteDescription()');
 
 	var self = this;
 
 	this.pc.setRemoteDescription(
 		description,
-		function() {
-			if (isClosed.call(self)) { return; }
+		function () {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debug('setRemoteDescription() | success');
-			if (successCallback) { successCallback(); }
+			if (successCallback) {
+				successCallback();
+			}
 		},
-		function(error) {
-			if (isClosed.call(self)) { return; }
+		function (error) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debugerror('setRemoteDescription() | error:', error);
-			if (failureCallback) { failureCallback(error); }
+			if (failureCallback) {
+				failureCallback(error);
+			}
 		}
 	);
 };
 
 
-RTCPeerConnection.prototype.updateIce = function(pcConfig) {
-	debug('updateIce() | pcConfig:', pcConfig);
+RTCPeerConnection.prototype.updateIce = function (pcConfig) {
+	debug('updateIce() | pcConfig: %o', pcConfig);
 
 	// Update this.pcConfig and this.options.
 	setConfigurationAndOptions.call(this, pcConfig);
@@ -22280,70 +23460,78 @@ RTCPeerConnection.prototype.updateIce = function(pcConfig) {
 };
 
 
-RTCPeerConnection.prototype.addIceCandidate = function(candidate, successCallback, failureCallback) {
-	debug('addIceCandidate() | candidate:', candidate);
+RTCPeerConnection.prototype.addIceCandidate = function (candidate, successCallback, failureCallback) {
+	debug('addIceCandidate() | candidate: %o', candidate);
 
 	var self = this;
 
 	this.pc.addIceCandidate(
 		candidate,
-		function() {
-			if (isClosed.call(self)) { return; }
+		function () {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debug('addIceCandidate() | success');
-			if (successCallback) { successCallback(); }
+			if (successCallback) {
+				successCallback();
+			}
 		},
-		function(error) {
-			if (isClosed.call(self)) { return; }
+		function (error) {
+			if (isClosed.call(self)) {
+				return;
+			}
 			debugerror('addIceCandidate() | error:', error);
-			if (failureCallback) { failureCallback(error); }
+			if (failureCallback) {
+				failureCallback(error);
+			}
 		}
 	);
 };
 
 
-RTCPeerConnection.prototype.getConfiguration = function() {
+RTCPeerConnection.prototype.getConfiguration = function () {
 	debug('getConfiguration()');
 
 	return this.pc.getConfiguration();
 };
 
 
-RTCPeerConnection.prototype.getLocalStreams = function() {
+RTCPeerConnection.prototype.getLocalStreams = function () {
 	debug('getLocalStreams()');
 
 	return this.pc.getLocalStreams();
 };
 
 
-RTCPeerConnection.prototype.getRemoteStreams = function() {
+RTCPeerConnection.prototype.getRemoteStreams = function () {
 	debug('getRemoteStreams()');
 
 	return this.pc.getRemoteStreams();
 };
 
 
-RTCPeerConnection.getStreamById = function(streamId) {
-	debug('getStreamById() | streamId:', streamId);
+RTCPeerConnection.prototype.getStreamById = function (streamId) {
+	debug('getStreamById() | streamId: %s', streamId);
 
-	this.pc.getStreamById(streamId);
+	return this.pc.getStreamById(streamId);
 };
 
 
-RTCPeerConnection.prototype.addStream = function(stream) {
-	debug('addStream() | stream:', stream);
+RTCPeerConnection.prototype.addStream = function (stream) {
+	debug('addStream() | stream: %s', stream);
 
 	this.pc.addStream(stream);
 };
 
 
-RTCPeerConnection.prototype.removeStream = function(stream) {
-	debug('removeStream() | stream:', stream);
+RTCPeerConnection.prototype.removeStream = function (stream) {
+	debug('removeStream() | stream: %o', stream);
 
 	this.pc.removeStream(stream);
 };
 
 
-RTCPeerConnection.prototype.close = function() {
+RTCPeerConnection.prototype.close = function () {
 	debug('close()');
 
 	this.closed = true;
@@ -22358,48 +23546,43 @@ RTCPeerConnection.prototype.close = function() {
 };
 
 
-RTCPeerConnection.prototype.createDataChannel = function() {
+RTCPeerConnection.prototype.createDataChannel = function () {
 	debug('createDataChannel()');
 
 	return this.pc.createDataChannel.apply(this.pc, arguments);
 };
 
 
-RTCPeerConnection.prototype.createDTMFSender = function(track) {
+RTCPeerConnection.prototype.createDTMFSender = function (track) {
 	debug('createDTMFSender()');
 
 	return this.pc.createDTMFSender(track);
 };
 
 
-RTCPeerConnection.prototype.getStats = function() {
+RTCPeerConnection.prototype.getStats = function () {
 	debug('getStats()');
 
 	return this.pc.getStats.apply(this.pc, arguments);
 };
 
 
-RTCPeerConnection.prototype.setIdentityProvider = function() {
+RTCPeerConnection.prototype.setIdentityProvider = function () {
 	debug('setIdentityProvider()');
 
 	return this.pc.setIdentityProvider.apply(this.pc, arguments);
 };
 
 
-RTCPeerConnection.prototype.getIdentityAssertion = function() {
+RTCPeerConnection.prototype.getIdentityAssertion = function () {
 	debug('getIdentityAssertion()');
 
 	return this.pc.getIdentityAssertion();
 };
 
 
-/**
- * Custom public API.
- */
-
-
-RTCPeerConnection.prototype.reset = function(pcConfig) {
-	debug('reset() | pcConfig:', pcConfig);
+RTCPeerConnection.prototype.reset = function (pcConfig) {
+	debug('reset() | pcConfig: %o', pcConfig);
 
 	var pc = this.pc;
 
@@ -22435,18 +23618,7 @@ RTCPeerConnection.prototype.reset = function(pcConfig) {
 };
 
 
-/**
- * Private API.
- */
-
-
-function isClosed() {
-	return (
-		(this.closed) ||
-		(this.pc && this.pc.iceConnectionState === 'closed')
-	);
-}
-
+// Private Helpers.
 
 function setConfigurationAndOptions(pcConfig) {
 	// Clone pcConfig.
@@ -22466,59 +23638,64 @@ function setConfigurationAndOptions(pcConfig) {
 	delete this.pcConfig.gatheringTimeout;
 	delete this.pcConfig.gatheringTimeoutAfterRelay;
 
-	debug('setConfigurationAndOptions | processed pcConfig:', this.pcConfig);
+	debug('setConfigurationAndOptions | processed pcConfig: %o', this.pcConfig);
 }
 
 
-function setPeerConnection() {
-	// Create a RTCPeerConnection.
-	if (! this.pcConstraints) {
-		this.pc = new Adapter.RTCPeerConnection(this.pcConfig);
-	}
-	else {
-		// NOTE: Deprecated.
-		this.pc = new Adapter.RTCPeerConnection(this.pcConfig, this.pcConstraints);
-	}
-
-	// Set RTC events.
-	setEvents.call(this);
+function isClosed() {
+	return ((this.closed) || (this.pc && this.pc.iceConnectionState === 'closed'));
 }
 
 
 function setEvents() {
-	var self = this;
-	var pc = this.pc;
+	var self = this,
+		pc = this.pc;
 
-	pc.onnegotiationneeded = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onnegotiationneeded = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
 		debug('onnegotiationneeded()');
-		if (self.onnegotiationneeded) { self.onnegotiationneeded(event); }
+		if (self.onnegotiationneeded) {
+			self.onnegotiationneeded(event);
+		}
 	};
 
-	pc.onicecandidate = function(event) {
-		if (isClosed.call(self)) { return; }
-		if (self.ignoreIceGathering) { return; }
+	pc.onicecandidate = function (event) {
+		var candidate, isRelay, newCandidate;
+
+		if (isClosed.call(self)) {
+			return;
+		}
+		if (self.ignoreIceGathering) {
+			return;
+		}
 
 		// Ignore any candidate (event the null one) if iceTransports:'none' is set.
-		if (self.options.iceTransportsNone) { return; }
+		if (self.options.iceTransportsNone) {
+			return;
+		}
 
-		var candidate = event.candidate;
+		candidate = event.candidate;
 
 		if (candidate) {
-			var isRelay = C.REGEXP_RELAY_CANDIDATE.test(candidate.candidate);
+			isRelay = C.REGEXP_RELAY_CANDIDATE.test(candidate.candidate);
 
 			// Ignore if just relay candidates are requested.
-			if (self.options.iceTransportsRelay && ! isRelay) {
+			if (self.options.iceTransportsRelay && !isRelay) {
 				return;
 			}
 
 			// Handle gatheringTimeoutAfterRelay.
-			if (isRelay && ! self.timerGatheringTimeoutAfterRelay && (typeof self.options.gatheringTimeoutAfterRelay === 'number')) {
+			if (isRelay && !self.timerGatheringTimeoutAfterRelay &&
+				(typeof self.options.gatheringTimeoutAfterRelay === 'number')) {
 				debug('onicecandidate() | first relay candidate found, ending gathering in %d ms', self.options.gatheringTimeoutAfterRelay);
 
-				self.timerGatheringTimeoutAfterRelay = setTimeout(function() {
-					if (isClosed.call(self)) { return; }
+				self.timerGatheringTimeoutAfterRelay = setTimeout(function () {
+					if (isClosed.call(self)) {
+						return;
+					}
 
 					debug('forced end of candidates after timeout');
 
@@ -22529,11 +23706,13 @@ function setEvents() {
 
 					// Ignore new candidates.
 					self.ignoreIceGathering = true;
-					if (self.onicecandidate) { self.onicecandidate({candidate: null}, null); }
+					if (self.onicecandidate) {
+						self.onicecandidate({candidate: null}, null);
+					}
 				}, self.options.gatheringTimeoutAfterRelay);
 			}
 
-			var newCandidate = new Adapter.RTCIceCandidate({
+			newCandidate = new Adapter.RTCIceCandidate({
 				sdpMid: candidate.sdpMid,
 				sdpMLineIndex: candidate.sdpMLineIndex,
 				candidate: candidate.candidate
@@ -22543,8 +23722,7 @@ function setEvents() {
 			if (VAR.normalizeCandidate === null) {
 				if (C.REGEXP_NORMALIZED_CANDIDATE.test(candidate.candidate)) {
 					VAR.normalizeCandidate = false;
-				}
-				else {
+				} else {
 					debug('onicecandidate() | normalizing ICE candidates syntax (remove "a=" and "\\r\\n")');
 					VAR.normalizeCandidate = true;
 				}
@@ -22553,12 +23731,15 @@ function setEvents() {
 				newCandidate.candidate = candidate.candidate.replace(C.REGEXP_FIX_CANDIDATE, '');
 			}
 
-			debug('onicecandidate() | m%d(%s) %s', newCandidate.sdpMLineIndex, newCandidate.sdpMid || 'no mid', newCandidate.candidate);
-			if (self.onicecandidate) { self.onicecandidate(event, newCandidate); }
-		}
-
+			debug(
+				'onicecandidate() | m%d(%s) %s',
+				newCandidate.sdpMLineIndex,
+				newCandidate.sdpMid || 'no mid', newCandidate.candidate);
+			if (self.onicecandidate) {
+				self.onicecandidate(event, newCandidate);
+			}
 		// Null candidate (end of candidates).
-		else {
+		} else {
 			debug('onicecandidate() | end of candidates');
 
 			// Clear gathering timers.
@@ -22566,84 +23747,168 @@ function setEvents() {
 			delete self.timerGatheringTimeout;
 			clearTimeout(self.timerGatheringTimeoutAfterRelay);
 			delete self.timerGatheringTimeoutAfterRelay;
-			if (self.onicecandidate) { self.onicecandidate(event, null); }
+			if (self.onicecandidate) {
+				self.onicecandidate(event, null);
+			}
 		}
 	};
 
-	pc.onaddstream = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onaddstream = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
-		debug('onaddstream() | stream:', event.stream);
-		if (self.onaddstream) { self.onaddstream(event, event.stream); }
+		debug('onaddstream() | stream: %o', event.stream);
+		if (self.onaddstream) {
+			self.onaddstream(event, event.stream);
+		}
 	};
 
-	pc.onremovestream = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onremovestream = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
-		debug('onremovestream() | stream:', event.stream);
-		if (self.onremovestream) { self.onremovestream(event, event.stream); }
+		debug('onremovestream() | stream: %o', event.stream);
+		if (self.onremovestream) {
+			self.onremovestream(event, event.stream);
+		}
 	};
 
-	pc.ondatachannel = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.ondatachannel = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
-		debug('ondatachannel()');
-		if (self.ondatachannel) { self.ondatachannel(event, event.channel); }
+		debug('ondatachannel() | datachannel: %o', event.channel);
+		if (self.ondatachannel) {
+			self.ondatachannel(event, event.channel);
+		}
 	};
 
-	pc.onsignalingstatechange = function(event) {
-		if (pc.signalingState === self._signalingState) { return; }
+	pc.onsignalingstatechange = function (event) {
+		if (pc.signalingState === self.ourSignalingState) {
+			return;
+		}
 
 		debug('onsignalingstatechange() | signalingState: %s', pc.signalingState);
-		self._signalingState = pc.signalingState;
-		if (self.onsignalingstatechange) { self.onsignalingstatechange(event, pc.signalingState); }
+		self.ourSignalingState = pc.signalingState;
+		if (self.onsignalingstatechange) {
+			self.onsignalingstatechange(event, pc.signalingState);
+		}
 	};
 
-	pc.oniceconnectionstatechange = function(event) {
-		if (pc.iceConnectionState === self._iceConnectionState) { return; }
+	pc.oniceconnectionstatechange = function (event) {
+		if (pc.iceConnectionState === self.ourIceConnectionState) {
+			return;
+		}
 
 		debug('oniceconnectionstatechange() | iceConnectionState: %s', pc.iceConnectionState);
-		self._iceConnectionState = pc.iceConnectionState;
-		if (self.oniceconnectionstatechange) { self.oniceconnectionstatechange(event, pc.iceConnectionState); }
+		self.ourIceConnectionState = pc.iceConnectionState;
+		if (self.oniceconnectionstatechange) {
+			self.oniceconnectionstatechange(event, pc.iceConnectionState);
+		}
 	};
 
-	pc.onicegatheringstatechange = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onicegatheringstatechange = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
-		if (pc.iceGatheringState === self._iceGatheringState) { return; }
+		if (pc.iceGatheringState === self.ourIceGatheringState) {
+			return;
+		}
 
 		debug('onicegatheringstatechange() | iceGatheringState: %s', pc.iceGatheringState);
-		self._iceGatheringState = pc.iceGatheringState;
-		if (self.onicegatheringstatechange) { self.onicegatheringstatechange(event, pc.iceGatheringState); }
+		self.ourIceGatheringState = pc.iceGatheringState;
+		if (self.onicegatheringstatechange) {
+			self.onicegatheringstatechange(event, pc.iceGatheringState);
+		}
 	};
 
-	pc.onidentityresult = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onidentityresult = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
 		debug('onidentityresult()');
-		if (self.onidentityresult) { self.onidentityresult(event); }
+		if (self.onidentityresult) {
+			self.onidentityresult(event);
+		}
 	};
 
-	pc.onpeeridentity = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onpeeridentity = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
 		debug('onpeeridentity()');
-		if (self.onpeeridentity) { self.onpeeridentity(event); }
+		if (self.onpeeridentity) {
+			self.onpeeridentity(event);
+		}
 	};
 
-	pc.onidpassertionerror = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onidpassertionerror = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
 		debug('onidpassertionerror()');
-		if (self.onidpassertionerror) { self.onidpassertionerror(event); }
+		if (self.onidpassertionerror) {
+			self.onidpassertionerror(event);
+		}
 	};
 
-	pc.onidpvalidationerror = function(event) {
-		if (isClosed.call(self)) { return; }
+	pc.onidpvalidationerror = function (event) {
+		if (isClosed.call(self)) {
+			return;
+		}
 
 		debug('onidpvalidationerror()');
-		if (self.onidpvalidationerror) { self.onidpvalidationerror(event); }
+		if (self.onidpvalidationerror) {
+			self.onidpvalidationerror(event);
+		}
 	};
+}
+
+
+function setPeerConnection() {
+	// Create a RTCPeerConnection.
+	if (!this.pcConstraints) {
+		this.pc = new Adapter.RTCPeerConnection(this.pcConfig);
+	} else {
+		// NOTE: Deprecated.
+		this.pc = new Adapter.RTCPeerConnection(this.pcConfig, this.pcConstraints);
+	}
+
+	// Set RTC events.
+	setEvents.call(this);
+}
+
+
+function getLocalDescription() {
+	var pc = this.pc,
+		options = this.options,
+		sdp = null;
+
+	if (!pc.localDescription) {
+		this.ourLocalDescription = null;
+		return null;
+	}
+
+	// Mangle the SDP string.
+	if (options.iceTransportsRelay) {
+		sdp = pc.localDescription.sdp.replace(C.REGEXP_SDP_NON_RELAY_CANDIDATES, '');
+	} else if (options.iceTransportsNone) {
+		sdp = pc.localDescription.sdp.replace(C.REGEXP_SDP_CANDIDATES, '');
+	}
+
+	this.ourLocalDescription = new Adapter.RTCSessionDescription({
+		type: pc.localDescription.type,
+		sdp: sdp || pc.localDescription.sdp
+	});
+
+	return this.ourLocalDescription;
 }
 
 
@@ -22652,98 +23917,79 @@ function setProperties() {
 
 	Object.defineProperties(this, {
 		peerConnection: {
-			get: function() { return self.pc; }
+			get: function () {
+				return self.pc;
+			}
 		},
 
 		signalingState: {
-			get: function() { return self.pc.signalingState; }
+			get: function () {
+				return self.pc.signalingState;
+			}
 		},
 
 		iceConnectionState: {
-			get: function() { return self.pc.iceConnectionState; }
+			get: function () {
+				return self.pc.iceConnectionState;
+			}
 		},
 
 		iceGatheringState: {
-			get: function() { return self.pc.iceGatheringState; }
+			get: function () {
+				return self.pc.iceGatheringState;
+			}
 		},
 
 		localDescription: {
-			get: function() {
+			get: function () {
 				return getLocalDescription.call(self);
 			}
 		},
 
 		remoteDescription: {
-			get: function() {
+			get: function () {
 				return self.pc.remoteDescription;
 			}
 		},
 
 		peerIdentity: {
-			get: function() { return self.pc.peerIdentity; }
-		},
+			get: function () {
+				return self.pc.peerIdentity;
+			}
+		}
 	});
 }
 
+},{"./Adapter":34,"debug":31,"merge":39}],36:[function(require,module,exports){
+'use strict';
 
-function getLocalDescription() {
-	var pc = this.pc;
-	var options = this.options;
-	var sdp = null;
-
-	if (! pc.localDescription) {
-		this._localDescription = null;
-		return null;
-	}
-
-	// Mangle the SDP string.
-	if (options.iceTransportsRelay) {
-		sdp = pc.localDescription.sdp.replace(C.REGEXP_SDP_NON_RELAY_CANDIDATES, '');
-	}
-	else if (options.iceTransportsNone) {
-		sdp = pc.localDescription.sdp.replace(C.REGEXP_SDP_CANDIDATES, '');
-	}
-
-	this._localDescription = new Adapter.RTCSessionDescription({
-		type: pc.localDescription.type,
-		sdp: sdp || pc.localDescription.sdp
-	});
-
-	return this._localDescription;
-}
-
-},{"./Adapter":32,"debug":29,"merge":37}],34:[function(require,module,exports){
-/**
- * Expose the rtcninja function/object.
- */
 module.exports = rtcninja;
 
 
-/**
- * Dependencies.
- */
-var browser = require('bowser').browser;
-var debug = require('debug')('rtcninja');
-var debugerror = require('debug')('rtcninja:ERROR');
+// Dependencies.
+
+var browser = require('bowser'),
+	debug = require('debug')('rtcninja'),
+	debugerror = require('debug')('rtcninja:ERROR'),
+	version = require('./version'),
+	Adapter = require('./Adapter'),
+	RTCPeerConnection = require('./RTCPeerConnection'),
+
+	// Internal vars.
+	called = false;
+
 debugerror.log = console.warn.bind(console);
-var version = require('./version');
-var Adapter = require('./Adapter');
-var RTCPeerConnection = require('./RTCPeerConnection');
-
-
-/**
- * Local variables.
- */
-var called = false;
-
-
 debug('version %s', version);
-debug('detected browser: %s %s [mobile:%s, tablet:%s, android:%s, ios:%s]', browser.name, browser.version, !!browser.mobile, !!browser.tablet, !!browser.android, !!browser.ios);
+debug('detected browser: %s %s [mobile:%s, tablet:%s, android:%s, ios:%s]',
+		browser.name, browser.version, !!browser.mobile, !!browser.tablet,
+		!!browser.android, !!browser.ios);
 
+
+// Constructor.
 
 function rtcninja(options) {
-	// Load adapter.
-	var interface = Adapter(options || {});  // jshint ignore:line
+	// Load adapter
+	var iface = Adapter(options || {});  // jshint ignore:line
 
 	called = true;
 
@@ -22751,71 +23997,75 @@ function rtcninja(options) {
 	rtcninja.RTCPeerConnection = RTCPeerConnection;
 
 	// Expose WebRTC API and utils.
-	rtcninja.getUserMedia = interface.getUserMedia;
-	rtcninja.RTCSessionDescription = interface.RTCSessionDescription;
-	rtcninja.RTCIceCandidate = interface.RTCIceCandidate;
-	rtcninja.MediaStreamTrack = interface.MediaStreamTrack;
-	rtcninja.attachMediaStream = interface.attachMediaStream;
-	rtcninja.closeMediaStream = interface.closeMediaStream;
-	rtcninja.canRenegotiate = interface.canRenegotiate;
+	rtcninja.getUserMedia = iface.getUserMedia;
+	rtcninja.RTCSessionDescription = iface.RTCSessionDescription;
+	rtcninja.RTCIceCandidate = iface.RTCIceCandidate;
+	rtcninja.MediaStreamTrack = iface.MediaStreamTrack;
+	rtcninja.getMediaDevices = iface.getMediaDevices;
+	rtcninja.attachMediaStream = iface.attachMediaStream;
+	rtcninja.closeMediaStream = iface.closeMediaStream;
+	rtcninja.canRenegotiate = iface.canRenegotiate;
 
 	// Log WebRTC support.
-	if (interface.hasWebRTC()) {
+	if (iface.hasWebRTC()) {
 		debug('WebRTC supported');
 		return true;
-	}
-	else {
+	} else {
 		debugerror('WebRTC not supported');
 		return false;
 	}
 }
 
+
+// Public API.
+
 // If called without calling rtcninja(), call it.
-rtcninja.hasWebRTC = function() {
-	if (! called) {
+rtcninja.hasWebRTC = function () {
+	if (!called) {
 		rtcninja();
 	}
 
 	return Adapter.hasWebRTC();
 };
 
+
 // Expose version property.
 Object.defineProperty(rtcninja, 'version', {
-	get: function() {
+	get: function () {
 		return version;
 	}
 });
 
+
 // Expose called property.
 Object.defineProperty(rtcninja, 'called', {
-	get: function() {
+	get: function () {
 		return called;
 	}
 });
 
 
-// Expose debug module.
-rtcninja.debug = require('debug');
+// Exposing stuff.
 
-// Expose browser.
+rtcninja.debug = require('debug');
 rtcninja.browser = browser;
 
-},{"./Adapter":32,"./RTCPeerConnection":33,"./version":35,"bowser":36,"debug":29}],35:[function(require,module,exports){
-/**
- * Expose the 'version' field of package.json.
- */
+},{"./Adapter":34,"./RTCPeerConnection":35,"./version":37,"bowser":38,"debug":31}],37:[function(require,module,exports){
+'use strict';
+
+// Expose the 'version' field of package.json.
 module.exports = require('../package.json').version;
 
 
-},{"../package.json":38}],36:[function(require,module,exports){
+},{"../package.json":40}],38:[function(require,module,exports){
 /*!
   * Bowser - a browser detector
   * https://github.com/ded/bowser
-  * MIT License | (c) Dustin Diaz 2014
+  * MIT License | (c) Dustin Diaz 2015
   */
 
 !function (name, definition) {
-  if (typeof module != 'undefined' && module.exports) module.exports['browser'] = definition()
+  if (typeof module != 'undefined' && module.exports) module.exports = definition()
   else if (typeof define == 'function' && define.amd) define(definition)
   else this[name] = definition()
 }('bowser', function () {
@@ -22832,9 +24082,16 @@ module.exports = require('../package.json').version;
       return (match && match.length > 1 && match[1]) || '';
     }
 
+    function getSecondMatch(regex) {
+      var match = ua.match(regex);
+      return (match && match.length > 1 && match[2]) || '';
+    }
+
     var iosdevice = getFirstMatch(/(ipod|iphone|ipad)/i).toLowerCase()
       , likeAndroid = /like android/i.test(ua)
       , android = !likeAndroid && /android/i.test(ua)
+      , chromeBook = /CrOS/.test(ua)
+      , edgeVersion = getFirstMatch(/edge\/(\d+(\.\d+)?)/i)
       , versionIdentifier = getFirstMatch(/version\/(\d+(\.\d+)?)/i)
       , tablet = /tablet/i.test(ua)
       , mobile = !tablet && /[^-]mobi/i.test(ua)
@@ -22847,12 +24104,25 @@ module.exports = require('../package.json').version;
       , version: versionIdentifier || getFirstMatch(/(?:opera|opr)[\s\/](\d+(\.\d+)?)/i)
       }
     }
+    else if (/yabrowser/i.test(ua)) {
+      result = {
+        name: 'Yandex Browser'
+      , yandexbrowser: t
+      , version: versionIdentifier || getFirstMatch(/(?:yabrowser)[\s\/](\d+(\.\d+)?)/i)
+      }
+    }
     else if (/windows phone/i.test(ua)) {
       result = {
         name: 'Windows Phone'
       , windowsphone: t
-      , msie: t
-      , version: getFirstMatch(/iemobile\/(\d+(\.\d+)?)/i)
+      }
+      if (edgeVersion) {
+        result.msedge = t
+        result.version = edgeVersion
+      }
+      else {
+        result.msie = t
+        result.version = getFirstMatch(/iemobile\/(\d+(\.\d+)?)/i)
       }
     }
     else if (/msie|trident/i.test(ua)) {
@@ -22860,6 +24130,19 @@ module.exports = require('../package.json').version;
         name: 'Internet Explorer'
       , msie: t
       , version: getFirstMatch(/(?:msie |rv:)(\d+(\.\d+)?)/i)
+      }
+    } else if (chromeBook) {
+      result = {
+        name: 'Chrome'
+      , chromeBook: t
+      , chrome: t
+      , version: getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.\d+)?)/i)
+      }
+    } else if (/chrome.+? edge/i.test(ua)) {
+      result = {
+        name: 'Microsoft Edge'
+      , msedge: t
+      , version: edgeVersion
       }
     }
     else if (/chrome|crios|crmo/i.test(ua)) {
@@ -22958,10 +24241,15 @@ module.exports = require('../package.json').version;
       , version: versionIdentifier
       }
     }
-    else result = {}
+    else {
+      result = {
+        name: getFirstMatch(/^(.*)\/(.*) /),
+        version: getSecondMatch(/^(.*)\/(.*) /)
+     };
+   }
 
     // set webkit or gecko flag for browsers based on these engines
-    if (/(apple)?webkit/i.test(ua)) {
+    if (!result.msedge && /(apple)?webkit/i.test(ua)) {
       result.name = result.name || "Webkit"
       result.webkit = t
       if (!result.version && versionIdentifier) {
@@ -22974,7 +24262,7 @@ module.exports = require('../package.json').version;
     }
 
     // set OS flags for platforms that have multiple browsers
-    if (android || result.silk) {
+    if (!result.msedge && (android || result.silk)) {
       result.android = t
     } else if (iosdevice) {
       result[iosdevice] = t
@@ -22983,13 +24271,13 @@ module.exports = require('../package.json').version;
 
     // OS version extraction
     var osVersion = '';
-    if (iosdevice) {
+    if (result.windowsphone) {
+      osVersion = getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i);
+    } else if (iosdevice) {
       osVersion = getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i);
       osVersion = osVersion.replace(/[_\s]/g, '.');
     } else if (android) {
       osVersion = getFirstMatch(/android[ \/-](\d+(\.\d+)*)/i);
-    } else if (result.windowsphone) {
-      osVersion = getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i);
     } else if (result.webos) {
       osVersion = getFirstMatch(/(?:web|hpw)os\/(\d+(\.\d+)*)/i);
     } else if (result.blackberry) {
@@ -23013,7 +24301,9 @@ module.exports = require('../package.json').version;
 
     // Graded Browser Support
     // http://developer.yahoo.com/yui/articles/gbs
-    if ((result.msie && result.version >= 10) ||
+    if (result.msedge ||
+        (result.msie && result.version >= 10) ||
+        (result.yandexbrowser && result.version >= 15) ||
         (result.chrome && result.version >= 20) ||
         (result.firefox && result.version >= 20.0) ||
         (result.safari && result.version >= 6) ||
@@ -23038,6 +24328,17 @@ module.exports = require('../package.json').version;
 
   var bowser = detect(typeof navigator !== 'undefined' ? navigator.userAgent : '')
 
+  bowser.test = function (browserList) {
+    for (var i = 0; i < browserList.length; ++i) {
+      var browserItem = browserList[i];
+      if (typeof browserItem=== 'string') {
+        if (browserItem in bowser) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   /*
    * Set our detect method to the main bowser object so we can
@@ -23049,7 +24350,7 @@ module.exports = require('../package.json').version;
   return bowser
 });
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 /*!
  * @name JavaScript/NodeJS Merge v1.2.0
  * @author yeikos
@@ -23225,22 +24526,28 @@ module.exports = require('../package.json').version;
 	}
 
 })(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 module.exports={
   "name": "rtcninja",
-  "version": "0.5.3",
+  "version": "0.6.4",
   "description": "WebRTC API wrapper to deal with different browsers",
   "author": {
     "name": "Iñaki Baz Castillo",
     "email": "inaki.baz@eface2face.com",
     "url": "http://eface2face.com"
   },
-  "license": "ISC",
+  "contributors": [
+    {
+      "name": "Jesús Pérez",
+      "email": "jesus.perez@eface2face.com"
+    }
+  ],
+  "license": "MIT",
   "main": "lib/rtcninja.js",
   "homepage": "https://github.com/eface2face/rtcninja.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eface2face/rtcninja.js.git"
+    "url": "git+https://github.com/eface2face/rtcninja.js.git"
   },
   "keywords": [
     "webrtc"
@@ -23249,35 +24556,43 @@ module.exports={
     "node": ">=0.10.32"
   },
   "dependencies": {
-    "bowser": "^0.7.2",
-    "debug": "^2.1.2",
+    "bowser": "^1.0.0",
+    "debug": "^2.2.0",
     "merge": "^1.2.0"
   },
   "devDependencies": {
-    "browserify": "^9.0.3",
+    "browserify": "^11.0.1",
     "gulp": "git+https://github.com/gulpjs/gulp.git#4.0",
     "gulp-expect-file": "0.0.7",
     "gulp-filelog": "^0.4.1",
-    "gulp-header": "^1.2.2",
-    "gulp-jshint": "^1.9.2",
-    "gulp-rename": "^1.2.0",
-    "gulp-uglify": "^1.1.0",
-    "jshint-stylish": "^1.0.1",
-    "vinyl-transform": "^1.0.0"
+    "gulp-header": "^1.7.1",
+    "gulp-jscs": "^2.0.0",
+    "gulp-jscs-stylish": "^1.1.2",
+    "gulp-jshint": "^1.11.2",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.4.0",
+    "jshint-stylish": "^2.0.1",
+    "retire": "^1.1.1",
+    "shelljs": "^0.5.3",
+    "vinyl-source-stream": "^1.1.0"
   },
-  "gitHead": "cc8a7e5bd3629120c3328b9c79b21f68aec520dd",
+  "gitHead": "18789cbefdb5a6c6c038ab4f1ce8e9e3813135b0",
   "bugs": {
     "url": "https://github.com/eface2face/rtcninja.js/issues"
   },
-  "_id": "rtcninja@0.5.3",
+  "_id": "rtcninja@0.6.4",
   "scripts": {},
-  "_shasum": "5916b1270993d936b979d8bd049523f79fa3f914",
-  "_from": "rtcninja@>=0.5.3 <0.6.0",
+  "_shasum": "7ede8577ce978cb431772d877967c53aadeb5e99",
+  "_from": "rtcninja@>=0.6.4 <0.7.0",
   "_npmVersion": "2.5.1",
   "_nodeVersion": "0.12.0",
   "_npmUser": {
     "name": "ibc",
     "email": "ibc@aliax.net"
+  },
+  "dist": {
+    "shasum": "7ede8577ce978cb431772d877967c53aadeb5e99",
+    "tarball": "http://registry.npmjs.org/rtcninja/-/rtcninja-0.6.4.tgz"
   },
   "maintainers": [
     {
@@ -23285,16 +24600,12 @@ module.exports={
       "email": "ibc@aliax.net"
     }
   ],
-  "dist": {
-    "shasum": "5916b1270993d936b979d8bd049523f79fa3f914",
-    "tarball": "http://registry.npmjs.org/rtcninja/-/rtcninja-0.5.3.tgz"
-  },
   "directories": {},
-  "_resolved": "http://registry.npmjs.org/rtcninja/-/rtcninja-0.5.3.tgz",
+  "_resolved": "https://registry.npmjs.org/rtcninja/-/rtcninja-0.6.4.tgz",
   "readme": "ERROR: No README data found!"
 }
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 var grammar = module.exports = {
   v: [{
       name: 'version',
@@ -23344,17 +24655,21 @@ var grammar = module.exports = {
   a: [
     { //a=rtpmap:110 opus/48000/2
       push: 'rtp',
-      reg: /^rtpmap:(\d*) ([\w\-]*)\/(\d*)(?:\s*\/(\S*))?/,
+      reg: /^rtpmap:(\d*) ([\w\-]*)(?:\s*\/(\d*)(?:\s*\/(\S*))?)?/,
       names: ['payload', 'codec', 'rate', 'encoding'],
       format: function (o) {
         return (o.encoding) ?
           "rtpmap:%d %s/%s/%s":
-          "rtpmap:%d %s/%s";
+          o.rate ?
+          "rtpmap:%d %s/%s":
+          "rtpmap:%d %s";
       }
     },
-    { //a=fmtp:108 profile-level-id=24;object=23;bitrate=64000
+    {
+      //a=fmtp:108 profile-level-id=24;object=23;bitrate=64000
+      //a=fmtp:111 minptime=10; useinbandfec=1
       push: 'fmtp',
-      reg: /^fmtp:(\d*) (\S*)/,
+      reg: /^fmtp:(\d*) ([\S| ]*)/,
       names: ['payload', 'config'],
       format: "fmtp:%d %s"
     },
@@ -23477,6 +24792,10 @@ var grammar = module.exports = {
         return str;
       }
     },
+    { //a=end-of-candidates (keep after the candidates line for readability)
+      name: 'endOfCandidates',
+      reg: /^(end-of-candidates)/
+    },
     { //a=remote-candidates:1 203.0.113.1 54400 2 203.0.113.1 54401 ...
       name: 'remoteCandidates',
       reg: /^remote-candidates:(.*)/,
@@ -23515,6 +24834,10 @@ var grammar = module.exports = {
       name: 'rtcpMux',
       reg: /^(rtcp-mux)/
     },
+    { //a=rtcp-rsize
+      name: 'rtcpRsize',
+      reg: /^(rtcp-rsize)/
+    },
     { // any a= that we don't understand is kepts verbatim on media.invalid
       push: 'invalid',
       names: ["value"]
@@ -23533,9 +24856,9 @@ Object.keys(grammar).forEach(function (key) {
       obj.format = "%s";
     }
   });
-}); 
+});
 
-},{}],40:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var parser = require('./parser');
 var writer = require('./writer');
 
@@ -23545,7 +24868,7 @@ exports.parseFmtpConfig = parser.parseFmtpConfig;
 exports.parsePayloads = parser.parsePayloads;
 exports.parseRemoteCandidates = parser.parseRemoteCandidates;
 
-},{"./parser":41,"./writer":42}],41:[function(require,module,exports){
+},{"./parser":43,"./writer":44}],43:[function(require,module,exports){
 var toIntIfInt = function (v) {
   return String(Number(v)) === v ? Number(v) : v;
 };
@@ -23620,7 +24943,7 @@ var fmtpReducer = function (acc, expr) {
 };
 
 exports.parseFmtpConfig = function (str) {
-  return str.split(';').reduce(fmtpReducer, {});
+  return str.split(/\;\s?/).reduce(fmtpReducer, {});
 };
 
 exports.parsePayloads = function (str) {
@@ -23640,7 +24963,7 @@ exports.parseRemoteCandidates = function (str) {
   return candidates;
 };
 
-},{"./grammar":39}],42:[function(require,module,exports){
+},{"./grammar":41}],44:[function(require,module,exports){
 var grammar = require('./grammar');
 
 // customized util.format - discards excess arguments and can void middle ones
@@ -23756,9 +25079,10 @@ module.exports = function (session, opts) {
   return sdp.join('\r\n') + '\r\n';
 };
 
-},{"./grammar":39}],43:[function(require,module,exports){
+},{"./grammar":41}],45:[function(require,module,exports){
 var _global = (function() { return this; })();
 var nativeWebSocket = _global.WebSocket || _global.MozWebSocket;
+var websocket_version = require('./version');
 
 
 /**
@@ -23790,13 +25114,13 @@ function W3CWebSocket(uri, protocols) {
  */
 module.exports = {
     'w3cwebsocket' : nativeWebSocket ? W3CWebSocket : null,
-    'version'      : require('./version')
+    'version'      : websocket_version
 };
 
-},{"./version":44}],44:[function(require,module,exports){
+},{"./version":46}],46:[function(require,module,exports){
 module.exports = require('../package.json').version;
 
-},{"../package.json":45}],45:[function(require,module,exports){
+},{"../package.json":47}],47:[function(require,module,exports){
 module.exports={
   "name": "websocket",
   "description": "Websocket Client & Server Library implementing the WebSocket protocol as specified in RFC 6455.",
@@ -23817,27 +25141,35 @@ module.exports={
     "email": "brian@worlize.com",
     "url": "https://www.worlize.com/"
   },
-  "version": "1.0.18",
+  "contributors": [
+    {
+      "name": "Iñaki Baz Castillo",
+      "email": "ibc@aliax.net",
+      "url": "http://dev.sipdoc.net"
+    }
+  ],
+  "version": "1.0.22",
   "repository": {
     "type": "git",
-    "url": "https://github.com/theturtle32/WebSocket-Node.git"
+    "url": "git+https://github.com/theturtle32/WebSocket-Node.git"
   },
   "homepage": "https://github.com/theturtle32/WebSocket-Node",
   "engines": {
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "debug": "~2.1.0",
-    "nan": "~1.0.0",
-    "typedarray-to-buffer": "~3.0.0"
+    "debug": "~2.2.0",
+    "nan": "~2.0.5",
+    "typedarray-to-buffer": "~3.0.3",
+    "yaeti": "~0.0.4"
   },
   "devDependencies": {
-    "buffer-equal": "0.0.1",
-    "faucet": "0.0.1",
+    "buffer-equal": "^0.0.1",
+    "faucet": "^0.0.1",
     "gulp": "git+https://github.com/gulpjs/gulp.git#4.0",
-    "gulp-jshint": "^1.9.0",
-    "jshint-stylish": "^1.0.0",
-    "tape": "^3.0.0"
+    "gulp-jshint": "^1.11.2",
+    "jshint-stylish": "^1.0.2",
+    "tape": "^4.0.1"
   },
   "config": {
     "verbose": false
@@ -23852,15 +25184,16 @@ module.exports={
     "lib": "./lib"
   },
   "browser": "lib/browser.js",
-  "gitHead": "2888a6d8c6ea0211b429000d43ed5da76124733f",
+  "license": "Apache-2.0",
+  "gitHead": "19108bbfd7d94a5cd02dbff3495eafee9e901ca4",
   "bugs": {
     "url": "https://github.com/theturtle32/WebSocket-Node/issues"
   },
-  "_id": "websocket@1.0.18",
-  "_shasum": "140280dcc90ed42caa7a701e182a8c9e2dec75ef",
-  "_from": "websocket@>=1.0.17 <2.0.0",
-  "_npmVersion": "2.6.1",
-  "_nodeVersion": "1.4.3",
+  "_id": "websocket@1.0.22",
+  "_shasum": "8c33e3449f879aaf518297c9744cebf812b9e3d8",
+  "_from": "websocket@>=1.0.22 <2.0.0",
+  "_npmVersion": "2.14.3",
+  "_nodeVersion": "3.3.1",
   "_npmUser": {
     "name": "theturtle32",
     "email": "brian@worlize.com"
@@ -23872,19 +25205,19 @@ module.exports={
     }
   ],
   "dist": {
-    "shasum": "140280dcc90ed42caa7a701e182a8c9e2dec75ef",
-    "tarball": "http://registry.npmjs.org/websocket/-/websocket-1.0.18.tgz"
+    "shasum": "8c33e3449f879aaf518297c9744cebf812b9e3d8",
+    "tarball": "http://registry.npmjs.org/websocket/-/websocket-1.0.22.tgz"
   },
-  "_resolved": "http://registry.npmjs.org/websocket/-/websocket-1.0.18.tgz",
+  "_resolved": "https://registry.npmjs.org/websocket/-/websocket-1.0.22.tgz",
   "readme": "ERROR: No README data found!"
 }
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 module.exports={
   "name": "jssip",
   "title": "JsSIP",
   "description": "the Javascript SIP library",
-  "version": "0.6.21",
+  "version": "0.7.8-pre",
   "homepage": "http://jssip.net",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "contributors": [
@@ -23909,25 +25242,24 @@ module.exports={
     "url": "https://github.com/versatica/JsSIP/issues"
   },
   "dependencies": {
-    "debug": "^2.1.2",
-    "rtcninja": "^0.5.3",
-    "sdp-transform": "~1.2.0",
-    "websocket": "^1.0.17"
+    "debug": "^2.2.0",
+    "rtcninja": "^0.6.4",
+    "sdp-transform": "~1.5.0",
+    "websocket": "^1.0.22"
   },
   "devDependencies": {
-    "browserify": "^9.0.3",
+    "browserify": "^11.2.0",
     "gulp": "git+https://github.com/gulpjs/gulp.git#4.0",
     "gulp-expect-file": "0.0.7",
-    "gulp-filelog": "^0.4.1",
-    "gulp-header": "^1.2.2",
-    "gulp-jshint": "^1.9.2",
+    "gulp-header": "^1.7.1",
+    "gulp-jshint": "^1.11.2",
     "gulp-nodeunit-runner": "^0.2.2",
-    "gulp-rename": "^1.2.0",
-    "gulp-uglify": "^1.1.0",
-    "gulp-util": "^3.0.4",
-    "jshint-stylish": "^1.0.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.4.1",
+    "gulp-util": "^3.0.6",
+    "jshint-stylish": "^2.0.1",
     "pegjs": "0.7.0",
-    "vinyl-transform": "^1.0.0"
+    "vinyl-source-stream": "^1.1.0"
   },
   "scripts": {
     "test": "gulp test"
