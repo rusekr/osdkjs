@@ -24,7 +24,7 @@
      * Private variables
      */
 
-    /* --- not exists --- */
+
 
     /*
      * Private methods
@@ -33,28 +33,19 @@
     var methods = {
 
       getId: function(param) {
-        // Hack to MGTS
-        function hackToMGTS(id) {
-          if (module.config('mgts')) {
-            return ((param.substr(0, 1) == '+') ? param.substr(1) : param);
-          } else {
-            return param;
-          }
-        }
-        // Search real id
         if (param) {
           if (utils.isString(param) && utils.isValidID(param)) {
-            return hackToMGTS(param);
+            return param;
           } else {
             if (utils.isObject(param) && param.id && utils.isValidID(param.id)) {
-              return hackToMGTS(param.id);
+              return param.id;
             }
             if (utils.isObject(param) && param.id && utils.isValidLogin(param.id)) {
-              return hackToMGTS(general.authDomainHelper(param.id));
+              return general.authDomainHelper(param.id);
             }
           }
           if (utils.isString(param) && utils.isValidLogin(param)) {
-            return hackToMGTS(general.authDomainHelper(param));
+            return general.authDomainHelper(param);
           }
         }
         return undefined;

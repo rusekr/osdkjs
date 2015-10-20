@@ -261,7 +261,7 @@
           debug: instance.config('debug'),
           timer: instance.config('connection.timer'),
           server: ((oSDKModule.utils.isString(server)) ? server : instance.generateServerUrl(server)),
-          login: ((!instance.config('mgts')) ? arguments[0].data.username.split(':')[1].split('@')[0] : ((arguments[0].data.username.split(':')[1].split('@')[0].substr(0, 1) == '+') ? arguments[0].data.username.split(':')[1].split('@')[0].substr(1) : arguments[0].data.username.split(':')[1].split('@')[0])),
+          login: arguments[0].data.username.split(':')[1].split('@')[0],
           password: arguments[0].data.password,
           domain: arguments[0].data.username.split(':')[1].split('@')[1],
           resource: (instance.config('resource') || 'oSDK-client-' + oSDKModule.utils.uuid().replace('-', '')),
