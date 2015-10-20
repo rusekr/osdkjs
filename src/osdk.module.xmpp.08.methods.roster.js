@@ -133,10 +133,12 @@
         iq.setFrom(this.storage.client.jid || this.storage.client.id);
         var query = iq.setQuery(NS_ROSTER);
         var item = iq.buildNode('item', {
+          xmlns: NS_ROSTER,
           jid: id,
           name: (params.nickname || id.split('@')[0]),
           subscription: 'none'
         });
+
         item.appendChild(iq.buildNode('group', (params.group || 'general')));
         query.appendChild(item);
 
