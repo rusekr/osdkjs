@@ -257,11 +257,13 @@
       oSDKModule.on('gotTempCreds', function() {
         var server = instance.config('connection.server');
         server.domain = arguments[0].data.uris.xmpp[0].split(';')[0];
+        var login = arguments[0].data.username.split(':')[1].split('@')[0];
+        login = instance.config('connection.hack_plus_on_login') ? (login.charAt(0) == '+' ? login.substr(1) : login) : login;
         var params = {
           debug: instance.config('debug'),
           timer: instance.config('connection.timer'),
           server: ((oSDKModule.utils.isString(server)) ? server : instance.generateServerUrl(server)),
-          login: arguments[0].data.username.split(':')[1].split('@')[0],
+          login: login,
           password: arguments[0].data.password,
           domain: arguments[0].data.username.split(':')[1].split('@')[1],
           resource: (instance.config('resource') || 'oSDK-client-' + oSDKModule.utils.uuid().replace('-', '')),

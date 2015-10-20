@@ -29,6 +29,7 @@
       debug: 6,
       // Connection
       connection: {
+        hack_plus_on_login: true,
         // Timer
         timer: 2000,
         // Server params
