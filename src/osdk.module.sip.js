@@ -52,14 +52,18 @@
             store[sessionID].mediaSessionObject.end();
           }
           store[sessionID].mediaSessionObject.localStreams().forEach(function (stream) {
-            if (stream.stop) {
-              stream.stop();
-            }
+            stream.getTracks().forEach(function (track) {
+              if (track.stop) {
+                track.stop();
+              }
+            });
           });
           store[sessionID].mediaSessionObject.remoteStreams().forEach(function (stream) {
-            if (stream.stop) {
-              stream.stop();
-            }
+            stream.getTracks().forEach(function (track) {
+              if (track.stop) {
+                track.stop();
+              }
+            });
           });
         }
         if (!doNotDelete) {
@@ -158,7 +162,11 @@
           audio: true
         };
         var successCallback = function (stream) {
-          stream.stop();
+          stream.getTracks().forEach(function (track) {
+            if (track.stop) {
+              track.stop();
+            }
+          });
           callback.call(this, 'success', mediaToGet);
         };
         var errorCallback = function (err) {
