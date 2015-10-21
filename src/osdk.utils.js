@@ -347,7 +347,7 @@
    */
   var Module = function oSDKModule(name) {
     var self = this;
-    var debugInt = false; // Per-module debug default setting (TODO: parametrize by grunt).
+    var debugInt = true; // Per-module debug default setting (TODO: parametrize by grunt).
     var nameInt = name;
     var clientModuleName = 'client'; // Client module name. (TODO: universalize trigger function and registerEvents interface for not to use 'special' modules).
 
@@ -1254,6 +1254,9 @@
   };
 
   var utils = new Module('utils');
+
+  // Displaying current version
+  utils.log('oSDK version', oSDK.version);
 
   // Module specific DEBUG.
   utils.debug = true;
