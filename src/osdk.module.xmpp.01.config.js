@@ -26,7 +26,7 @@
 
     var configuration = {
       // Debug level
-      debug: 3, //6,
+      debug: 6, //6,
       // Connection
       connection: {
         hack_plus_on_login: true,
