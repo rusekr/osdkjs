@@ -138,7 +138,13 @@
           name: (params.nickname || id.split('@')[0]),
           subscription: 'none'
         });
-
+        /*
+        var item = JSJaCBuilder.buildNode(query, 'item', {
+          jid: id,
+          name: (params.nickname || id.split('@')[0]),
+          subscription: 'none'
+        });
+        */
         item.appendChild(iq.buildNode('group', (params.group || 'general')));
         query.appendChild(item);
 
