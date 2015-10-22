@@ -45,12 +45,9 @@
 
           // Link generator
           function generateLink(param) {
-            if (utils.isString(param)) {
-              return '_' + utils.md5(param);
-            } else {
-              if (utils.isObject(param) && param.id) {
-                return '_' + utils.md5(param.id);
-              }
+            var string = (utils.isString(param) ? param : ((utils.isObject(param) && param.id && utils.isString(param.id)) ? param.id : null));
+            if (string) {
+              return '__' + string.split('@')[0].toLowerCase();
             }
             return false;
           }

@@ -220,7 +220,7 @@
 
     // History key generator
     var keygen = function() {
-      return '__' + settings.lsHistoryName + '__' + utils.md5(client + '+' + contact);
+      return '__' + settings.lsHistoryName + '__' + client + '+' + contact;
     };
 
     // Get history to current user from localStorage

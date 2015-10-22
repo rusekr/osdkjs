@@ -26,9 +26,6 @@
 
     // Keys generator
     var key = function (value) {
-      if (utils) {
-        return '_' + utils.md5(value.toLowerCase());
-      }
       return '_' + value;
     };
 
