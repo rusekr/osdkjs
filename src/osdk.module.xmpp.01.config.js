@@ -26,9 +26,10 @@
 
     var configuration = {
       // Debug level
-      debug: 6,
+      debug: 6, //6,
       // Connection
       connection: {
+        hack_plus_on_login: true,
         // Timer
         timer: 2000,
         // Server params
