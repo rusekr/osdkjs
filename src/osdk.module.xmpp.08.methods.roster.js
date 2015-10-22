@@ -489,7 +489,7 @@
         var i, len = contacts.length;
         for (i = 0; i != len; i++) {
           var contact = contacts[i];
-          var hash = '_' + utils.md5(contact.group);
+          var hash = '_' + contact.group;
           if (typeof saver[hash] == 'undefined' || !saver[hash]) {
             saver[hash] = true;
             result.push(contact.group);
