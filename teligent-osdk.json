@@ -30,12 +30,17 @@
     " * jQuery Simulate (https://github.com/jquery/jquery-simulate)",
     " *  Copyright jQuery Foundation and other contributors",
     " *  License: MIT",
+    " *",
+    " * jsSHA (http://caligatio.github.com/jsSHA/)",
+    " *  Copyright Brian Turek",
+    " *  License: BSD",
     " */",
     ""
   ],
   "_comment": "Modules to source files map",
   "srcFiles": {
     "base": [
+      "libs/jssha/sha_dev.js",
       "src/osdk.namespace.js",
       "src/osdk.utils.js",
 
