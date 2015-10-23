@@ -1,3 +1,11 @@
+/*
+ * JsSIP v0.7.9
+ * the Javascript SIP library
+ * Copyright: 2012-2015 José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)
+ * Homepage: http://jssip.net
+ * License: MIT
+ */
+
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.JsSIP = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var pkg = require('../package.json');
 
@@ -15304,6 +15312,18 @@ RTCSession.prototype.newDTMF = function(data) {
 };
 
 
+RTCSession.prototype.resetLocalMedia = function() {
+  debug('resetLocalMedia()');
+
+  // Reset all but remoteHold.
+  this.localHold = false;
+  this.audioMuted = false;
+  this.videoMuted = false;
+
+  setLocalMediaStatus.call(this);
+};
+
+
 /**
  * Private API.
  */
@@ -16453,30 +16473,24 @@ function mangleOffer(sdp) {
 }
 
 function setLocalMediaStatus() {
-  if (this.localHold) {
-    debug('setLocalMediaStatus() | me on hold, mutting my media');
-    toogleMuteAudio.call(this, true);
-    toogleMuteVideo.call(this, true);
-    return;
-  }
-  else if (this.remoteHold) {
-    debug('setLocalMediaStatus() | remote on hold, mutting my media');
-    toogleMuteAudio.call(this, true);
-    toogleMuteVideo.call(this, true);
-    return;
+  var enableAudio = true,
+    enableVideo = true;
+
+  if (this.localHold || this.remoteHold) {
+    enableAudio = false;
+    enableVideo = false;
   }
 
   if (this.audioMuted) {
-    toogleMuteAudio.call(this, true);
-  } else {
-    toogleMuteAudio.call(this, false);
+    enableAudio = false;
   }
 
   if (this.videoMuted) {
-    toogleMuteVideo.call(this, true);
-  } else {
-    toogleMuteVideo.call(this, false);
+    enableVideo = false;
   }
+
+  toogleMuteAudio.call(this, !enableAudio);
+  toogleMuteVideo.call(this, !enableVideo);
 }
 
 /**
@@ -19302,6 +19316,8 @@ UA.C = C;
 var util = require('util');
 var events = require('events');
 var debug = require('debug')('JsSIP:UA');
+var debugerror = require('debug')('JsSIP:ERROR:UA');
+debugerror.log = console.warn.bind(console);
 var rtcninja = require('rtcninja');
 var JsSIP_C = require('./Constants');
 var Registrator = require('./Registrator');
@@ -19631,28 +19647,46 @@ UA.prototype.normalizeTarget = function(target) {
   return Utils.normalizeTarget(target, this.configuration.hostport_params);
 };
 
+/**
+ * Allow configuration changes in runtime.
+ * Returns true if the parameter could be set.
+ */
+UA.prototype.set = function(parameter, value) {
+  switch(parameter) {
+    case 'password':
+      this.configuration.password = String(value);
+      break;
+
+    default:
+      debugerror('set() | cannot set "%s" parameter in runtime', parameter);
+      return false;
+  }
+
+  return true;
+};
+
 
 //===============================
 //  Private (For internal use)
 //===============================
 
-UA.prototype.saveCredentials = function(credentials) {
-  this.cache.credentials[credentials.realm] = this.cache.credentials[credentials.realm] || {};
-  this.cache.credentials[credentials.realm][credentials.uri] = credentials;
-};
+// UA.prototype.saveCredentials = function(credentials) {
+//   this.cache.credentials[credentials.realm] = this.cache.credentials[credentials.realm] || {};
+//   this.cache.credentials[credentials.realm][credentials.uri] = credentials;
+// };
 
-UA.prototype.getCredentials = function(request) {
-  var realm, credentials;
+// UA.prototype.getCredentials = function(request) {
+//   var realm, credentials;
 
-  realm = request.ruri.host;
+//   realm = request.ruri.host;
 
-  if (this.cache.credentials[realm] && this.cache.credentials[realm][request.ruri]) {
-    credentials = this.cache.credentials[realm][request.ruri];
-    credentials.method = request.method;
-  }
+//   if (this.cache.credentials[realm] && this.cache.credentials[realm][request.ruri]) {
+//     credentials = this.cache.credentials[realm][request.ruri];
+//     credentials.method = request.method;
+//   }
 
-  return credentials;
-};
+//   return credentials;
+// };
 
 
 //==========================
@@ -20096,6 +20130,7 @@ UA.prototype.loadConfig = function(configuration) {
     * Value to be set in Via sent_by and host part of Contact FQDN
     */
     via_host: Utils.createRandomToken(12) + '.invalid',
+    uri_user: Utils.createRandomToken(8),
 
     // Password
     password: null,
@@ -20217,10 +20252,15 @@ UA.prototype.loadConfig = function(configuration) {
     settings.via_host = Utils.getRandomTestNetIP();
   }
 
+  // Hack username passed in contact for some server, == uri.user if boolean or just grabbed assuming it is string
+  if (settings.hack_username_in_contact) {
+    settings.uri_user = (settings.hack_username_in_contact === true) ? settings.uri.user : settings.hack_username_in_contact;
+  }
+
   this.contact = {
     pub_gruu: null,
     temp_gruu: null,
-    uri: new URI('sip', Utils.createRandomToken(8), settings.via_host, null, {transport: 'ws'}),
+    uri: new URI('sip', settings.uri_user, settings.via_host, null, {transport: 'ws'}),
     toString: function(options) {
       options = options || {};
 
@@ -20279,47 +20319,57 @@ UA.prototype.loadConfig = function(configuration) {
  * Configuration Object skeleton.
  */
 UA.configuration_skeleton = (function() {
-  var idx,  parameter,
-  skeleton = {},
-  parameters = [
-    // Internal parameters
-    'jssip_id',
-    'ws_server_max_reconnection',
-    'ws_server_reconnection_timeout',
-    'hostport_params',
+  var
+    idx, parameter, writable,
+    skeleton = {},
+    parameters = [
+      // Internal parameters
+      'jssip_id',
+      'ws_server_max_reconnection',
+      'ws_server_reconnection_timeout',
+      'hostport_params',
 
-    // Mandatory user configurable parameters
-    'uri',
-    'ws_servers',
+      // Mandatory user configurable parameters
+      'uri',
+      'ws_servers',
 
-    // Optional user configurable parameters
-    'authorization_user',
-    'connection_autorecovery',
-    'connection_recovery_max_interval',
-    'connection_recovery_min_interval',
-    'display_name',
-    'hack_via_tcp', // false
-    'hack_via_ws', // false
-    'hack_ip_in_contact', //false
-    'instance_id',
-    'no_answer_timeout', // 30 seconds
-    'session_timers', // true
-    'node_websocket_options',
-    'password',
-    'register_expires', // 600 seconds
-    'registrar_server',
-    'use_preloaded_route',
+      // Optional user configurable parameters
+      'authorization_user',
+      'connection_recovery_max_interval',
+      'connection_recovery_min_interval',
+      'connection_autorecovery',
+      'display_name',
+      'hack_via_tcp', // false
+      'hack_via_ws', // false
+      'hack_ip_in_contact', //false
+      'hack_username_in_contact', //false
+      'instance_id',
+      'no_answer_timeout', // 30 seconds
+      'session_timers', // true
+      'node_websocket_options',
+      'password',
+      'register_expires', // 600 seconds
+      'registrar_server',
+      'use_preloaded_route',
 
-    // Post-configuration generated parameters
-    'via_core_value',
-    'via_host'
-  ];
+      // Post-configuration generated parameters
+      'via_core_value',
+      'via_host',
+      'uri_user'
+    ];
 
   for(idx in parameters) {
     parameter = parameters[idx];
+
+    if (['password'].indexOf(parameter) !== -1) {
+      writable = true;
+    } else {
+      writable = false;
+    }
+
     skeleton[parameter] = {
       value: '',
-      writable: false,
+      writable: writable,
       configurable: false
     };
   }
@@ -20475,6 +20525,12 @@ UA.configuration_check = {
     hack_ip_in_contact: function(hack_ip_in_contact) {
       if (typeof hack_ip_in_contact === 'boolean') {
         return hack_ip_in_contact;
+      }
+    },
+
+    hack_username_in_contact: function(hack_username_in_contact) {
+      if (typeof hack_username_in_contact === 'boolean' || typeof hack_username_in_contact === 'string') {
+        return hack_username_in_contact;
       }
     },
 
@@ -25217,7 +25273,7 @@ module.exports={
   "name": "jssip",
   "title": "JsSIP",
   "description": "the Javascript SIP library",
-  "version": "0.7.8-pre",
+  "version": "0.7.9",
   "homepage": "http://jssip.net",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "contributors": [
@@ -25255,7 +25311,7 @@ module.exports={
     "gulp-jshint": "^1.11.2",
     "gulp-nodeunit-runner": "^0.2.2",
     "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^1.4.1",
+    "gulp-uglify": "^1.4.2",
     "gulp-util": "^3.0.6",
     "jshint-stylish": "^2.0.1",
     "pegjs": "0.7.0",
