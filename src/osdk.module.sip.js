@@ -33,7 +33,8 @@
     turn: null,
     use_preloaded_route: false,
     hack_via_tcp: true,
-    hack_ip_in_contact: true
+    hack_ip_in_contact: true,
+    hack_username_in_contact: true
   };
 
   // RTC sessions array
@@ -638,7 +639,11 @@
      * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.localStreams = function () {
-      return evData.session.connection.peerConnection.getLocalStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
+      if (evData.session.connection && evData.session.connection.peerConnection) {
+        return evData.session.connection.peerConnection.getLocalStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
+      } else {
+        return [];
+      }
     };
 
     /**
@@ -649,7 +654,11 @@
      * @returns {Stream[]} Array of {@link http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream MediaStream} objects.
      */
     self.remoteStreams = function () {
-      return evData.session.connection.peerConnection.getRemoteStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
+      if (evData.session.connection && evData.session.connection.peerConnection) {
+        return evData.session.connection.peerConnection.getRemoteStreams.apply(evData.session.connection.peerConnection, [].slice.call(arguments, 0));
+      } else {
+        return [];
+      }
     };
 
     /**
@@ -1007,7 +1016,8 @@
       'authorization_user': registrarUsername,
       'use_preloaded_route': module.config('use_preloaded_route'),
       'hack_via_tcp': module.config('hack_via_tcp'),
-      'hack_ip_in_contact': module.config('hack_ip_in_contact')
+      'hack_ip_in_contact': module.config('hack_ip_in_contact'),
+      'hack_username_in_contact': module.config('hack_username_in_contact')
     };
     module.log('SIP registering with config', registrarConfig);
     module.initialize(registrarConfig);
