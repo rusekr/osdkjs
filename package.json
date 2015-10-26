@@ -1,6 +1,7 @@
 {
   "name": "opensdp-osdk",
   "title": "Teligent oSDK: JavaScript Library",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "http://git.teligent.ru/cgit/opensdp/osdkjs.git/"
