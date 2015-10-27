@@ -139,7 +139,7 @@
           subscription: 'none'
         });
         /*
-        var item = JSJaCBuilder.buildNode(query, 'item', {
+        var item = JSJaCBuilder.buildNode(query.ownerDocument, 'item', {
           jid: id,
           name: (params.nickname || id.split('@')[0]),
           subscription: 'none'

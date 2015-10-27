@@ -110,6 +110,15 @@
       'receivedMessage': {client: true},
 
       /**
+       * Dispatched when new message was delivered
+       *
+       * @memberof MessagingAPI
+       * @event messageDelivered
+       * @param {string} message id
+       */
+      'messageDelivered': {client: true},
+
+      /**
        * Dispatched when new authorization request is recieved
        *
        * @memberof RosterAPI

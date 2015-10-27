@@ -48,13 +48,13 @@
           onSuccess: function(response) {
             handlers.onSuccess(response);
           }
-        });
+        }, true);
 
         return true;
 
       },
 
-      sendPresence: function(params, callbacks) {
+      sendPresence: function(params, callbacks, initial) {
 
         var handlers = this.prepareHandlers(callbacks);
 
@@ -91,6 +91,10 @@
             oSDKNode.appendChild(json);
           }
           presence.appendNode(oSDKNode);
+        }
+
+        if (initial) {
+          /* TODO */
         }
 
         if (this.connection.send(presence)) {

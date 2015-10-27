@@ -39,6 +39,11 @@
           port: 5280,
           url: 'http-bind'
         }
+      },
+      xmpp: {
+        AddMessageId: true,               // Add attr id to message
+        AddMessageType: true,             // Add attr type to message (always add attr id to message)
+        MessageDeliveryReceipts: true     // Message Delivery Receipts (xep0184)
       }
     };
 

@@ -63,6 +63,20 @@
         message: {
 
           fnOnIncoming: function(packet) {
+            var stop = false, i, t;
+            for (i = 0; i != packet.doc.childNodes[0].childNodes.length; i++) {
+              switch(packet.doc.childNodes[0].childNodes[i].nodeName) {
+                case 'received' :
+                  stop = true;
+                  for (t = 0; t != packet.doc.childNodes[0].childNodes[i].attributes.length; t ++) {
+                    if (packet.doc.childNodes[0].childNodes[i].attributes[t].nodeName == 'id') {
+                      module.trigger('messageDelivered', {id: packet.doc.childNodes[0].childNodes[i].attributes[t].nodeValue});
+                    }
+                  }
+                  break;
+              }
+            }
+            if (stop) return undefined;
             var from = false;
             try {
               var fromJID = packet.getFromJID();
@@ -79,6 +93,8 @@
             }
             if (packet.getBody().htmlEnc() || packet.getSubject().htmlEnc()) {
               var params = {
+                msgId: packet.getID(),
+                msgType: packet.getType(),
                 type: 'text message',
                 from: from,
                 to: general.storage.client.id,
@@ -92,6 +108,23 @@
               }
               general.storage.client.history.push(params);
               module.trigger('receivedMessage', {type: 'text message', data: item});
+              for (i = 0; i != packet.doc.childNodes[0].childNodes.length; i++) {
+                switch(packet.doc.childNodes[0].childNodes[i].nodeName) {
+                  case 'request' :
+                    if (packet.doc.childNodes[0].childNodes[i].namespaceURI == 'urn:xmpp:receipts') {
+                      var message = new JSJaCMessage();
+                      message.setID('msgId_' + general.storage.client.login + '_' + (from.split('@')[0]) + '_' + new Date().getTime() + '_received');
+                      message.setTo(new JSJaCJID(from));
+                      message.setFrom(general.storage.client.jid || general.storage.client.id);
+                      var received = message.buildNode('received');
+                      received.setAttribute('xmlns', 'urn:xmpp:receipts');
+                      received.setAttribute('id', packet.getID());
+                      message.doc.childNodes[0].appendChild(received);
+                      general.connection.send(message);
+                    }
+                    break;
+                }
+              }
             } else {
               /* TODO */
             }
@@ -241,6 +274,23 @@
                     module.trigger('connectionFailed', error);
                   },
                   onSuccess: function(response) {
+                    var contacts = general.storage.contacts.get();
+//                     contacts.forEach(function(value, index) {
+//                       var iq = new JSJaCIQ();
+//                       iq.setIQ(null, 'get', 'disco#info_' + (value.jid || value.id) + '_' + new Date().getTime());
+//                       iq.setFrom(general.storage.client.jid || general.storage.client.id);
+//                       iq.setTo(value.jid || value.id);
+//                       iq.setType('get');
+//                       iq.setQuery('http://jabber.org/protocol/disco#info');
+//                       general.connection.sendIQ(iq, {
+//                         error_handler: function(aiq) {
+//                           /* nothing TODO */
+//                         },
+//                         result_handler: function(aiq, arg) {
+//                           console.warn(aiq.getQuery().childNodes);
+//                         }
+//                       });
+//                     });
                     fire();
                   }
                 });

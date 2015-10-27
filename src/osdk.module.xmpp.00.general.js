@@ -140,6 +140,7 @@
                 result.signature = '';
                 result.group = 'general';
                 result.params = oSDKModule.general.getUnavailableStatusParams();
+                result.disco = [];
 
                 /*
                  * History

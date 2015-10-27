@@ -83,12 +83,27 @@
           return false;
         }
 
+        var msgId = false, msgType = false;
+
+        if (module.config('xmpp.AddMessageId') || module.config('xmpp.AddMessageType')) {
+          msgId = 'msgId_' + this.storage.client.login + '_' + (this.storage.contacts.get(id) || this.getOrCreateContact(id)).login + '_' + new Date().getTime();
+          if (module.config('xmpp.AddMessageType')) {
+            msgType = 'chat';
+          }
+        }
+
         var message = new JSJaCMessage();
+        if (msgId) message.setID(msgId);
         message.setTo(new JSJaCJID(id));
         message.setFrom(this.storage.client.id);
+        if (msgType) message.setType(msgType);
         message.setBody(data.message);
         message.setSubject(data.subject || '');
-
+        if (module.config('xmpp.MessageDeliveryReceipts')) {
+          var request = message.buildNode('request');
+          request.setAttribute('xmlns', 'urn:xmpp:receipts');
+          message.doc.childNodes[0].appendChild(request);
+        }
         if (!this.connection.send(message)) {
           handlers.onError(this.error('0x0'));
           return false;
@@ -100,6 +115,8 @@
             subject: data.subject,
             message: data.message
           };
+          if (msgId) params.msgId = msgId;
+          if (msgType) params.msgType = msgType;
           var item = this.factory.history.createItem(this.storage.client.id, params);
           var contact = this.storage.contacts.get(params.to) || this.getOrCreateContact(params.to);
           if (contact) {
