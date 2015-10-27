@@ -1430,7 +1430,18 @@
     };
 
     // Inserting empty object if absent
-    if (!utils.isString(localStorage.getItem(storeName))) {
+    var error = false;
+    var store = localStorage.getItem(storeName);
+    try {
+      store = JSON.parse(store);
+    } catch (e) {
+      error = true;
+    }
+    if (!utils.isObject(store)) {
+      error = true;
+    }
+
+    if (error) {
       localStorage.setItem(storeName, JSON.stringify({}));
     }
 
