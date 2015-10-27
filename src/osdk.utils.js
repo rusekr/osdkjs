@@ -1430,7 +1430,7 @@
     };
 
     // Inserting empty object if absent
-    if (!utils.isObject(localStorage.getItem(storeName))) {
+    if (!utils.isString(localStorage.getItem(storeName))) {
       localStorage.setItem(storeName, JSON.stringify({}));
     }
 
