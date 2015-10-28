@@ -20,12 +20,6 @@
       // Storage
       this.storage = null;
 
-      // Browser
-      this.browser = {
-        chrome: ((navigator.userAgent.search(/Chrome/) > -1) || (navigator.userAgent.search(/Chromium/) > -1)),
-        firefox: (navigator.userAgent.search(/FireFox/) > -1)
-      };
-
       /*
        * Constants
        */
