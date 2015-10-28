@@ -92,22 +92,32 @@
           }
         }
 
-        var message = new JSJaCMessage();
-        if (msgId) message.setID(msgId);
-        message.setTo(new JSJaCJID(id));
-        message.setFrom(this.storage.client.id);
-        if (msgType) message.setType(msgType);
-        message.setBody(data.message);
-        message.setSubject(data.subject || '');
-        if (module.config('xmpp.MessageDeliveryReceipts')) {
-          var request = message.buildNode('request');
-          request.setAttribute('xmlns', 'urn:xmpp:receipts');
-          message.doc.childNodes[0].appendChild(request);
-        }
-        if (!this.connection.send(message)) {
+        var message;
+
+        /* if (!general.browser.firefox) {
+
+          message = new JSJaCMessage();
+          if (msgId) message.setID(msgId);
+          message.setTo(new JSJaCJID(id));
+          message.setFrom(this.storage.client.id);
+          if (msgType) message.setType(msgType);
+          message.setBody(data.message);
+          message.setSubject(data.subject || '');
+          if (module.config('xmpp.MessageDeliveryReceipts')) {
+            var request = message.buildNode('request');
+            request.setAttribute('xmlns', 'urn:xmpp:receipts');
+            message.doc.childNodes[0].appendChild(request);
+          }
+
+        } */
+
+        message = '<message ' + (msgId ? 'id="' + msgId + '" ' : '') + '' + (msgType ? 'type="' + msgType + '" ' : '') + 'to="' + new JSJaCJID(id) + '" from="' + (this.storage.client.jid || this.storage.client.id) + '"><body>' + data.message + '</body><subject>' + (data.subject || '') + '</subject>' + (module.config('xmpp.MessageDeliveryReceipts') ? '<request xmlns="urn:xmpp:receipts" />' : '') + '</message>';
+
+        if (!this.connection.serializeAndSend(message)) {
           handlers.onError(this.error('0x0'));
           return false;
         } else {
+          console.warn('SEND: ', message);
           var params = {
             type: 'text message',
             from: this.storage.client.id,

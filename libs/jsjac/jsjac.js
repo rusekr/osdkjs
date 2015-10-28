@@ -4,7 +4,7 @@
  * JSJaC is licensed under the terms of the Mozilla Public License
  * version 1.1 or, at your option, under the terms of the GNU General
  * Public License version 2 or subsequent, or the terms of the GNU Lesser
- * General Public License version 2.1 or subsequent. 
+ * General Public License version 2.1 or subsequent.
  *
  * Please visit https://github.com/sstrigler/JSJaC/ for details about JSJaC.
  */
@@ -234,15 +234,15 @@ if (window.XDomainRequest) {
 
             return '';
         };
-        
+
         XMLHttpRequest.prototype.xdrGetAllResponseHeaders = function() {
             return (this.xdr.contentType > '') ? 'Content-Type: ' + this.xdr.contentType : '';
         };
-        
+
         XMLHttpRequest.prototype.xdrSetRequestHeader = function(name, value) {
             //throw new Error('Request headers not supported');
         };
-        
+
         XMLHttpRequest.prototype.xdrLoaded = function() {
             if (this.onreadystatechange !== null) {
                 this.readyState = 4;
@@ -258,7 +258,7 @@ if (window.XDomainRequest) {
                 this.onreadystatechange();
             }
         };
-        
+
         XMLHttpRequest.prototype.xdrError = function() {
             if (this.onreadystatechange !== null) {
                 this.readyState = 4;
@@ -269,7 +269,7 @@ if (window.XDomainRequest) {
                 this.onreadystatechange();
             }
         };
-        
+
         XMLHttpRequest.prototype.xdrProgress = function() {
             if (this.onreadystatechange !== null && this.status !== 3) {
                 this.readyState = 3;
@@ -278,14 +278,14 @@ if (window.XDomainRequest) {
                 this.onreadystatechange();
             }
         };
-        
+
         XMLHttpRequest.prototype.finalXDRRequest = function() {
             var xdr = this.xdr;
             delete xdr.onload;
             delete xdr.onerror;
             delete xdr.onprogress;
         };
-        
+
         XMLHttpRequest.prototype.sendXDR = function(data) {
             var xdr = this.xdr;
 
@@ -296,12 +296,12 @@ if (window.XDomainRequest) {
 
             this.xdr.send(data);
         };
-        
+
         XMLHttpRequest.prototype.abortXDR = function() {
             this.finalXDRRequest();
             this.xdr.abort();
         };
-        
+
         XMLHttpRequest.prototype.setXDRActive = function() {
             this.send = this.sendXDR;
             this.abort = this.abortXDR;
@@ -313,15 +313,15 @@ if (window.XDomainRequest) {
         XMLHttpRequest.prototype.xhrGetResponseHeader = function(name) {
             return this.xhr.getResponseHeader(name);
         };
-        
+
         XMLHttpRequest.prototype.xhrGetAllResponseHeaders = function() {
             return this.xhr.getAllResponseHeaders();
         };
-        
+
         XMLHttpRequest.prototype.xhrSetRequestHeader = function(name, value) {
             return this.xhr.setRequestHeader(name, value);
         };
-        
+
         XMLHttpRequest.prototype.xhrReadyStateChanged = function() {
             if (this.onreadystatechange !== null && this.readyState !== this.xhr.readyState) {
                 var xhr = this.xhr;
@@ -337,7 +337,7 @@ if (window.XDomainRequest) {
                 this.onreadystatechange();
             }
         };
-        
+
         XMLHttpRequest.prototype.finalXHRRequest = function() {
             delete this.xhr.onreadystatechange;
         };
@@ -1552,8 +1552,8 @@ var JSJaCUtils = {
 /*exported JSJaCBuilder */
 
 /**
- * This code is taken from 
- * {@link http://wiki.script.aculo.us/scriptaculous/show/Builder | script.aculo.us' Dom Builder} 
+ * This code is taken from
+ * {@link http://wiki.script.aculo.us/scriptaculous/show/Builder | script.aculo.us' Dom Builder}
  * and has been modified to suit our
  * needs.<br/>
  * The original parts of the code do have the following
@@ -1794,7 +1794,7 @@ var ERR_UNEXPECTED_REQUEST =
 /**
  * A logger that logs using the 'console' object.
  * @constructor
- * @class Implementation of the Debugger interface for 
+ * @class Implementation of the Debugger interface for
  * {@link http://www.getfirebug.com/ | Firebug} and Safari.
  * Creates a new debug logger to be passed to jsjac's connection
  * constructor. Of course you can use it for debugging in your code
@@ -4240,7 +4240,7 @@ JSJaCConnection.prototype._handlePID = function(packet) {
 
   var jid = packet.getFrom() || this.jid;
 
-  if (packet.getFrom() == this.domain) 
+  if (packet.getFrom() == this.domain)
     jid = this.jid;
 
   var id = packet.getID();
@@ -4458,7 +4458,7 @@ JSJaCConnection.prototype._registerPID = function(packet, cb, arg) {
   }
 
   var jid = packet.getTo() || this.jid;
-  
+
   if (packet.getTo() == this.domain)
      jid = this.jid;
 
@@ -5342,6 +5342,15 @@ JSJaCWebSocketConnection.prototype.connect = function(oArg) {
   this._ws.onclose = JSJaC.bind(this._onclose, this);
   this._ws.onerror = JSJaC.bind(this._onerror, this);
   this._ws.onopen = JSJaC.bind(this._onopen, this);
+
+  this.getWSC = function() {
+    return this._ws;
+  };
+
+  this.serializeAndSend = function(packet) {
+    this._ws.send(packet);
+  };
+
 };
 
 /**

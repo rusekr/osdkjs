@@ -112,15 +112,8 @@
                 switch(packet.doc.childNodes[0].childNodes[i].nodeName) {
                   case 'request' :
                     if (packet.doc.childNodes[0].childNodes[i].namespaceURI == 'urn:xmpp:receipts') {
-                      var message = new JSJaCMessage();
-                      message.setID('msgId_' + general.storage.client.login + '_' + (from.split('@')[0]) + '_' + new Date().getTime() + '_received');
-                      message.setTo(new JSJaCJID(from));
-                      message.setFrom(general.storage.client.jid || general.storage.client.id);
-                      var received = message.buildNode('received');
-                      received.setAttribute('xmlns', 'urn:xmpp:receipts');
-                      received.setAttribute('id', packet.getID());
-                      message.doc.childNodes[0].appendChild(received);
-                      general.connection.send(message);
+                      var m = '<message id="' + ('msgId_' + general.storage.client.login + '_' + (from.split('@')[0]) + '_' + new Date().getTime() + '_received') + '" to="' + new JSJaCJID(from) + '" from="' + (general.storage.client.jid || general.storage.client.id) + '"><received xmlns="urn:xmpp:receipts" id="' + packet.getID() + '" /></message>';
+                      general.connection.serializeAndSend(m);
                     }
                     break;
                 }
