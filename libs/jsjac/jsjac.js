@@ -5349,6 +5349,7 @@ JSJaCWebSocketConnection.prototype.connect = function(oArg) {
 
   this.serializeAndSend = function(packet) {
     this._ws.send(packet);
+    return true;
   };
 
 };

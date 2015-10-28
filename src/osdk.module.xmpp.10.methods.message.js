@@ -117,7 +117,6 @@
           handlers.onError(this.error('0x0'));
           return false;
         } else {
-          console.warn('SEND: ', message);
           var params = {
             type: 'text message',
             from: this.storage.client.id,
