@@ -970,7 +970,7 @@
     } else if (authCache.uris && module.utils.isArray(authCache.uris.turn)) {
       module.utils.each(authCache.uris.turn, function (uri) {
         turnServers.push({
-          urls: 'turn:' + uri.replace(';', '?'),
+          url: 'turn:' + uri.replace(';', '?'),
           username: authCache.username,
           credential: authCache.password
         });
@@ -984,15 +984,17 @@
       stunServers = [].concat(module.config('stun'));
     } else if (authCache.uris && module.utils.isArray(authCache.uris.stun)) {
       module.utils.each(authCache.uris.stun, function (uri) {
-        stunServers.push('stun:' + uri.replace(/;.*$/, ''));
+        stunServers.push(uri);
       });
     }
 
-    // Combining for jssip 0.6+
+    // Combining for jssip 0.7.*
     var iceServers = [];
     if (stunServers.length) {
-      iceServers.push({
-        urls: stunServers
+      stunServers.forEach(function (server) {
+        iceServers.push({
+          url: 'stun:' + server.replace(/stun:|;.*$/, '')
+        });
       });
     }
     if (turnServers.length) {
@@ -1002,6 +1004,8 @@
     module.config('pcConfig', {
       'iceServers': iceServers
     });
+
+    module.info('final pcConfig', module.config('pcConfig'));
 
     var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
     var registrarConfig = {
