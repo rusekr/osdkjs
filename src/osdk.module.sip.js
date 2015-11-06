@@ -1263,7 +1263,10 @@
    * Described in auth module.
    */
   module.registerNamespaces({
-    'mediaSessions': sessions // TODO: remove after DEBUG
+    // TODO: document
+    'mediaSessions': sessions,
+    // TODO: document
+    'Media': Media
   });
 
   module.registerEvents({
