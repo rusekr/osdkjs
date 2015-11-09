@@ -174,6 +174,7 @@
           module.log('Error while getting media stream: ', err);
           if (mediaToGet.video === false) {
             //if tried already to got only audio
+            mediaToGet.audio = false;
             callback.call(this, 'error', mediaToGet, err);
           }
           else {
@@ -899,15 +900,14 @@
   module.initialize = function (config) {
 
     if (module.config('tryMediaCapabilities')) {
-      Media.tryCapabilities(function (result, props) {
-        if (result == 'success') {
-          clientInt.canAudio = props.audio;
-          clientInt.canVideo = props.video;
-          module.trigger('gotMediaCapabilities', props);
+      Media.tryCapabilities(function (result, props, NavigatorUserMediaError) {
+        if (result != 'success') {
+          props.NavigatorUserMediaError = NavigatorUserMediaError.name;
         }
-        else {
-          throw new module.Error("Media capabilities are not found.");
-        }
+
+        clientInt.canAudio = props.audio;
+        clientInt.canVideo = props.video;
+        module.trigger('gotMediaCapabilities', props);
       });
     }
 
@@ -1313,6 +1313,7 @@
     * @param {object} event The event object associated with this event.
     * @param {boolean} event.audio User's browser allows capturing audio.
     * @param {boolean} event.video User's browser allows capturing video.
+    * @param {string} event.NavigatorUserMediaError User's browser disallow capturing cause (Same error names as in navigator.getUserMedia API).
     *
     */
     'gotMediaCapabilities': { client: true, other: true },
