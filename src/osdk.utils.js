@@ -1569,9 +1569,9 @@
 
   // Own system listeners wrappers TODO: note this events in module developers guide.
   utils.registerEvents({
-    'windowError': { self: true, other: true },
-    'windowBeforeUnload': { self: true, other: true },
-    'DOMContentLoaded': { self: true, other: true },
+    'windowError': { self: true, other: true, client: true },
+    'windowBeforeUnload': { self: true, other: true, client: true },
+    'DOMContentLoaded': { self: true, other: true, client: true },
     'mergedUserConfig': { self: true, other: true },
     // Transit event for use in cross-oSDK communications like between popup and main window oSDKs. Needs subType in event data for identification of real event.
     'transitEvent': { other: true }
