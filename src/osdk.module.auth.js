@@ -570,6 +570,9 @@
 
   // Page windowBeforeUnload and connectionFailed event by other modules handling.
   module.on(['windowBeforeUnload', 'connectionFailed'], function (event) {
+    if (event.type == 'windowBeforeUnload') {
+      module.disconnectedByUser = true;
+    }
     // Gracefully disconnecting keeping token.
     module.disconnect(true);
   });

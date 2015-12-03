@@ -1549,7 +1549,7 @@
   // Dedicated for osdk window.onbeforeunload event handler.
   window.addEventListener('beforeunload', function () {
     utils.info('windowBeforeUnload start');
-    utils.trigger('windowBeforeUnload', { arguments: arguments });
+    utils.trigger('windowBeforeUnload', { originalEvent: arguments });
     utils.info('windowBeforeUnload end');
   }, false);
 
