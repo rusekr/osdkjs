@@ -1197,7 +1197,13 @@
   };
 
   module.on('DOMContentLoaded', function () {
-    module.checkCompatibility();
+    if (AdapterJS && AdapterJS.webRTCReady/*Temasys webRTC*/) {
+      AdapterJS.webRTCReady(function () {
+        module.checkCompatibility();
+      });
+    } else {
+      module.checkCompatibility();
+    }
   });
 
   // Registration stuff
