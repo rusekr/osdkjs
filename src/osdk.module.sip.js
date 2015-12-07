@@ -1,7 +1,7 @@
 /*
  * oSDK SIP module
  */
-(function (oSDK, JsSIP) {
+(function (oSDK, JsSIP, AdapterJS) {
   "use strict";
 
   /**
@@ -36,6 +36,8 @@
     hack_ip_in_contact: true,
     hack_username_in_contact: true
   };
+
+  AdapterJS = AdapterJS || false;
 
   // RTC sessions array
   var sessions = (function () {
