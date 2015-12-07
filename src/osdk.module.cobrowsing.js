@@ -1256,7 +1256,7 @@
     // Forming STOMP URI
     authCache.stompURI = module.config('broker.proto') + '://';
     authCache.stompURI +=
-      module.config('broker.host') ? ((module.config('broker.host') + (module.config('broker.port') ? ':' + module.config('broker.port') : ''))) : ((authCache.uris.stomp && Array.isArray(authCache.uris.stomp) && authCache.uris.stomp.length) ? authCache.uris.stomp[0].split(';')[0] : '');
+      module.config('broker.host') ? ((module.config('broker.host') + (module.config('broker.port') ? ':' + module.config('broker.port') : ''))) : ((authCache.services.stomp && Array.isArray(authCache.services.stomp) && authCache.services.stomp.length && module.utils.isString(authCache.services.stomp[0].uri)) ? authCache.services.stomp[0].uri.split(';')[0] : '');
 
     // Creating STOMP client
     module.stompClient = stompClient(authCache.stompURI);

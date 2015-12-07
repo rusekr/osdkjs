@@ -1,0 +1,31 @@
+{
+    "replacementsTEST": [
+    {
+      "from": "{APIServerURI}",
+      "to": "https://tphone-webfe.osdp.ru"
+    },
+    {
+      "from": "{ephemeralsPath}",
+      "to": "/osdp/sm/common/1.0.3/ephemerals"
+    },
+    {
+      "from": "{authorizePath}",
+      "to": "/osdp/authorize/"
+    },
+    {
+      "from": "{expiresInOverride}",
+      "to": "86400"
+    },
+    {
+      "from": "{developersPortalURI}",
+      "to": ""
+    },
+    {
+      "from": "{downloadPortalURI}",
+      "to": ""
+    },
+    {
+      "from": "{buildPortalURI}",
+      "to": ""
+    }]
+}

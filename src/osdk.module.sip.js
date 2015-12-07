@@ -31,6 +31,7 @@
     debug: true,
     stun: null,
     turn: null,
+    authname: false, // Forauthorization_user, separate from uri username if needed.
     use_preloaded_route: false,
     hack_via_tcp: true,
     hack_ip_in_contact: true,
@@ -958,9 +959,19 @@
     var hosts = [];
     if (module.config('gw.host')) {
       hosts = hosts.concat(module.config('gw.host'));
-    } else if (authCache.uris && module.utils.isArray(authCache.uris.sip)) {
-      module.utils.each(authCache.uris.sip, function (uri) {
-        var domain = uri.split(';')[0];
+    } else if (authCache.services && module.utils.isArray(authCache.services.sip)) {
+      module.utils.each(authCache.services.sip, function (service) {
+        var domain = service.uri.split(';')[0];
+        // NOTICE: That can not be several!
+        if (service.username) {
+          authCache.username = service.username;
+        }
+        if (service.authname) {
+          authCache.authname = service.authname;
+        }
+        if (service.password) {
+          authCache.password = service.password;
+        }
         hosts.push(module.config('gw.proto') + '://' + domain + (domain.split(':').length > 1?'':(':' + module.config('gw.port'))) + '/' + module.config('gw.url'));
       });
     }
@@ -969,12 +980,12 @@
     var turnServers = [];
     if (module.config('turn')) {
       turnServers = [].concat(module.config('turn'));
-    } else if (authCache.uris && module.utils.isArray(authCache.uris.turn)) {
-      module.utils.each(authCache.uris.turn, function (uri) {
+    } else if (authCache.services && module.utils.isArray(authCache.services.turn)) {
+      module.utils.each(authCache.services.turn, function (service) {
         turnServers.push({
-          url: 'turn:' + uri.replace(';', '?'),
-          username: authCache.username,
-          credential: authCache.password
+          url: 'turn:' + service.uri.replace(';', '?'),
+          username: service.username || authCache.username,
+          credential: service.password || authCache.password
         });
       });
     }
@@ -984,9 +995,9 @@
     module.log('stun', module.config('stun'));
     if (module.config('stun')) {
       stunServers = [].concat(module.config('stun'));
-    } else if (authCache.uris && module.utils.isArray(authCache.uris.stun)) {
-      module.utils.each(authCache.uris.stun, function (uri) {
-        stunServers.push(uri);
+    } else if (authCache.services && module.utils.isArray(authCache.services.stun)) {
+      module.utils.each(authCache.services.stun, function (service) {
+        stunServers.push(service.uri);
       });
     }
 
@@ -1009,7 +1020,12 @@
 
     module.info('final pcConfig', module.config('pcConfig'));
 
-    var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username;
+    // NOTICE: Erasing ephemerals timestamp
+    var registrarUsername = authCache.username.split(':')[1] ? authCache.username.split(':')[1] : authCache.username; 
+    // NOTICE: auto domain if not present
+    if (!registrarUsername.split('@')[1]) {
+      registrarUsername += ('@' + authCache.domain);
+    }
     var registrarConfig = {
       'ws_servers': hosts,
       'no_answer_timeout': 15,
@@ -1019,7 +1035,7 @@
       'pcConfig': module.config('pcConfig'),
       'trace_sip': true,
       'register': true,
-      'authorization_user': registrarUsername,
+      'authorization_user': module.config('authname') || authCache.authname || registrarUsername,
       'use_preloaded_route': module.config('use_preloaded_route'),
       'hack_via_tcp': module.config('hack_via_tcp'),
       'hack_ip_in_contact': module.config('hack_ip_in_contact'),

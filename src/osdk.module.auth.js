@@ -364,7 +364,7 @@
           //service: 'sip' // Not needed now.
         },
         success: function(data) {
-          var uris = {};
+          var services = {};
           if(data.error) {
             module.trigger('auth_connectionError', new module.Error({ 'message': data.error, 'ecode': 'auth0002' }));
           } else {
@@ -380,14 +380,40 @@
             // Array of mixed uris to object of grouped by service
             if(module.utils.isArray(data.uris)) {
               module.utils.each(data.uris, function (uri) {
-                var uriArray = uri.split(':');
-                var serviceName = uriArray.shift().toLowerCase();
-                if(!uris[serviceName]) {
-                  uris[serviceName] = [];
+                var serviceName = false;
+                var serviceObj = {};
+                if (module.utils.isString(uri)) {
+                  // ephemerals 1.0.2
+                  var uriArray = uri.split(':');
+                  serviceName = uriArray.shift().toLowerCase();
+                  if(!services[serviceName]) {
+                    services[serviceName] = [];
+                  }
+                  serviceObj.uri = uriArray.join(':');
+                  services[serviceName].push(serviceObj);
+                } else if (module.utils.isObject(uri)){
+                  // ephemerals 1.0.3
+                  serviceName = uri.type.toLowerCase();
+                  if(!services[serviceName]) {
+                    services[serviceName] = [];
+                  }
+                  Object.keys(uri).forEach(function (key) {
+                    switch (key) {
+                      case 'url':
+                        serviceObj.uri = uri.url;
+                      break;
+                      case 'authusername':
+                        serviceObj.authname = uri.authusername;
+                      break;
+                      default:
+                        serviceObj[key] = uri[key];
+                    }
+                  });
+                  services[serviceName].push(serviceObj);
                 }
-                uris[serviceName].push(uriArray.join(':'));
               });
-              data.uris = uris;
+              delete data.uris;
+              data.services = services;
             }
 
             data.autoDomainHelper = autoDomainHelper;
