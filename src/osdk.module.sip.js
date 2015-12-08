@@ -35,7 +35,7 @@
     use_preloaded_route: false,
     hack_via_tcp: true,
     hack_ip_in_contact: true,
-    hack_username_in_contact: true
+    hack_username_in_contact: null // NOTICE: for default hack_username_in_contact = <contactname>-<uuid>@<contactdomain>
   };
 
   AdapterJS = AdapterJS || false;
@@ -1039,7 +1039,7 @@
       'use_preloaded_route': module.config('use_preloaded_route'),
       'hack_via_tcp': module.config('hack_via_tcp'),
       'hack_ip_in_contact': module.config('hack_ip_in_contact'),
-      'hack_username_in_contact': module.config('hack_username_in_contact')
+      'hack_username_in_contact': (module.config('hack_username_in_contact') !== null ? module.config('hack_username_in_contact') : registrarUsername.split('@')[0] + '-' + module.utils.uuid().slice(0, 8))
     };
     module.log('SIP registering with config', registrarConfig);
     module.initialize(registrarConfig);
