@@ -38,8 +38,6 @@
     hack_username_in_contact: null // NOTICE: for default hack_username_in_contact = <contactname>-<uuid>@<contactdomain>
   };
 
-  AdapterJS = AdapterJS || false;
-
   // RTC sessions array
   var sessions = (function () {
     var
@@ -1215,11 +1213,19 @@
   };
 
   module.on('DOMContentLoaded', function () {
+
+    AdapterJS = AdapterJS || false;
+    if (AdapterJS) {
+      module.log('Found AdapterJS ', AdapterJS.VERSION);
+    }
+
     if (AdapterJS && AdapterJS.webRTCReady/*Temasys webRTC*/) {
       AdapterJS.webRTCReady(function () {
+        module.log('checkCompatibility on AdapterJS.webRTCReady');
         module.checkCompatibility();
       });
     } else {
+      module.log('checkCompatibility on DOMContentLoaded');
       module.checkCompatibility();
     }
   });
@@ -1409,4 +1415,4 @@
   module.registerConfig(defaultConfig);
 
 
-})(oSDK, JsSIP);
+})(oSDK, JsSIP, AdapterJS);

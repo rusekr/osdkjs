@@ -803,7 +803,7 @@
         events[eventType].listeners.push(listener);
         ids.push(id);
 
-        self.log('Added listener for event:', eventType, 'which will be firing', (!fireLast ? 'every' : 'last'), 'emitter fired.');
+        self.log('Added listener for event ', eventType, ' which will be firing ', (!fireLast ? 'every' : 'last'), ' emitter fired.');
       });
       return (ids.length == 1)?ids[0]:ids;
     };
@@ -819,7 +819,7 @@
       if (events[eventTypeOrID]) {
         // Removing all listeners for eventType
         events[eventTypeOrID].listeners = [];
-        self.log('Removed all listeners for event', eventTypeOrID);
+        self.log('Removed all listeners for event ', eventTypeOrID);
       } else {
         // Searching and removing
         var foundById = false;
@@ -1162,9 +1162,9 @@
         }
 
         if (events[i]) {
-          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is exists. Adding emitter.');
+          self.log('Registering event ' + i + '. Event is exists. Adding emitter.');
         } else {
-          self.log('Registering events for module: ' + self.name + '. Event "' + i + '" is new. Creating by emitter.');
+          self.log('Registering event ' + i + '. Event is new. Creating by emitter.');
           events[i] = eventSkel();
 
         }
@@ -1277,7 +1277,7 @@
   var utils = new Module('utils');
 
   // Displaying current version
-  utils.log('oSDK version', oSDK.version);
+  utils.log('oSDK version ', oSDK.version);
 
   // Module specific DEBUG.
   utils.debug = true;
