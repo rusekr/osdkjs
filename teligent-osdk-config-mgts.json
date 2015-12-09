@@ -6,7 +6,7 @@
     },
     {
       "from": "{ephemeralsPath}",
-      "to": "/osdp/sm/common/1.0.2/ephemerals"
+      "to": "/osdp/sm/common/1.0.3/ephemerals"
     },
     {
       "from": "{authorizePath}",
