@@ -55,6 +55,9 @@
   });
 
 
+  // For color logging in other than IE console.
+  var isIE = (window.navigator.userAgent.indexOf('MSIE') !== -1) ? true : false;
+
   // Generic functions
 
   /*
@@ -422,17 +425,28 @@
         if (!self.debug) {
           return;
         }
+        var oSDKName = 'oSDK';
         var d = new Date();
-
-        var arr = ['%coSDK %c' + d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3), ];
-        arr = arr.concat(['color:#2792ff', 'color:#0052ff']);
-        if (self.oSDKModule && self.name != 'utils') {
-          arr[0] += (' %c' + self.name);
-          arr.push('color:#1020ff');
+        oSDKName += ' ';
+        if (!isIE) {
+          oSDKName = '%c' + oSDKName + '%c';
         }
-        arr[0] += '%c: ';
-        arr.push('color:black');
-
+        var arr = [oSDKName + d.toLocaleTimeString() + ':' + pad(d.getMilliseconds(), 3), ];
+        if (!isIE) {
+          arr = arr.concat(['color:#2792ff', 'color:#0052ff']);
+        }
+        if (self.oSDKModule && self.name != 'utils') {
+          arr[0] += ((!isIE ? ' %c' : ' ') + self.name);
+          if (!isIE) {
+            arr.push('color:#1020ff');
+          }
+        }
+        if (!isIE) {
+          arr[0] += '%c: ';
+          arr.push('color:black');
+        } else {
+          arr[0] += ' ';
+        }
         var args = Array.prototype.slice.call(arguments, 0);
         if (isString(args[0])) {
           arr[0] += args.shift();
@@ -441,7 +455,6 @@
         console[method].apply(console, arr.concat(args));
       };
     };
-
     ["assert","clear","dir","error","group", "groupCollapsed", "groupEnd", "info","log","profile","profileEnd","time", "timeEnd", "trace", "warn"].forEach( function (method) {
       self.constructor.prototype[method] = lf(method);
       self[method] = self.constructor.prototype[method].bind(self);
@@ -1049,7 +1062,11 @@
           }
 
           if(notFiredModuleExists) {
-            self.log('%cPostponed %c' + eventType + ' %cfor listener', 'color:#9400D3', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data);
+            if (!isIE) {
+              self.log('%cPostponed %c' + eventType + ' %cfor listener', 'color:#9400D3', 'color:#CA9520', 'color:black', listener, 'with event data', listener.data);
+            } else {
+              self.log('Postponed ' + eventType + ' for listener', listener, 'with event data', listener.data);
+            }
             return;
           }
 
@@ -1067,7 +1084,11 @@
 
           }
 
-          self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listenerData, 'as arguments',fireArgs);
+          if (!isIE) {
+            self.log('%cFiring %c' + eventType + ' %cfor listener', 'color:green', 'color:#CA9520', 'color:black', listener, 'with event data', listenerData, 'as arguments',fireArgs);
+          } else {
+            self.log('Firing ' + eventType + ' for listener', listener, 'with event data', listenerData, 'as arguments',fireArgs);
+          }
 
           listener.handler.apply(triggerEventObject.context, fireArgs);
 
@@ -1540,7 +1561,7 @@
   // Merge config as prefixed.
   utils.mergeClientConfig = function (config) {
     var clientConfig = {};
-    clientConfig[oSDK.utils.clientModuleName] = config;
+    clientConfig[utils.clientModuleName] = config;
     utils.mergeConfig(clientConfig);
   };
 
