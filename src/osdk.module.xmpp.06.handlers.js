@@ -292,10 +292,9 @@
             return undefined;
           },
 
-          fnOnDisconnect: function(param) {
-            general.debug('Handler ::  fnOnDisconnect');
-            general.destroyConnection();
+          fnOnDisconnect: function() {
             var disconnectInitiator = 'system';
+            general.destroyConnection();
             if(module.disconnectedByUser) {
               disconnectInitiator = 'user';
               module.disconnectedByUser = false;
@@ -304,8 +303,7 @@
             return undefined;
           },
 
-          fnOnError: function(param) {
-            general.debug('Handler ::  onError');
+          fnOnError: function() {
             if (general.test('connection')) {
               general.connection.disconnect();
             } else {

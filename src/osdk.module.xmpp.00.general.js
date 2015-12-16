@@ -279,7 +279,8 @@
       });
 
       // Disconnection
-      oSDKModule.on('disconnecting', function () {
+      oSDKModule.on('disconnecting', function (data) {
+        oSDKModule.disconnectedByUser = (data.initiator == 'user') ? true : false;
         if (instance.test('connection')) {
           instance.connection.disconnect();
         }
@@ -292,7 +293,7 @@
   if (oSDK && JSJaC) {
 
     // Create new oSDK module
-    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true;
+    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true; oSDKModule.disconnectedByUser = false;
 
     // Compatibility
     oSDKModule.checkCompatibility = function sipCheckCompatibility() {
