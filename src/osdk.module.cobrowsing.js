@@ -504,7 +504,7 @@
             deltaX: e.deltaX || 0,
             deltaY: e.deltaY || 0,
             deltaZ: e.deltaZ || 0,
-            deltaMode: e.deltaMode || 0,
+            deltaMode: e.deltaMode || 0
           }
         };
         // module.log('emitting captured event for listeners', e);
@@ -1507,8 +1507,7 @@
      * @param {*} [parameterValue] - Parameter value.
      * @returns {*} actualValue - Actual parameter value.
      */
-    cobrowsingOptions: module.setOptions,
-
+    cobrowsingOptions: module.setOptions
   });
 
 })(oSDK);

@@ -1,7 +1,7 @@
 /*
  * oSDK SIP module
  */
-(function (oSDK, JsSIP, AdapterJS) {
+(function (oSDK, JsSIP) {
   "use strict";
 
   /**
@@ -1214,7 +1214,7 @@
 
   module.on('DOMContentLoaded', function () {
 
-    AdapterJS = AdapterJS || false;
+    var AdapterJS = AdapterJS || false;
     if (AdapterJS) {
       module.log('Found AdapterJS ', AdapterJS.VERSION);
     }
@@ -1415,4 +1415,4 @@
   module.registerConfig(defaultConfig);
 
 
-})(oSDK, JsSIP, AdapterJS);
+})(oSDK, JsSIP);
