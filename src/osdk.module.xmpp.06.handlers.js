@@ -249,15 +249,9 @@
             if (packet.doc.childNodes.length) {
               var i, dom = packet.doc.childNodes[0];
               if (dom.nodeName == 'iq') {
-                if (ClientServerPingID == dom.getAttribute('id')) {
-                  if (dom.childNodes.length) {
-                    for (i = 0; i != dom.childNodes.length; i ++) {
-                      if (dom.childNodes[i].nodeName == 'error') {
-                        ClientServerPingNotSupported = true;
-                        if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
-                      }
-                    }
-                  }
+                if (ClientServerPingID == dom.getAttribute('id') && dom.getAttribute('type') == 'error') {
+                  ClientServerPingNotSupported = true;
+                  if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
                 }
               }
             }
