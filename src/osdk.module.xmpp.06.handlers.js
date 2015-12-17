@@ -24,7 +24,13 @@
      * Private variables
      */
 
-
+    var ClientServerPingInterval = null, ClientServerPingNotSupported = false, ClientServerPingCounter = 0, ClientServerPingID = null, fnPing = function() {
+      if (!ClientServerPingNotSupported) {
+        ClientServerPingID = 'csPingId_' + (ClientServerPingCounter ++);
+        general.connection.serializeAndSend('<iq from="' + general.getClient().id + '" to="' + general.getClient().domain + '" id="' + ClientServerPingID + '" type="get"><ping xmlns="urn:xmpp:ping"/></iq>');
+        // console.warn('Ping send, id: ' + ClientServerPingID);
+      }
+    };
 
     /*
      * Private methods
@@ -240,6 +246,21 @@
         packet: {
 
           fnOnIncoming: function(packet) {
+            if (packet.doc.childNodes.length) {
+              var i, dom = packet.doc.childNodes[0];
+              if (dom.nodeName == 'iq') {
+                if (ClientServerPingID == dom.getAttribute('id')) {
+                  if (dom.childNodes.length) {
+                    for (i = 0; i != dom.childNodes.length; i ++) {
+                      if (dom.childNodes[i].nodeName == 'error') {
+                        ClientServerPingNotSupported = true;
+                        if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+                      }
+                    }
+                  }
+                }
+              }
+            }
             return undefined;
           },
 
@@ -284,6 +305,10 @@
 //                         }
 //                       });
 //                     });
+                    if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported) {
+                      if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+                      ClientServerPingInterval = setInterval(fnPing, module.config('xmpp.ClientServerPing'));
+                    }
                     fire();
                   }
                 });
@@ -293,6 +318,8 @@
           },
 
           fnOnDisconnect: function() {
+            if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+            ClientServerPingNotSupported = false;
             var disconnectInitiator = 'system';
             general.destroyConnection();
             if(module.disconnectedByUser) {
@@ -304,6 +331,8 @@
           },
 
           fnOnError: function() {
+            if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+            ClientServerPingNotSupported = false;
             if (general.test('connection')) {
               general.connection.disconnect();
             } else {

@@ -43,7 +43,8 @@
       xmpp: {
         AddMessageId: true,               // Add attr id to message
         AddMessageType: true,             // Add attr type to message (always add attr id to message)
-        MessageDeliveryReceipts: true     // Message Delivery Receipts (xep0184)
+        MessageDeliveryReceipts: true,    // Message Delivery Receipts (xep0184)
+        ClientServerPing: 59000           // Client to Server Ping (xep0199)
       }
     };
 
