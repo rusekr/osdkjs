@@ -268,6 +268,10 @@
 
           fnOnConnect: function(param) {
             general.debug('Handler ::  onConnect');
+            if (module.abortConnection) {
+              general.connection.disconnect();
+              return;
+            }
             function fire() {
               module.trigger('connected', {});
               module.trigger('rosterLoaded', {change: 'contacts', contacts: general.storage.contacts.get()});
@@ -314,7 +318,6 @@
           },
 
           fnOnDisconnect: function() {
-            // console.warn('_.fnOnDISCONNECT, abort flag: ', module.connectionIsAborted);
             if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
             ClientServerPingNotSupported = false;
             var disconnectInitiator = 'system';
@@ -329,12 +332,7 @@
           },
 
           fnOnError: function() {
-            // console.warn('_.fnOnERROR, abort flag: ', module.connectionIsAborted);
             if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
-            if (module.connectionIsAborted) {
-              module.connectionIsAborted = false;
-              return;
-            }
             ClientServerPingNotSupported = false;
             if (general.test('connection')) {
               general.connection.disconnect();

@@ -112,6 +112,9 @@
       },
 
       createConnection: function(params) {
+        
+        var self = this;
+        
         this.debug ('Create new connection: ', params);
         var debug = false;
         if (params.debug || params.debug === 0) {
@@ -160,6 +163,7 @@
           username: params.login,
           password: params.password
         });
+        
       },
 
       destroyConnection: function() {
