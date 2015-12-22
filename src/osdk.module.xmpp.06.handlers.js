@@ -326,6 +326,10 @@
 
           fnOnError: function() {
             if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+            if (general.connectionIsAborted) {
+              general.connectionIsAborted = false;
+              return;
+            }
             ClientServerPingNotSupported = false;
             if (general.test('connection')) {
               general.connection.disconnect();

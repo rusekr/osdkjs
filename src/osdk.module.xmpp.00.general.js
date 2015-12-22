@@ -281,8 +281,14 @@
       // Disconnection
       oSDKModule.on('disconnecting', function (data) {
         oSDKModule.disconnectedByUser = (data.initiator == 'user') ? true : false;
+        oSDKModule.connectionIsAborted = false;
         if (instance.test('connection')) {
           instance.connection.disconnect();
+        } else {
+          try {
+            oSDKModule.connectionIsAborted = true;
+            instance.connection._abort();
+          } catch (eAbort) {/*  */}
         }
         return undefined;
       });

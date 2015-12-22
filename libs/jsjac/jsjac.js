@@ -3731,7 +3731,7 @@ JSJaCConnection.prototype._abort = function() {
   this.oDbg.log("Disconnected.",1);
   this._handleEvent('ondisconnect');
   this._handleEvent('onerror',
-                    JSJaCError('500','cancel','service-unavailable'));
+  JSJaCError('500','cancel','service-unavailable'));
 };
 
 /**
