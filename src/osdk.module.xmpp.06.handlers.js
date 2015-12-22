@@ -268,7 +268,8 @@
 
           fnOnConnect: function(param) {
             general.debug('Handler ::  onConnect');
-            if (module.abortConnection) {
+            if (module.abortConnectionAfterConnect) {
+              module.abortConnectionAfterConnect = false;
               general.connection.disconnect();
               return;
             }
