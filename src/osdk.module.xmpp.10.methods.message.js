@@ -113,7 +113,7 @@
 
         message = '<message ' + (msgId ? 'id="' + msgId + '" ' : '') + '' + (msgType ? 'type="' + msgType + '" ' : '') + 'to="' + new JSJaCJID(id) + '" from="' + (this.storage.client.jid || this.storage.client.id) + '"><body>' + data.message + '</body><subject>' + (data.subject || '') + '</subject>' + (module.config('xmpp.MessageDeliveryReceipts') ? '<request xmlns="urn:xmpp:receipts" />' : '') + '</message>';
 
-        if (!this.connection.serializeAndSend(message)) {
+        if (!this.connection._sendRaw(message)) {
           handlers.onError(this.error('0x0'));
           return false;
         } else {

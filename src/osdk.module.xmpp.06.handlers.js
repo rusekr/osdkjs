@@ -27,7 +27,7 @@
     var ClientServerPingInterval = null, ClientServerPingNotSupported = false, ClientServerPingCounter = 0, ClientServerPingID = null, fnPing = function() {
       if (!ClientServerPingNotSupported) {
         ClientServerPingID = 'csPingId_' + (ClientServerPingCounter ++);
-        general.connection.serializeAndSend('<iq from="' + general.getClient().id + '" to="' + general.getClient().domain + '" id="' + ClientServerPingID + '" type="get"><ping xmlns="urn:xmpp:ping"/></iq>');
+        general.connection._sendRaw('<iq from="' + general.getClient().id + '" to="' + general.getClient().domain + '" id="' + ClientServerPingID + '" type="get"><ping xmlns="urn:xmpp:ping"/></iq>');
         // console.warn('Ping send, id: ' + ClientServerPingID);
       }
     };
@@ -119,7 +119,7 @@
                   case 'request' :
                     if (packet.doc.childNodes[0].childNodes[i].namespaceURI == 'urn:xmpp:receipts') {
                       var m = '<message id="' + ('msgId_' + general.storage.client.login + '_' + (from.split('@')[0]) + '_' + new Date().getTime() + '_received') + '" to="' + new JSJaCJID(from) + '" from="' + (general.storage.client.jid || general.storage.client.id) + '"><received xmlns="urn:xmpp:receipts" id="' + packet.getID() + '" /></message>';
-                      general.connection.serializeAndSend(m);
+                      general.connection._sendRaw(m);
                     }
                     break;
                 }

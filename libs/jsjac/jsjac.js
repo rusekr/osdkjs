@@ -5343,15 +5343,6 @@ JSJaCWebSocketConnection.prototype.connect = function(oArg) {
   this._ws.onerror = JSJaC.bind(this._onerror, this);
   this._ws.onopen = JSJaC.bind(this._onopen, this);
 
-  this.getWSC = function() {
-    return this._ws;
-  };
-
-  this.serializeAndSend = function(packet) {
-    this._ws.send(packet);
-    return true;
-  };
-
 };
 
 /**
