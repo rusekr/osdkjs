@@ -206,7 +206,7 @@
     'disconnected': 'sip_disconnected',
     'registered': ['sip_registered'],
     'unregistered': 'sip_unregistered',
-    'registrationFailed': ['connectionFailed', 'sip_registrationFailed'], // TODO: test
+    'registrationFailed': ['sip_registrationFailed'], // TODO: test
     'connectionFailed': 'sip_connectionFailed',
     'newRTCSession': 'sip_gotMediaSession'
   };
@@ -990,7 +990,6 @@
 
     // Stun
     var stunServers = [];
-    module.log('stun', module.config('stun'));
     if (module.config('stun')) {
       stunServers = [].concat(module.config('stun'));
     } else if (authCache.services && module.utils.isArray(authCache.services.stun)) {
@@ -1052,10 +1051,10 @@
     module.disconnect();
   });
 
-  // On other modules connectionFailed event
-  module.on('connectionFailed', function (data) {
-    module.disconnect();
-  });
+  // Ignoring other modules connectionFailed event. Auth module can handle it and send to us 'disconnecting';
+  //   module.on('connectionFailed', function (data) {
+  //     module.disconnect();
+  //   });
 
   module.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties
@@ -1075,20 +1074,19 @@
   });
 
   module.on('sip_disconnected', function (event) {
+    module.log('Got', event.type, 'event');
     sessions.clear();
 
     var disconnectInitiator = 'system';
     if(module.disconnectedByUser) {
       disconnectInitiator = 'user';
-      module.disconnectedByUser = false;
     }
-
     module.trigger('disconnected', { initiator: disconnectInitiator });
   });
 
     // Handling internal sip_unregistered event
   module.on('sip_unregistered', function (event) {
-
+    module.log('Got', event.type, 'event');
     if (module.disconnectedByUser) {
       return;
     }
@@ -1122,13 +1120,17 @@
   });
 
   // Handling internal connectionFailed event
-  module.on('sip_connectionFailed', function (event) {
+  module.on(['sip_connectionFailed', 'sip_registrationFailed'], function (event) {
     module.trigger('connectionFailed', new module.Error({
       message: "SIP connection failure.",
       ecode: '0125',
       data: event
     }));
     module.trigger('disconnected', { initiator: 'system' });
+  });
+
+  module.on('self:disconnected', function () {
+    module.disconnectedByUser = false;
   });
 
   /**
@@ -1192,7 +1194,6 @@
         message: 'Your browser do not support getUserMedia.'
       });
       module.trigger(['incompatible', 'connectionFailed'], err);
-      throw err;
     }
     if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
       err = new module.Error({
@@ -1200,7 +1201,6 @@
         message: 'Your browser do not support RTCPeerConnection.'
       });
       module.trigger(['incompatible', 'connectionFailed'], err);
-      throw err;
     }
     if(!window.WebSocket) {
       err = new module.Error({
@@ -1208,27 +1208,25 @@
         message: 'Your browser do not support WebSocket.'
       });
       module.trigger(['incompatible', 'connectionFailed'], err);
-      throw err;
     }
   };
 
-  module.on('DOMContentLoaded', function () {
-
-    var AdapterJS = AdapterJS || false;
-    if (AdapterJS) {
-      module.log('Found AdapterJS ', AdapterJS.VERSION);
-    }
-
-    if (AdapterJS && AdapterJS.webRTCReady/*Temasys webRTC*/) {
-      AdapterJS.webRTCReady(function () {
-        module.log('checkCompatibility on AdapterJS.webRTCReady');
-        module.checkCompatibility();
-      });
-    } else {
+  // Check of browser compatibility.
+  var AdapterJS = AdapterJS || false;
+  if (AdapterJS) {
+    module.log('Found AdapterJS ', AdapterJS.VERSION);
+  }
+  if (AdapterJS && AdapterJS.webRTCReady/*Temasys webRTC*/) {
+    AdapterJS.webRTCReady(function () {
+      module.log('checkCompatibility on AdapterJS.webRTCReady');
+      module.checkCompatibility();
+    });
+  } else {
+    module.on('DOMContentLoaded', function () {
       module.log('checkCompatibility on DOMContentLoaded');
       module.checkCompatibility();
-    }
-  });
+    });
+  }
 
   // Registration stuff
 
@@ -1394,22 +1392,22 @@
     /*
      * Described in auth module
      */
-    'disconnected': { other: true, client: true },
+    'disconnected': { self: true, other: true },
 
     /*
      * Described in auth module
      */
-    'connected': { other: true, client: true },
+    'connected': { other: true },
 
     /*
      * Described in auth module
      */
-    'connectionFailed': { other: true, client: true },
+    'connectionFailed': { other: true },
 
     /*
     * Described in auth module.
     */
-    'incompatible': { other: true, client: true }
+    'incompatible': { other: true }
   });
 
   module.registerConfig(defaultConfig);

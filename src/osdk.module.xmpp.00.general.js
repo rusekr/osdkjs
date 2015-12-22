@@ -283,6 +283,8 @@
         oSDKModule.disconnectedByUser = (data.initiator == 'user') ? true : false;
         if (instance.test('connection')) {
           instance.connection.disconnect();
+        } else {
+          oSDKModule.trigger('disconnected');
         }
         return undefined;
       });
@@ -304,7 +306,6 @@
           message: 'Your browser do not support WebSocket.'
         });
         oSDKModule.trigger(['incompatible', 'connectionFailed'], err);
-        throw err;
       }
     };
 

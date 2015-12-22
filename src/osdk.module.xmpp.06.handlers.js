@@ -12,7 +12,7 @@
   if (oSDK && JSJaC) {
 
     // oSDK XMPP module
-    var module = oSDK.utils.modules.xmpp;
+    var module = new oSDK.utils.Module('xmpp');
 
     // General component of oSDK XMPP module
     var general = module.general;
@@ -275,11 +275,13 @@
             general.rosterLoadAndParse({
               onError: function(error) {
                 module.trigger('connectionFailed', error);
+                module.trigger('disconnected');
               },
               onSuccess: function(response) {
                 general.initPresence({
                   onError: function(error) {
                     module.trigger('connectionFailed', error);
+                    module.trigger('disconnected');
                   },
                   onSuccess: function(response) {
                     var contacts = general.storage.contacts.get();
@@ -331,7 +333,7 @@
               general.connection.disconnect();
             } else {
               general.destroyConnection();
-              module.trigger('disconnected', {initiator: 'system'});
+              module.trigger('disconnected');
             }
             module.trigger('connectionFailed', new module.Error({data: arguments}));
             return undefined;

@@ -80,7 +80,7 @@
     }
     var parent = el.parentNode;
     if ((! parent) || parent == el) {
-      console.warn("elementLocation(", el, ") has null parent");
+      module.warn("elementLocation(", el, ") has null parent");
       throw new module.Error("No locatable parent found");
     }
 
@@ -1340,7 +1340,7 @@
       module.eventAccumulator.shutdown();
 
       Object.keys(module.sessions.store).forEach(function (id) {
-        console.info('killing cobrowsing session by id', id, module.sessions[id]);
+        module.info('killing cobrowsing session by id', id, module.sessions[id]);
         if (module.sessions.store[id] && module.sessions.store[id].status != 'ended') {
           module.sessions.store[id].end();
         }
@@ -1362,7 +1362,7 @@
         message: 'Your browser do not support WebSocket.'
       });
       module.trigger('incompatible', err);
-      throw err;
+      module.warn('Incompatible with error ', err);
     }
   };
 
@@ -1456,22 +1456,22 @@
     /*
      * Described in auth module
      */
-    'disconnected': { other: true, client: true },
+    'disconnected': { other: true },
 
     /*
      * Described in auth module
      */
-    'connected': { other: true, client: true },
+    'connected': { other: true },
 
     /*
      * Described in auth module
      */
-    'connectionFailed': { other: true, client: true },
+    'connectionFailed': { other: true },
 
     /*
     * Described in auth module.
     */
-    'incompatible': { other: true, client: true }
+    'incompatible': { other: true }
   });
 
   module.registerMethods({
