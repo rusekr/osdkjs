@@ -165,6 +165,7 @@
       destroyConnection: function() {
         if (this.storage) this.storage.destroy();
         this.storage = null;
+        
         this.connection = null;
       },
 

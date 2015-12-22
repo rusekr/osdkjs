@@ -288,7 +288,9 @@
           try {
             oSDKModule.connectionIsAborted = true;
             instance.connection._abort();
-          } catch (eAbort) {/*  */}
+          } catch (eAbort) {
+            oSDKModule.trigger('disconnected');
+          }
         }
         return undefined;
       });
@@ -310,7 +312,6 @@
           message: 'Your browser do not support WebSocket.'
         });
         oSDKModule.trigger(['incompatible', 'connectionFailed'], err);
-        throw err;
       }
     };
 

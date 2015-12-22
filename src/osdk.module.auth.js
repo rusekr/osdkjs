@@ -16,8 +16,6 @@
   // Module specific DEBUG.
   module.debug = true;
 
-  module.disconnectedByUser = false;
-
   // Internal user object
   var user = {
     login: null,
@@ -66,7 +64,7 @@
     callbackURI: false,
     autoDomain: true, // Auto add domain if user not specified
 
-    apiServerURL: '{APIServerURI}', //TODO: replace this and following with sdk build parameter
+    apiServerURL: '{APIServerURI}',
     credsURI: '{ephemeralsPath}',
     authURI: '{authorizePath}',
     expiresInOverride: '{expiresInOverride}' // Seconds to keep token server oauth2 response override.
@@ -77,6 +75,10 @@
       connectOnGotListenerTries = 0,
       connectOnGotListenerTimeout = 5000,
       connectOnGotListenerThreshold = 500;
+
+  // NOTICE: May be replace counters with module names to track group events more precicely
+  var connectedModules = 0;
+  var disconnectedModules = 0;
 
   // Oauth handling object
   var oauth = (function () {
@@ -115,7 +117,7 @@
       // Checks hash for token, returns true if token found, return false otherwise, if error found throws it
       checkUrl: function () {
 
-        // If we are in popup. TODO: more identify window opener.
+        // If we are in popup. NOTICE: more identify window opener?
         var isOSDKPopup = window.opener && window.opener.oSDK,
             error = '',
             errorDescription = '',
@@ -249,7 +251,7 @@
           var params = "menubar=no,location=yes,resizable=yes,scrollbars=yes,status=no,width=800,height=600";
           authPopup = window.open(authUrl, "oSDP Auth", params);
           if(authPopup === null) {
-            // TODO: autochange type of request to redirect?
+            // NOTICE: autochange type of request to redirect?
             alert('Error. Authorization popup blocked by browser.');
           }
 
@@ -330,6 +332,7 @@
       return;
     }
     module.status('connecting');
+    connectedModules = 0;
     module.trigger('connecting');
 
     // Checking user token
@@ -420,9 +423,11 @@
 
             module.trigger(['gotTempCreds'], { 'data': data });
 
-            module.trigger('connected', {
-              user: user
-            });
+            if (module.getEmitters('connected').length == 1) {
+              module.trigger('connected', {
+                user: user
+              });
+            }
           }
         },
         error: function(jqxhr) {
@@ -452,24 +457,27 @@
         autoDomainHelper: autoDomainHelper
       } });
 
-      module.trigger('connected', {
-        user: user
-      });
+      // If auth is only module to handle connected and disconnected =D
+      if (module.getEmitters('connected').length == 1) {
+        module.trigger('connected', {
+          user: user
+        });
+      }
     }
   };
 
   // Disconnect function for clearing system stuff.
-  module.disconnect = function (keepToken) {
-    if(module.status() == 'disconnecting') {
+  module.disconnect = function (keepToken, byUser) {
+    if(module.status() == 'disconnecting' || module.status() == 'disconnected') {
       return false;
     }
-
+    module.log('Invoked disconnect with keepToken and byUser', keepToken, byUser);
     var disconnectInitiator = 'system';
-    if (module.disconnectedByUser) {
+    if (byUser) {
       disconnectInitiator = 'user';
-      module.disconnectedByUser = false;
     }
 
+    disconnectedModules = 0;
     module.status('disconnecting');
     module.trigger('disconnecting', { initiator: disconnectInitiator });
 
@@ -477,13 +485,15 @@
       oauth.clearToken();
     }
 
-    module.trigger('disconnected', { initiator: disconnectInitiator });
+    // If auth is only module to handle connected and disconnected =D
+    if (module.getEmitters('disconnected').length == 1) {
+      module.trigger('disconnected', { initiator: disconnectInitiator });
+    }
   };
 
   // Disconnect function for client
   module.disconnectManually = function (keepToken) {
-    module.disconnectedByUser = true;
-    module.disconnect(keepToken);
+    module.disconnect(keepToken, true);
   };
 
   // Returns status of user access token to client.
@@ -497,6 +507,7 @@
     var events  = module.utils.events;
     if(events.connected && events.connected.listeners.length) {
       connectOnGotListenerTries = 0;
+      module.log('connectOnGotListener trigger connect()');
       module.connect();
     } else {
       connectOnGotListenerTries++;
@@ -563,7 +574,7 @@
         if(module.status() == 'waitingForPopup') {
           module.status('disconnected');
         }
-
+        module.log('gotTokenFromPopup trigger connect()');
         module.connect();
       }, false);
       oauth.popup().close();
@@ -595,12 +606,16 @@
   });
 
   // Page windowBeforeUnload and connectionFailed event by other modules handling.
-  module.on(['windowBeforeUnload', 'connectionFailed'], function (event) {
+  module.on(['windowBeforeUnload', 'other:connectionFailed'], function (event) {
+    var disconnectedByUser = false;
     if (event.type == 'windowBeforeUnload') {
-      module.disconnectedByUser = true;
+      disconnectedByUser = true;
+    }
+    if (event.type == 'connectionFailed') {
+      module.trigger('connectionFailed', event);
     }
     // Gracefully disconnecting keeping token.
-    module.disconnect(true);
+    module.disconnect(true, disconnectedByUser);
   });
 
   // Page windowBeforeUnload, connectionFailed event by other modules and itself two types of internal errors listener.
@@ -635,18 +650,39 @@
 
     if (connectOnDOMContendLoadedTries) {
       connectOnDOMContendLoadedTries = 0;
+      module.log('DOMContentLoaded connectOnDOMContendLoadedTries trigger connect()');
       module.connect();
     }
   });
 
   // Setting status "connected" when last module throw "connected".
-  module.on('connected:last', function () {
-    module.status('connected');
+  module.on('other:connected', function (data) {
+    if (module.status() == 'connected') {
+      module.log('Already connected');
+      return;
+    }
+    connectedModules++;
+    module.log('connectedModules ', connectedModules, ' from ', module.getEmitters(data.type).length - 1);
+    if (module.getEmitters(data.type).length - 1 == connectedModules) {
+      module.status('connected');
+      module.trigger('connected', {
+          user: user
+      });
+    }
   });
 
   // Setting status "disconnected" when last module throw "disconnected".
-  module.on('disconnected:last', function () {
-    module.status('disconnected');
+  module.on('other:disconnected', function (data) {
+    if (module.status() == 'disconnected') {
+      module.log('Already disconnected');
+      return;
+    }
+    disconnectedModules++;
+    module.log('disconnectedModules ', disconnectedModules, ' from ', module.getEmitters(data.type).length - 1);
+    if (module.getEmitters(data.type).length - 1 == disconnectedModules) {
+      module.status('disconnected');
+      module.trigger('disconnected', data);
+    }
   });
 
   // Registering methods in oSDK.
@@ -734,7 +770,7 @@
     * @param {ConnectionAPI~ConnectedEventObject} event The event object associated with this event.
     *
     */
-    'connected': { self: true, other: true, client: true, clears: ['disconnected', 'connectionFailed'] },
+    'connected': { self: true, client: true },
 
     /**
     * Dispatched when oSDK started disconnection process.
@@ -758,7 +794,7 @@
     * @param {String} initiator - Initiator of disconnected event. Can be "system" or "user".
     *
     */
-    'disconnected': { self: true, other: true, client: true, clears: 'connected' },
+    'disconnected': { self: true, client: true },
 
     /**
     * Dispatched when any of built in oSDK modules failed to connect to openSDP network.
@@ -770,7 +806,7 @@
     * @param {Error} event The event object associated with this event.
     *
     */
-    'connectionFailed': { client: true, other: true, clears: 'connected' },
+    'connectionFailed': { client: true },
 
     /**
     * Dispatched if module finds some incompatibilities with current browser.
@@ -780,7 +816,7 @@
     * @param {Error} event The event object associated with this event.
     *
     */
-    'incompatible': { other: true, client: true },
+    'incompatible': { client: true },
 
     /*
      * Inner events

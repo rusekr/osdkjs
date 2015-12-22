@@ -24,7 +24,7 @@
   if (oSDK && JSJaC) {
 
     // oSDK XMPP module
-    var module = oSDK.utils.modules.xmpp;
+    var module = new oSDK.utils.Module('xmpp');
 
     // General component of oSDK XMPP module
     var general = module.general;
@@ -38,16 +38,16 @@
 
     module.registerEvents({
 
-      'connected': { other: true, client: 'last' },
+      'connected': { other: true },
 
-      'disconnected': { other: true, client: 'last' },
+      'disconnected': { other: true },
 
-      'connectionFailed': { other: true, client: true },
+      'connectionFailed': { other: true },
 
       /*
        * Described in auth module.
        */
-      'incompatible': { other: true, client: true },
+      'incompatible': { other: true },
 
       /**
        * Dispatched when the contact list was downloaded from serverв
