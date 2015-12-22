@@ -352,7 +352,7 @@
 
     // If module already created.
     if (modules[name]) {
-      modules[name].log('Returning existing module.');
+      //modules[name].log('Returning existing module.');
       return modules[name];
     }
 
@@ -992,19 +992,19 @@
           if (eventEmitterObject.emitTo.length) {
             // Not firing to itself if not configured
             if (listener.module == self.name && eventEmitterObject.emitTo.indexOf('self') == -1) {
-              self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for self.');
+              //self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for self.');
               return;
             }
 
             // Not firing to client if not configured
             if (listener.module == clientModuleName && eventEmitterObject.emitTo.indexOf(clientModuleName) == -1) {
-              self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for client.');
+              //self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for client.');
               return;
             }
 
             // Not firing to other modules if not configured
             if (listener.module != clientModuleName && listener.module != self.name && eventEmitterObject.emitTo.indexOf('other') == -1) {
-              self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for other.');
+              //self.log('Emitter filtered target', eventEmitterObject.emitTo.join(','), '. Skipping for other.');
               return;
             }
           }
@@ -1013,13 +1013,13 @@
           if (listener.listenFrom.length) {
             // Not firing to itself if not configured
             if (listener.module == self.name && listener.listenFrom.indexOf('self') == -1) {
-              self.log('Listener filtered target', listener.listenFrom.join(','), '. Skipping for self.');
+              //self.log('Listener filtered target', listener.listenFrom.join(','), '. Skipping for self.');
               return;
             }
 
             // Not firing to other modules if not configured
             if (listener.module != self.name && listener.listenFrom.indexOf('other') == -1) {
-              self.log('Listener filtered target', listener.listenFrom.join(','), '. Skipping for other.');
+              //self.log('Listener filtered target', listener.listenFrom.join(','), '. Skipping for other.');
               return;
             }
           }
@@ -1029,19 +1029,19 @@
             switch (eventForcedTarget) {
               case 'self':
                 if (listener.module != self.name) {
-                  self.log('Event forced target', eventForcedTarget, '. Skipping for not self.');
+                  //self.log('Event forced target', eventForcedTarget, '. Skipping for not self.');
                   return;
                 }
                 break;
               case 'other':
                 if (listener.module == clientModuleName || listener.module == self.name) {
-                  self.log('Event forced target', eventForcedTarget, '. Skipping for not other.');
+                  //self.log('Event forced target', eventForcedTarget, '. Skipping for not other.');
                   return;
                 }
                 break;
               case 'client':
                 if (listener.module != clientModuleName) {
-                  self.log('Event forced target', eventForcedTarget, '. Skipping for not client.');
+                  //self.log('Event forced target', eventForcedTarget, '. Skipping for not client.');
                   return;
                 }
                 break;

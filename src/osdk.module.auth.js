@@ -697,11 +697,11 @@
   module.on(['other:connectionFailed'], function (event) {
     var disconnectedByUser = false;
     // One connectionFailed at time.
-    if (event.type == 'connectionFailed' && module.status() != 'disconnecting' && module.status() != 'disconnected') {
+    if (module.status() != 'disconnecting' && module.status() != 'disconnected') {
       module.trigger('connectionFailed', event);
+      // Gracefully disconnecting keeping token.
+      module.disconnect(true, disconnectedByUser);
     }
-    // Gracefully disconnecting keeping token.
-    module.disconnect(true, disconnectedByUser);
   });
 
   // Registering methods in oSDK.

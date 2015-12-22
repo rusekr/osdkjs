@@ -19,6 +19,8 @@
 
   module.disconnectedByUser = false;
 
+  module.status = 'disconnected';
+
   var defaultConfig = {
     tryMediaCapabilities: true, // Try media capabilities on app start
 
@@ -37,6 +39,8 @@
     hack_ip_in_contact: true,
     hack_username_in_contact: null // NOTICE: for default hack_username_in_contact = <contactname>-<uuid>@<contactdomain>
   };
+
+  var disconnectAfterConntect = false;
 
   // RTC sessions array
   var sessions = (function () {
@@ -926,6 +930,7 @@
         ecode: '0001',
         data: data
       }));
+      module.status = 'disconnected';
       module.trigger(['disconnected'], { initiator: 'system' });
     }
 
@@ -935,15 +940,28 @@
 
   // Sip start method
   module.connect = function () {
+    if (module.status == 'connecting' || module.status == 'connected') {
+      return;
+    }
+    module.status = 'connecting';
     module.JsSIPUA.start();
   };
 
   // Sip stop method
   module.disconnect = function () {
-    if (module.JsSIPUA) {
+    if (module.status == 'disconnecting' || module.status == 'disconnected') {
+      return;
+    }
+    if (module.status == 'connecting') {
+      disconnectAfterConntect = true;
+    }
+    module.status = 'disconnecting';
+
+    if (module.JsSIPUA && module.JsSIPUA.isConnected()) {
       module.JsSIPUA.stop();
     } else {
       // If sip is already in disconnected state - signaling about that.
+      module.status = 'disconnected';
       module.trigger('disconnected');
     }
   };
@@ -1076,6 +1094,7 @@
     if(module.disconnectedByUser) {
       disconnectInitiator = 'user';
     }
+    module.status = 'disconnected';
     module.trigger('disconnected', { initiator: disconnectInitiator });
   });
 
@@ -1110,7 +1129,13 @@
 
     event.data.otherSessions = gruus;
 
+    module.status = 'connected';
     module.trigger('connected', event);
+
+    if (disconnectAfterConntect) {
+      disconnectAfterConntect = false;
+      module.disconnect();
+    }
 
   });
 
@@ -1121,6 +1146,7 @@
       ecode: '0125',
       data: event
     }));
+    module.status = 'disconnected';
     module.trigger('disconnected', { initiator: 'system' });
   });
 
