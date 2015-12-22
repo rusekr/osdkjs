@@ -940,7 +940,7 @@
 
   // Sip stop method
   module.disconnect = function () {
-    if (module.JsSIPUA && module.JsSIPUA.isConnected()) {
+    if (module.JsSIPUA) {
       module.JsSIPUA.stop();
     } else {
       // If sip is already in disconnected state - signaling about that.
@@ -1050,11 +1050,6 @@
     module.disconnectedByUser = (data.initiator == 'user')?true:false;
     module.disconnect();
   });
-
-  // Ignoring other modules connectionFailed event. Auth module can handle it and send to us 'disconnecting';
-  //   module.on('connectionFailed', function (data) {
-  //     module.disconnect();
-  //   });
 
   module.on('sip_gotMediaSession', function (event) {
     // Augmenting session object with useful properties

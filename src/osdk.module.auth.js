@@ -76,9 +76,9 @@
       connectOnGotListenerTimeout = 5000,
       connectOnGotListenerThreshold = 500;
 
-  // NOTICE: May be replace counters with module names to track group events more precicely
-  var connectedModules = 0;
-  var disconnectedModules = 0;
+  // For tracking connected and disconnected group events
+  var connectedModules = {};
+  var disconnectedModules = {};
 
   // Oauth handling object
   var oauth = (function () {
@@ -332,7 +332,7 @@
       return;
     }
     module.status('connecting');
-    connectedModules = 0;
+    connectedModules = {};
     module.trigger('connecting');
 
     // Checking user token
@@ -477,7 +477,7 @@
       disconnectInitiator = 'user';
     }
 
-    disconnectedModules = 0;
+    disconnectedModules = {};
     module.status('disconnecting');
     module.trigger('disconnecting', { initiator: disconnectInitiator });
 
@@ -605,16 +605,8 @@
     }
   });
 
-  // Page windowBeforeUnload and connectionFailed event by other modules handling.
-  module.on(['windowBeforeUnload', 'other:connectionFailed'], function (event) {
-    var disconnectedByUser = false;
-    if (event.type == 'windowBeforeUnload') {
-      disconnectedByUser = true;
-    }
-    if (event.type == 'connectionFailed') {
-      module.trigger('connectionFailed', event);
-    }
-    // Gracefully disconnecting keeping token.
+  module.on(['windowBeforeUnload'], function (event) {
+    var disconnectedByUser = true;
     module.disconnect(true, disconnectedByUser);
   });
 
@@ -661,9 +653,17 @@
       module.log('Already connected');
       return;
     }
-    connectedModules++;
-    module.log('connectedModules ', connectedModules, ' from ', module.getEmitters(data.type).length - 1);
-    if (module.getEmitters(data.type).length - 1 == connectedModules) {
+    connectedModules[data.module] = true;
+    module.log('connectedModules ', connectedModules, ' from ', module.getEmitters(data.type));
+    var collectionDone = true;
+    module.getEmitters(data.type).forEach(function (emitter) {
+      if (connectedModules[emitter.module] || emitter.module == module.name) {
+        return;
+      } else {
+        collectionDone = false;
+      }
+    });
+    if (collectionDone) {
       module.status('connected');
       module.trigger('connected', {
           user: user
@@ -677,12 +677,31 @@
       module.log('Already disconnected');
       return;
     }
-    disconnectedModules++;
-    module.log('disconnectedModules ', disconnectedModules, ' from ', module.getEmitters(data.type).length - 1);
-    if (module.getEmitters(data.type).length - 1 == disconnectedModules) {
+    disconnectedModules[data.module] = true;
+    module.log('disconnectedModules ', disconnectedModules, ' from ', module.getEmitters(data.type));
+    var collectionDone = true;
+    module.getEmitters(data.type).forEach(function (emitter) {
+      if (disconnectedModules[emitter.module] || emitter.module == module.name) {
+        return;
+      } else {
+        collectionDone = false;
+      }
+    });
+    if (collectionDone) {
       module.status('disconnected');
       module.trigger('disconnected', data);
     }
+  });
+
+  // Page windowBeforeUnload and connectionFailed event by other modules handling.
+  module.on(['other:connectionFailed'], function (event) {
+    var disconnectedByUser = false;
+    // One connectionFailed at time.
+    if (event.type == 'connectionFailed' && module.status() != 'disconnecting' && module.status() != 'disconnected') {
+      module.trigger('connectionFailed', event);
+    }
+    // Gracefully disconnecting keeping token.
+    module.disconnect(true, disconnectedByUser);
   });
 
   // Registering methods in oSDK.
