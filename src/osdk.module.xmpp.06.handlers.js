@@ -314,6 +314,7 @@
           },
 
           fnOnDisconnect: function() {
+            // console.warn('_.fnOnDISCONNECT, abort flag: ', module.connectionIsAborted);
             if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
             ClientServerPingNotSupported = false;
             var disconnectInitiator = 'system';
@@ -322,14 +323,16 @@
               disconnectInitiator = 'user';
               module.disconnectedByUser = false;
             }
+            // console.warn('fire >> oSDK: disconnected');
             module.trigger('disconnected', {initiator: disconnectInitiator});
             return undefined;
           },
 
           fnOnError: function() {
+            // console.warn('_.fnOnERROR, abort flag: ', module.connectionIsAborted);
             if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported && ClientServerPingInterval) clearInterval(ClientServerPingInterval);
-            if (general.connectionIsAborted) {
-              general.connectionIsAborted = false;
+            if (module.connectionIsAborted) {
+              module.connectionIsAborted = false;
               return;
             }
             ClientServerPingNotSupported = false;
@@ -337,8 +340,10 @@
               general.connection.disconnect();
             } else {
               general.destroyConnection();
+              // console.warn('fire >> oSDK: disconnected');
               module.trigger('disconnected');
             }
+            // console.warn('fire >> oSDK: connectionFailed');
             module.trigger('connectionFailed', new module.Error({data: arguments}));
             return undefined;
           },

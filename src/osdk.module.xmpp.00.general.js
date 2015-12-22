@@ -282,6 +282,9 @@
       oSDKModule.on('disconnecting', function (data) {
         oSDKModule.disconnectedByUser = (data.initiator == 'user') ? true : false;
         oSDKModule.connectionIsAborted = false;
+        
+        // console.warn('DISCONNECTING');
+        
         if (instance.test('connection')) {
           instance.connection.disconnect();
         } else {
@@ -301,7 +304,7 @@
   if (oSDK && JSJaC) {
 
     // Create new oSDK module
-    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true; oSDKModule.disconnectedByUser = false;
+    var oSDKModule = new oSDK.utils.Module('xmpp'); oSDKModule.debug = true; oSDKModule.disconnectedByUser = false; oSDKModule.connectionIsAborted = false;
 
     // Compatibility
     oSDKModule.checkCompatibility = function sipCheckCompatibility() {
