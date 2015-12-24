@@ -16,6 +16,8 @@
   // Module specific DEBUG.
   module.debug = true;
 
+  module.disconnectInitiator = 'system';
+
   // Internal user object
   var user = {
     login: null,
@@ -310,6 +312,11 @@
       } else {
         status = newStatus;
         module.log('Setting status', status);
+        if (status == 'connected') {
+          connectedModules = {};
+        } else if (status == 'disconnected') {
+          disconnectedModules = {};
+        }
       }
       return status;
     };
@@ -332,7 +339,6 @@
       return;
     }
     module.status('connecting');
-    connectedModules = {};
     module.trigger('connecting');
 
     // Checking user token
@@ -467,19 +473,14 @@
   };
 
   // Disconnect function for clearing system stuff.
-  module.disconnect = function (keepToken, byUser) {
+  module.disconnect = function (keepToken) {
     if(module.status() == 'disconnecting' || module.status() == 'disconnected') {
       return false;
     }
-    module.log('Invoked disconnect with keepToken and byUser', keepToken, byUser);
-    var disconnectInitiator = 'system';
-    if (byUser) {
-      disconnectInitiator = 'user';
-    }
+    module.log('Invoked disconnect with keepToken and initiator', keepToken, module.disconnectInitiator);
 
-    disconnectedModules = {};
     module.status('disconnecting');
-    module.trigger('disconnecting', { initiator: disconnectInitiator });
+    module.trigger('disconnecting', { initiator: module.disconnectInitiator });
 
     if(keepToken !== true) {
       oauth.clearToken();
@@ -487,13 +488,14 @@
 
     // If auth is only module to handle connected and disconnected =D
     if (module.getEmitters('disconnected').length == 1) {
-      module.trigger('disconnected', { initiator: disconnectInitiator });
+      module.trigger('disconnected', { initiator: module.disconnectInitiator });
     }
   };
 
   // Disconnect function for client
   module.disconnectManually = function (keepToken) {
-    module.disconnect(keepToken, true);
+    module.disconnectInitiator = 'user';
+    module.disconnect(keepToken);
   };
 
   // Returns status of user access token to client.
@@ -606,12 +608,13 @@
   });
 
   module.on(['windowBeforeUnload'], function (event) {
-    var disconnectedByUser = true;
-    module.disconnect(true, disconnectedByUser);
+    module.disconnectInitiator = 'user';
+    module.disconnect(true);
   });
 
   // Page windowBeforeUnload, connectionFailed event by other modules and itself two types of internal errors listener.
   module.on(['auth_oAuthError', 'auth_connectionError'], function (event) {
+    module.disconnectInitiator = 'system';
     module.trigger('connectionFailed', event);
     // Gracefully disconnecting discarding token.
     module.disconnect();
@@ -689,18 +692,18 @@
     });
     if (collectionDone) {
       module.status('disconnected');
-      module.trigger('disconnected', data);
+      module.trigger('disconnected', { initiator: module.disconnectInitiator });
     }
   });
 
   // Page windowBeforeUnload and connectionFailed event by other modules handling.
   module.on(['other:connectionFailed'], function (event) {
-    var disconnectedByUser = false;
+    module.disconnectInitiator = 'system';
     // One connectionFailed at time.
     if (module.status() != 'disconnecting' && module.status() != 'disconnected') {
       module.trigger('connectionFailed', event);
       // Gracefully disconnecting keeping token.
-      module.disconnect(true, disconnectedByUser);
+      module.disconnect(true);
     }
   });
 

@@ -683,11 +683,11 @@
     // Custom methods.
     client.sendToUser = function (userID, data) {
       userID = authCache.autoDomainHelper(userID);
-      return client.send('/user/' + userID, {}, JSON.stringify(data));
+      return this.send('/user/' + userID, {}, JSON.stringify(data));
     };
 
     client.sendInSession = function (sessionID, data) {
-      return client.send('/cobrowsing/' + sessionID, {}, JSON.stringify(data));
+      return this.send('/cobrowsing/' + sessionID, {}, JSON.stringify(data));
     };
 
     client.logLevel = 0; // NOTICE: STOMP client library debug
@@ -696,6 +696,10 @@
       if(module.debug && client.logLevel) {
         module.log.apply(this, Array.prototype.slice.call(arguments, 0));
       }
+    };
+
+    client.isConnected = function () {
+      return (this.ws.readyState == 1/*OPEN*/) ? true : false;
     };
 
     return client;
@@ -1249,6 +1253,7 @@
     if (module.status != 'disconnected') {
       return;
     }
+    module.status = 'connecting';
 
     // Local user attributes cache
     authCache = data;
@@ -1263,8 +1268,6 @@
 
     // Connecting to STOMP broker
     module.stompClient.connect(authCache.username, authCache.password, function connectCallback (event) {
-      module.status = 'connected';
-      module.trigger('connected');
 
       module.userSubscription = module.stompClient.subscribe("/user/" + authCache.id, function userSubscriptionMessage (event) {
         module.log('user subscription event', event);
@@ -1309,6 +1312,9 @@
 
       });
 
+      module.status = 'connected';
+      module.trigger('connected');
+
     }, function errorCallback (event) {
       module.trigger(['connectionFailed'], new module.Error({
         message: "Cobrowsing STOMP broker connection error.",
@@ -1331,26 +1337,28 @@
       module.disconnectInitiator = null;
     };
 
-    if (module.status == 'disconnected') {
-
-      finishDisconnect();
-
-    } else {
-
+    if (module.status != 'disconnected' && module.status != 'disconnecting') {
+      module.status = 'disconnecting';
       module.eventAccumulator.shutdown();
 
       Object.keys(module.sessions.store).forEach(function (id) {
         module.info('killing cobrowsing session by id', id, module.sessions[id]);
-        if (module.sessions.store[id] && module.sessions.store[id].status != 'ended') {
+        if (module.sessions.store[id] && module.sessions.store[id].status != 'ended' && module.sessions.store[id].end) {
           module.sessions.store[id].end();
         }
       });
 
-      module.userSubscription.unsubscribe();
+      if (module.userSubscription && module.userSubscription.unsubscribe) {
+        module.userSubscription.unsubscribe();
+      }
 
-      module.stompClient.disconnect(function stompDisconnect () {
+      if (module.stompClient.isConnected()) {
+        module.stompClient.disconnect(function stompDisconnect () {
+          finishDisconnect();
+        });
+      } else {
         finishDisconnect();
-      });
+      }
     }
   };
 

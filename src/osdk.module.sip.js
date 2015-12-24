@@ -18,6 +18,8 @@
   module.debug = true;
 
   module.disconnectedByUser = false;
+  module.disconnectedByOtherModule = false;
+  module.disconnectAfterConntect = false;
 
   module.status = 'disconnected';
 
@@ -39,8 +41,6 @@
     hack_ip_in_contact: true,
     hack_username_in_contact: null // NOTICE: for default hack_username_in_contact = <contactname>-<uuid>@<contactdomain>
   };
-
-  var disconnectAfterConntect = false;
 
   // RTC sessions array
   var sessions = (function () {
@@ -925,7 +925,7 @@
       // JsSIP initialization
       module.JsSIPUA = new JsSIP.UA(config);
     } catch (data) {
-      module.trigger(['connectionFailed'], new module.Error({
+      module.trigger(['sip_connectionFailed'], new module.Error({
         message: "SIP configuration error.",
         ecode: '0001',
         data: data
@@ -953,16 +953,13 @@
       return;
     }
     if (module.status == 'connecting') {
-      disconnectAfterConntect = true;
+      module.disconnectAfterConntect = true;
+      return;
     }
     module.status = 'disconnecting';
 
     if (module.JsSIPUA && module.JsSIPUA.isConnected()) {
       module.JsSIPUA.stop();
-    } else {
-      // If sip is already in disconnected state - signaling about that.
-      module.status = 'disconnected';
-      module.trigger('disconnected');
     }
   };
 
@@ -1066,6 +1063,7 @@
   // On auth disconnecting event
   module.on('disconnecting', function (data) {
     module.disconnectedByUser = (data.initiator == 'user')?true:false;
+    module.disconnectedByOtherModule = true;
     module.disconnect();
   });
 
@@ -1090,18 +1088,19 @@
     module.log('Got', event.type, 'event');
     sessions.clear();
 
-    var disconnectInitiator = 'system';
-    if(module.disconnectedByUser) {
-      disconnectInitiator = 'user';
+    if(module.disconnectedByUser || module.disconnectedByOtherModule) {
+      module.trigger('disconnected');
+    } else {
+      module.trigger('disconnected', { initiator: 'system' });
     }
     module.status = 'disconnected';
-    module.trigger('disconnected', { initiator: disconnectInitiator });
+
   });
 
     // Handling internal sip_unregistered event
   module.on('sip_unregistered', function (event) {
     module.log('Got', event.type, 'event');
-    if (module.disconnectedByUser) {
+    if (module.disconnectedByUser || module.disconnectedByOtherModule) {
       return;
     }
 
@@ -1132,8 +1131,8 @@
     module.status = 'connected';
     module.trigger('connected', event);
 
-    if (disconnectAfterConntect) {
-      disconnectAfterConntect = false;
+    if (module.disconnectAfterConntect) {
+      module.disconnectAfterConntect = false;
       module.disconnect();
     }
 
@@ -1141,6 +1140,8 @@
 
   // Handling internal connectionFailed event
   module.on(['sip_connectionFailed', 'sip_registrationFailed'], function (event) {
+    module.disconnectedByUser = false;
+    module.disconnectedByOtherModule = false;
     module.trigger('connectionFailed', new module.Error({
       message: "SIP connection failure.",
       ecode: '0125',
@@ -1148,10 +1149,6 @@
     }));
     module.status = 'disconnected';
     module.trigger('disconnected', { initiator: 'system' });
-  });
-
-  module.on('self:disconnected', function () {
-    module.disconnectedByUser = false;
   });
 
   /**
@@ -1214,21 +1211,21 @@
         ecode: '0002',
         message: 'Your browser do not support getUserMedia.'
       });
-      module.trigger(['incompatible', 'connectionFailed'], err);
+      module.trigger(['incompatible', 'sip_connectionFailed'], err);
     }
     if(!window.RTCPeerConnection && !window.mozRTCPeerConnection && !window.webkitRTCPeerConnection) {
       err = new module.Error({
         ecode: '0003',
         message: 'Your browser do not support RTCPeerConnection.'
       });
-      module.trigger(['incompatible', 'connectionFailed'], err);
+      module.trigger(['incompatible', 'sip_connectionFailed'], err);
     }
     if(!window.WebSocket) {
       err = new module.Error({
         ecode: '0004',
         message: 'Your browser do not support WebSocket.'
       });
-      module.trigger(['incompatible', 'connectionFailed'], err);
+      module.trigger(['incompatible', 'sip_connectionFailed'], err);
     }
   };
 
