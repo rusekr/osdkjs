@@ -247,11 +247,107 @@
 
           fnOnIncoming: function(packet) {
             if (packet.doc.childNodes.length) {
-              var i, dom = packet.doc.childNodes[0];
+              var uid, t, i, dom = packet.doc.childNodes[0];
               if (dom.nodeName == 'iq') {
+                // Ping
                 if (ClientServerPingID == dom.getAttribute('id') && dom.getAttribute('type') == 'error') {
                   ClientServerPingNotSupported = true;
                   if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
+                }
+                // vCard
+                if (dom.getAttribute('id').substr(0,5) == 'vCard') {
+                  
+                  if (dom.getAttribute('type') == 'error') {
+                    general.vCardTest();
+                  } else {
+                    uid = (dom.getAttribute('from') || dom.getAttribute('to')).split('/')[0];
+                    dom = dom.childNodes[0];
+                    if (dom.nodeName == 'vCard') {
+                      dom = dom.childNodes;
+                      var vCard = {};
+                      vCard.loaded = true;
+                      for (i = 0; i != dom.length; i ++) {
+                        switch(dom[i].nodeName.toLowerCase()) {
+                          case 'fn' :
+                            vCard.full_name = dom[i].innerHTML;
+                            break;
+                          case 'n' :
+                            for (t = 0; t != dom[i].childNodes.length; t ++) {
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'family') {
+                                vCard.last_name = dom[i].childNodes[t].innerHTML;
+                              }
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'given') {
+                                vCard.first_name = dom[i].childNodes[t].innerHTML;
+                              }
+                            }
+                            break;
+                          case 'nickname' :
+                            vCard.nickname = dom[i].innerHTML;
+                            break;
+                          case 'url' :
+                            vCard.url = dom[i].innerHTML;
+                            break;
+                          case 'adr' :
+                            vCard.address = {};
+                            for (t = 0; t != dom[i].childNodes.length; t ++) {
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'street') {
+                                vCard.address.street = dom[i].childNodes[t].innerHTML;
+                              }
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'locality') {
+                                vCard.address.locality = dom[i].childNodes[t].innerHTML;
+                              }
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'ctry') {
+                                vCard.address.country = dom[i].childNodes[t].innerHTML;
+                              }
+                            }
+                            break;
+                          case 'tel' :
+                            for (t = 0; t != dom[i].childNodes.length; t ++) {
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'number') {
+                                vCard.phone = dom[i].childNodes[t].innerHTML;
+                              }
+                            }
+                            break;
+                          case 'email' :
+                            for (t = 0; t != dom[i].childNodes.length; t ++) {
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'userid') {
+                                vCard.email = dom[i].childNodes[t].innerHTML;
+                              }
+                            }
+                            break;
+                          case 'role' :
+                            vCard.role = dom[i].innerHTML;
+                            break;
+                          case 'bday' :
+                            vCard.birthday = dom[i].innerHTML;
+                            break;
+                          case 'photo' :
+                            vCard.photo = {};
+                            for (t = 0; t != dom[i].childNodes.length; t ++) {
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'type') {
+                                vCard.photo.type = dom[i].childNodes[t].innerHTML;
+                              }
+                              if (dom[i].childNodes[t].nodeName.toLowerCase() == 'binval') {
+                                vCard.photo.bin = dom[i].childNodes[t].innerHTML;
+                              }
+                            }
+                            if (vCard.photo.type && vCard.photo.bin) {
+                              vCard.photo.source = 'data:' + vCard.photo.type + ';base64,' + vCard.photo.bin;
+                            }
+                            break;
+                        }
+                      }
+                      if (general.storage.client.id == uid) {
+                        general.storage.client.vCard = vCard;
+                      } else {
+                        if (general.storage.contacts.get(uid)) {
+                          general.storage.contacts.get(uid).vCard = vCard;
+                        }
+                      }
+                    }
+                    general.vCardTest();
+                  }
+                  
                 }
               }
             }
@@ -289,7 +385,9 @@
                     module.trigger('disconnected');
                   },
                   onSuccess: function(response) {
+                    
                     var contacts = general.storage.contacts.get();
+                    
 //                     contacts.forEach(function(value, index) {
 //                       var iq = new JSJaCIQ();
 //                       iq.setIQ(null, 'get', 'disco#info_' + (value.jid || value.id) + '_' + new Date().getTime());
@@ -306,11 +404,36 @@
 //                         }
 //                       });
 //                     });
+                    
                     if (module.config('xmpp.ClientServerPing') && !ClientServerPingNotSupported) {
                       if (ClientServerPingInterval) clearInterval(ClientServerPingInterval);
                       ClientServerPingInterval = setInterval(fnPing, module.config('xmpp.ClientServerPing'));
                     }
-                    fire();
+                    
+                    // GET vCard's
+                    
+                    var countOfVCardRequests = contacts.length + 1;
+                    
+                    general.vCardTest = function() {
+                      countOfVCardRequests --;
+                      if (!countOfVCardRequests) {
+                        fire();
+                      }
+                    };
+                    
+                    // Client
+                    var iq = '<iq from="' + (general.storage.client.jid || general.storage.client.id) + '" id="vCard_' + general.generateRosterID() + '" type="get"><vCard xmlns="vcard-temp"/></iq>';
+                    general.connection._sendRaw(iq);
+                    
+                    // Contacts
+                    if (contacts.length) {
+                      var counter = contacts.length;
+                      for (var i = 0; i != contacts.length; i ++) {
+                        var contact = contacts[i];
+                        general.getVCard(contact);
+                      }
+                    }
+                    
                   }
                 });
               }

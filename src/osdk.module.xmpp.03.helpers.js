@@ -97,7 +97,7 @@
 
       generateRosterID: function() {
         if (this.storage && this.storage.client.id) {
-          return 'roster_' + this.storage.client.login;
+          return 'roster_' + this.storage.client.login + '_' + new Date().getTime();
         }
         return 'roster_is_undefined';
       },

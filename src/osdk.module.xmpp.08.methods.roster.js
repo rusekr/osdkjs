@@ -31,7 +31,29 @@
      */
 
     var methods = {
+      
+      getVCard: function(params, callbacks) {
+        
+        var handlers = this.prepareHandlers(callbacks);
+        
+        if (!this.test('connection')) {
+          handlers.onError(this.error('1x0'));
+          return false;
+        }
+        
+        var id = this.getId(params);
 
+        if (!this.test('valide id', id)) {
+          handlers.onError(this.error('2x0'));
+          return false;
+        }
+        
+        var iq = '<iq from="' + (this.storage.client.jid || this.storage.client.id) + '" id="vCard_' + this.generateRosterID() + '" to="' + id + '" type="get"><vCard xmlns="vcard-temp"/></iq>';
+        
+        this.connection._sendRaw(iq);
+        
+      },
+      
       rosterLoad: function(callbacks) {
 
         var handlers = this.prepareHandlers(callbacks);

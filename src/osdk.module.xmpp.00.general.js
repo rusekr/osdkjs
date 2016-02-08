@@ -88,6 +88,7 @@
                 result.status = instance.XMPP_PRESENCE_TYPE_AVAILABLE;
                 result.signature = '';
                 result.params = {};
+                result.vCard = {};
 
                 /*
                  * History
@@ -141,6 +142,7 @@
                 result.group = 'general';
                 result.params = oSDKModule.general.getUnavailableStatusParams();
                 result.disco = [];
+                result.vCard = {};
 
                 /*
                  * History

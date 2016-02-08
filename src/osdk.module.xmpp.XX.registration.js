@@ -227,7 +227,16 @@
        * @returns {array} contact list
        */
       getContacts: general.getContacts,
-
+      
+      /**
+       * Load user vCard to contact
+       *
+       * @memberof RosterAPI
+       * @method oSDK.getVCard
+       * @returns {object} contact
+       */
+      getVCard: general.getVCard,
+      
       /**
        * Return element of the contact list, or create it if it does not exist
        *
